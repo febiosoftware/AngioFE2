@@ -28,7 +28,7 @@ Data::Data()
     x0 = 4.9474;
     y0 = -19.1278;
 
-    d = y0 + a/(1+pow(E,x0/b));                                 // d - Initial value of growth curve (t = 0)
+    m_d = y0 + a/(1+pow(E,x0/b));                                 // d - Initial value of growth curve (t = 0)
 
 	vessel_width = 7;                                           // vessel_width - Diameter of microvessels (Default: 7 um)
 	num_anastom = 0;                                            // num_anastom - Initialize anastomoses counter
@@ -40,8 +40,8 @@ Data::Data()
 	nsegs = 0;                                                  // nsegs - Initialize segment counter
     num_vessel = NFRAGS - 1;                                    // num_vessel - Initialize vessel counter
         
-	vess_length = d;
-	old_length = d;
+	vess_length = m_d;
+	old_length = m_d;
 
 	num_lines = -1;
 

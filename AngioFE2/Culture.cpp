@@ -67,14 +67,16 @@ Segment Culture::createInitFrag(Data &data, Grid &grid)
     Segment seg;
 
 	// Set seg length to value of growth function at t = 0
-	seg.length = data.d;
+	seg.length = data.m_d;
     
 	int elem_num = -1;
 	do
 	{
 		// --- position randomly
 		// pick an element
-		elem_num = int((float(rand())/RAND_MAX)*grid.Elems());
+		float f = float(rand())/RAND_MAX;
+		elem_num = int(f*grid.Elems());
+		assert((elem_num>=0)&&(elem_num<grid.Elems()));
 
 		// generate random natural coordinates
 		xix = 2*((float(rand())/RAND_MAX) - 0.5);

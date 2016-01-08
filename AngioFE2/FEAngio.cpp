@@ -2366,7 +2366,7 @@ void FEAngio::anastomose(double dist0, double dist1, int k, list<Segment>::itera
 void FEAngio::removeErrors()
 {
 	if (kill_off == false){
-		double length_limit = data.d;
+		double length_limit = data.m_d;
     
 		list<Segment>::iterator it;
     

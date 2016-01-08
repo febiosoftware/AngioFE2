@@ -98,14 +98,6 @@ class Elem
 	double bb_zmin();
     double bb_zmax();
     
-    // Find the dimensions of the inner box for the element
-    double ib_xmin();
-    double ib_xmax();
-    double ib_ymin();
-    double ib_ymax();
-	double ib_zmin();
-    double ib_zmax();
-    
   ///// ELEM: Member Fields /////
   public:
 	int elem_num;       // Element Identifier

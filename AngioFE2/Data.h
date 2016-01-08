@@ -32,7 +32,7 @@ public:
 	double a;                                                   // DATA.a - Distance between top and bottom of the curve (a + y0 = top of curve)
 	double x0;                                                  // DATA.x0 - Time point at which t is halfway between top & bottom
 	double b;                                                   // DATA.b - Steepness of the curve
-	double d;                                                   // DATA.d - Initial value of the curve (t = 0)
+	double m_d;                                                   // DATA.d - Initial value of the curve (t = 0)
 
 	int num_branches;                                           // DATA.num_branches - Counter indicating the number of branches formed during the simulation
 	int num_anastom;                                            // DATA.num_anastom - Counter indicating the number of anastomoses formed during the simulation
