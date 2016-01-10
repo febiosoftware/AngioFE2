@@ -51,7 +51,8 @@ void BC::checkBC(Segment &seg, int k)
 	int face = 0;
 	
 	// TODO: Do we need to do this, since I think we can only get here if elem_num = -1
-	elem_num = m_angio.grid.findelem(xpt, ypt, zpt);
+	Grid& grid = m_angio.GetGrid();
+	elem_num = grid.findelem(xpt, ypt, zpt);
 	if (elem_num != -1) return;
 /*	else{
 		int NE = grid.Elems();
@@ -520,14 +521,14 @@ void BC::checkBC(Segment &seg, int k)
 
 		// It looks like the tip_elem variable is not updated correctly
 		// so we have to do this expensive search. 
-		if (elem_num == -1) elem_num = m_angio.grid.findelem(r0.x, r0.y, r0.z);
+		if (elem_num == -1) elem_num = grid.findelem(r0.x, r0.y, r0.z);
 		assert(elem_num != -1);
 
-		if (m_angio.grid.FindIntersection(r0, r1, elem_num, i_point, face))
+		if (grid.FindIntersection(r0, r1, elem_num, i_point, face))
 		{
 
 //		i_point = find_intersect(elem, face, seg, grid);
-			Elem& elem = m_angio.grid.ebin[elem_num];
+			Elem& elem = grid.ebin[elem_num];
 			assert(face != -1);
 			assert(elem.m_nbr[face] == -1);
 			assert(elem.GetFace(face)->BC == true);
@@ -565,6 +566,8 @@ void BC::checkBC(Segment &seg, int k)
 void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_num, int k)
 {
     BC_violated = true;
+	Grid& grid = m_angio.GetGrid();
+	Culture& cult = m_angio.GetCulture();
 	
 	// Flat wall boundary type
     if (bctype == 119){           
@@ -580,17 +583,17 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
         ++m_angio.m_nsegs;
 		seg2.seg_num = m_angio.m_nsegs;
 
-		elem_num = m_angio.grid.findelem(seg2.m_tip[k].rt);
+		elem_num = grid.findelem(seg2.m_tip[k].rt);
         
 		if (elem_num != -1){
 			seg2.m_tip[k].elem = elem_num;
-			m_angio.cult.m_frag.push_front(seg2);}
+			cult.m_frag.push_front(seg2);}
 		else{
 			checkBC(seg2, k);
-			elem_num = m_angio.grid.findelem(seg2.m_tip[k].rt);
+			elem_num = grid.findelem(seg2.m_tip[k].rt);
 			if (elem_num != -1){
 				seg2.m_tip[k].elem = elem_num;
-				m_angio.cult.m_frag.push_front(seg2);}}
+				cult.m_frag.push_front(seg2);}}
 
 		BC_bouncy = false;
 		BC_violated = false;
@@ -606,17 +609,17 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
 				
 		seg2 = inplanewallBC(i_point, face, seg, elem_num, k);
 
-		elem_num = m_angio.grid.findelem(seg2.m_tip[k].rt);
+		elem_num = grid.findelem(seg2.m_tip[k].rt);
         
 		if (elem_num != -1){
 			seg2.m_tip[k].elem = elem_num;
-			m_angio.cult.m_frag.push_front(seg2);}
+			cult.m_frag.push_front(seg2);}
 		else{
 			checkBC(seg2, k);
-			elem_num = m_angio.grid.findelem(seg2.m_tip[k].rt);
+			elem_num = grid.findelem(seg2.m_tip[k].rt);
 			if (elem_num != -1){
 				seg2.m_tip[k].elem = elem_num;
-				m_angio.cult.m_frag.push_front(seg2);}}
+				cult.m_frag.push_front(seg2);}}
 
 		BC_bouncy = false;
 		BC_violated = false;
@@ -638,17 +641,17 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
 				
 		seg2 = symplaneperiodicwallBC(i_point, face, seg, elem_num, k);
 
-		elem_num = m_angio.grid.findelem(seg2.m_tip[1].rt);
+		elem_num = grid.findelem(seg2.m_tip[1].rt);
         
 		if (elem_num != -1){
 			seg2.m_tip[k].elem = elem_num;
-			m_angio.cult.m_frag.push_front(seg2);}
+			cult.m_frag.push_front(seg2);}
 		else{
 			checkBC(seg2, k);
-			elem_num = m_angio.grid.findelem(seg2.m_tip[k].rt);
+			elem_num = grid.findelem(seg2.m_tip[k].rt);
 			if (elem_num != -1){
 				seg2.m_tip[k].elem = elem_num;
-				m_angio.cult.m_frag.push_front(seg2);}}
+				cult.m_frag.push_front(seg2);}}
 
 		BC_bouncy = false;
 		BC_violated = false;
@@ -896,6 +899,8 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 
 	newton_find_intersect(lam, e1, e2, A, B, X1, X2, X3, X4);
 
+	Grid& grid = m_angio.GetGrid();
+
 	if ((lam > 0) && (lam <= 1.0) && (fabs(e1) <= 1.0) && (fabs(e2) <= 1.0)){					
 		inter.x = shape_2D(1, e1, e2)*X1.rt.x + shape_2D(2, e1, e2)*X2.rt.x + shape_2D(3, e1, e2)*X3.rt.x + shape_2D(4, e1, e2)*X4.rt.x;
 		inter.y = shape_2D(1, e1, e2)*X1.rt.y + shape_2D(2, e1, e2)*X2.rt.y + shape_2D(3, e1, e2)*X3.rt.y + shape_2D(4, e1, e2)*X4.rt.y;
@@ -909,7 +914,7 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 		else if (seg.m_tip[0].active == -1)
 			seg.m_tip[0].elem = elem_num;
 		
-		m_angio.grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
+		grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
 
 		if (xix >= 1.0)
 			xix = 0.99;
@@ -924,7 +929,7 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 		if (xiz <= -1.0)
 			xiz = -0.99;
 				
-		m_angio.grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, elem_num);
+		grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, elem_num);
 
 		return inter;}
 	
@@ -1019,7 +1024,7 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 				else if (seg.m_tip[0].active == -1)
 					seg.m_tip[0].elem = elem_num;
 
-				m_angio.grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
+				grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
 
 				if (xix >= 1.0)
 					xix = 0.99;
@@ -1034,7 +1039,7 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 				if (xiz <= -1.0)
 					xiz = -0.99;
 				
-				m_angio.grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, elem_num);
+				grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, elem_num);
 
 				return inter;}
 			else if ((fabs(e1) < 2.0) && (fabs(e2) < 2.0)){
@@ -1066,7 +1071,7 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 
 bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double &e1, double &e2, vec3d &A, vec3d &B, vec3d &inter) 
 {
-	Grid& grid = m_angio.grid;
+	Grid& grid = m_angio.GetGrid();
 	int elem_num = elem.elem_num;
 
 	Elem neighbor;
@@ -2029,8 +2034,9 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
 	vec3d s1; vec3d s2; vec3d s3; vec3d s4;
 	vec3d c1; vec3d c2; vec3d c3; vec3d c4;
 
+	Grid& grid = m_angio.GetGrid();
 	Elem elem;
-	elem = m_angio.grid.ebin[elem_num];
+	elem = grid.ebin[elem_num];
 	
 	switch (face)
     {

@@ -28,8 +28,14 @@ public:
 	// initialize the FEAnio class
 	bool Init();
 
-	//! Get the FE model
+	// Get the FE model
 	FEModel& GetFEModel();
+
+	// Get the culture
+	Culture& GetCulture() { return *m_pCult; }
+
+	// Get the grid
+	Grid& GetGrid() { return m_grid; }
 
 public:
 	void initBranch();
@@ -126,9 +132,6 @@ public:
 	
 	vector<vector<double> > sprout_nodes;
 
-    Grid grid;
-	Culture cult;  
-
 public:
 
 	int total_bdyf;
@@ -162,5 +165,7 @@ public:
 	FEAngioMaterial*	m_pmat;	//!< the angio-material pointer
 
 private:
-	FEModel&	m_fem;	// the FE model
+	FEModel&		m_fem;	// the FE model
+    Grid			m_grid;
+	Culture*		m_pCult;  
 };

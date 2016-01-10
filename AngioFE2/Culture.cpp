@@ -65,10 +65,10 @@ void Culture::SeedFragments()
 //
 Segment Culture::createInitFrag()
 {
-	Grid& grid = m_angio.grid;
+	Grid& grid = m_angio.GetGrid();
 
     double xix, xiy, xiz = {0.};
-    double xpt, ypt, zpt = {0.};
+    vec3d pt;
 
 	// Create a segment
     Segment seg;
@@ -91,14 +91,14 @@ Segment Culture::createInitFrag()
 		xiz = 2*((float(rand())/RAND_MAX) - 0.5);
 
 		// convert to global coordinates
-		grid.nattoglobal(xpt, ypt, zpt, xix, xiy, xiz, elem_num);
+		grid.nattoglobal(pt.x, pt.y, pt.z, xix, xiy, xiz, elem_num);
 	
 		// set the position of the first tip
-		seg.m_tip[0].rt = vec3d(xpt, ypt, zpt);
+		seg.m_tip[0].rt = vec3d(pt);
 		seg.m_tip[0].elem = elem_num;
     
 		// Determine vessel orientation based off of collagen fiber orientation
-		seg.uvect = findCollAngle(xpt, ypt, zpt);
+		seg.uvect = findCollAngle(pt);
 
 		// End of new segment is origin plus length component in each direction	
 		seg.m_tip[1].rt = seg.m_tip[0].rt + seg.uvect*seg.length;				  // Determine the x-coordinate of the end point using the length vector and orientation angles                 
@@ -120,13 +120,8 @@ Segment Culture::createInitFrag()
 	return seg;
 }
 
-
-
-///////////////////////////////////////////////////////////////////////
-// createNewSeg
-///////////////////////////////////////////////////////////////////////
-
-// CULTURE.createNewSeg - Create a new segment at the tip of an existing segment
+//-----------------------------------------------------------------------------
+// Create a new segment at the tip of an existing segment
 //      Input:  - Iterator for Segment container 'frag', points to the parent segment (it)
 //              - GRID object
 //              - DATA object
@@ -134,10 +129,10 @@ Segment Culture::createInitFrag()
 //              - Segment container (frag)
 //
 //      Output: - Newly created segment (seg)
-
+//
 Segment Culture::createNewSeg(list<Segment>::iterator it, int k)
 {
-	Grid& grid = m_angio.grid;
+	Grid& grid = m_angio.GetGrid();
 
 	Segment seg;                                                // Declare SEGMENT seg
 	seg.Recent_branch = it->Recent_branch/2;                    // Halve the Recent_branch indicator
@@ -145,67 +140,23 @@ Segment Culture::createNewSeg(list<Segment>::iterator it, int k)
 	++m_angio.m_nsegs;                                               // Iterate the total segment counter +1 
 	seg.seg_num = m_angio.m_nsegs;				
 	
-	//seg.line_num = it->line_num;
-
     int elem_num = 0;
     
 	if (it->m_tip[k].active == 1)                                          // If the parent vessel active tip is set as +1...
 	{
-		//seg.length = findLength(it->x[1],it->y[1],it->z[1],grid,data);      // Determine length of new segment                   
 		seg.length = m_angio.m_vess_length;
 
 	
 		double den_scale = 1.0;
-		den_scale = findDenScale(it->m_tip[1].rt.x, it->m_tip[1].rt.y, it->m_tip[1].rt.z);
+		den_scale = findDenScale(it->m_tip[1].rt);
 			
-		//seg.phi1 = findAngle(it,it->x[1],it->y[1],it->z[1],grid,data,1);    // Determine the angle between the new segment and the x-axis
-		//seg.phi2 = findAngle(it,it->x[1],it->y[1],it->z[1],grid,data,2);    // Determine the angle between the new segment and the x-y plane
-		seg.uvect = findAngle(it,it->m_tip[1].rt.x,it->m_tip[1].rt.y,it->m_tip[1].rt.z); 
+		seg.uvect = findAngle(it,it->m_tip[1].rt); 
 		
 		seg.length = den_scale*m_angio.m_vess_length;
 
-		//if (data.branch)                                                   // If new segment is a branch...
-		//{
-		//	if (float(rand())/RAND_MAX < 0.5)									// force the phi1 to be perpindicular with the parent segment                       
-		//			seg.phi1 = ang_dom(it->phi1+pi/2);
-		//        else
-		//	        seg.phi1 = ang_dom(it->phi1-pi/2);
-		//	
-		//	//if (float(rand())/RAND_MAX < 0.5)									// force the phi1 to be perpindicular with the parent segment                       
-		//	//		seg.phi2 = ang_dom(it->phi2+pi/2);
-		// //       else
-		//	//        seg.phi2 = ang_dom(it->phi2-pi/2);
-		//	
-		//	//seg.phi2 = 0.1*seg.phi2;                                           // force the branch to be mostly planar (x-y plane)
-		//}
-		//
-		
 		if (m_angio.m_branch)                                                   // If new segment is a branch...
 		{
-			//double x = seg.uvect.x;
-			//double y = seg.uvect.y;
-			//double H = sqrt(x*x + y*y);
-			//double theta = acos(x/H);
-
-			//if (float(rand())/RAND_MAX < 0.5)									// force the phi1 to be perpindicular with the parent segment                       
-			//		theta = theta + pi/2;
-		 //       else
-			//        theta = theta - pi/2;
-			//
-			//seg.uvect.x = H*cos(theta);
-			//seg.uvect.y = H*sin(theta);
-			////seg.uvect.z = 0;
-
-			//seg.uvect = seg.uvect/seg.uvect.norm();
-		
-			//vec3d coll_fib = findCollAngle(it->x[1], it->y[1], it->z[1], grid, data);
-
-			//if (acos(coll_fib*seg.uvect) > pi/2)
-			//	coll_fib = -coll_fib;
-
-			//seg.uvect = (seg.uvect + coll_fib)/2;
-			
-			vec3d coll_fib = findCollAngle(it->m_tip[1].rt.x, it->m_tip[1].rt.y, it->m_tip[1].rt.z);
+			vec3d coll_fib = findCollAngle(it->m_tip[1].rt);
 			vec3d newseg;
 			newseg = coll_fib - seg.uvect*(seg.uvect*coll_fib)*0.5;
 			newseg = newseg/newseg.norm();
@@ -219,10 +170,6 @@ Segment Culture::createNewSeg(list<Segment>::iterator it, int k)
 		seg.m_tip[0].elem = it->m_tip[1].elem;
 		seg.seg_conn[0][0] = it->seg_num;
 
-		//seg.x[1] = seg.x[0]+seg.length*cos(seg.phi2)*cos(seg.phi1);     // Determine the x-coordinate of the end point using the length vector and orientation angles
-		//seg.y[1] = seg.y[0]+seg.length*cos(seg.phi2)*sin(seg.phi1);     // Determine the y-coordinate of the end point using the length vector and orientation angles
-		//seg.z[1] = seg.z[0]+seg.length*sin(seg.phi2);                   // Determine the z-coordinate of the end point using the length vector and orientation angles
-    
 		seg.m_tip[1].rt = seg.m_tip[0].rt + seg.uvect*seg.length;					  // Determine the x-coordinate of the end point using the length vector and orientation angles
 		seg.findlength();
 
@@ -254,22 +201,18 @@ Segment Culture::createNewSeg(list<Segment>::iterator it, int k)
 	
 	else if (it->m_tip[k].active == -1)                                    // If the parent vessel active tip is set as +1...
 	{
-	    //seg.length = -1*findLength(it->x[0],it->y[0],it->z[0],grid,data);  // Determine length of new segment 
 		seg.length = -m_angio.m_vess_length;
 		
 		double den_scale = 1.0;
-		den_scale = findDenScale(it->m_tip[0].rt.x, it->m_tip[0].rt.y, it->m_tip[0].rt.z);
+		den_scale = findDenScale(it->m_tip[0].rt);
 			
-		//seg.phi1 = findAngle(it,it->x[1],it->y[1],it->z[1],grid,data,1);    // Determine the angle between the new segment and the x-axis
-		//seg.phi2 = findAngle(it,it->x[1],it->y[1],it->z[1],grid,data,2);    // Determine the angle between the new segment and the x-y plane
-		
-		seg.uvect = findAngle(it,it->m_tip[0].rt.x,it->m_tip[0].rt.y,it->m_tip[0].rt.z);
+		seg.uvect = findAngle(it,it->m_tip[0].rt);
 
 		seg.length = -den_scale*m_angio.m_vess_length;
 				
 		if (m_angio.m_branch)                                                   // If new segment is a branch...
 		{
-			vec3d coll_fib = findCollAngle(it->m_tip[1].rt.x, it->m_tip[1].rt.y, it->m_tip[1].rt.z);
+			vec3d coll_fib = findCollAngle(it->m_tip[1].rt);
 			vec3d newseg;
 			newseg = coll_fib - seg.uvect*(seg.uvect*coll_fib)*0.5;
 			newseg = newseg/newseg.norm();
@@ -283,10 +226,6 @@ Segment Culture::createNewSeg(list<Segment>::iterator it, int k)
 		seg.m_tip[1].rt = it->m_tip[0].rt;                                    // Set the origin of new segment as the active tip of the previous segment
 		seg.m_tip[1].elem = it->m_tip[0].elem;
 		seg.seg_conn[1][0] = it->seg_num;
-		
-		//seg.x[0] = seg.x[1]+seg.length*cos(seg.phi2)*cos(seg.phi1);     // Determine the x-coordinate of the end point using the length vector and orientation angles
-		//seg.y[0] = seg.y[1]+seg.length*cos(seg.phi2)*sin(seg.phi1);     // Determine the y-coordinate of the end point using the length vector and orientation angles
-		//seg.z[0] = seg.z[1]+seg.length*sin(seg.phi2);                   // Determine the z-coordinate of the end point using the length vector and orientation angles
 		
 		seg.m_tip[0].rt = seg.m_tip[1].rt + seg.uvect*seg.length;					  // Determine the x-coordinate of the end point using the length vector and orientation angles
 		seg.findlength();
@@ -317,11 +256,8 @@ Segment Culture::createNewSeg(list<Segment>::iterator it, int k)
 	return seg;                                                 // Return the new segment 
 }
 
-///////////////////////////////////////////////////////////////////////
-// findAngle
-///////////////////////////////////////////////////////////////////////
-
-// CULTURE.findAngle - Determine the orientation angle of a newly created segment
+//-----------------------------------------------------------------------------
+// Determine the orientation angle of a newly created segment
 //      Input:  - Iterator for segment container which points to the parent segment (it)
 //              - Coordinates of the active tip that is sprouting the new segment (xpt, ypt, zpt)
 //              - GRID object
@@ -329,58 +265,41 @@ Segment Culture::createNewSeg(list<Segment>::iterator it, int k)
 //              - Integer describing the angle type: 1 for phi1, 2 for phi2 (ang_type)
 //
 //      Output: - Segment orientation angle phi1 or phi1 (in radians)
-
-vec3d Culture::findAngle(list<Segment>::iterator it, double xpt, double ypt, double zpt)
+//
+vec3d Culture::findAngle(list<Segment>::iterator it, vec3d& pt)
 {
-	vec3d angle;
-
-	double den_scale = 1.0;
-	
-	den_scale = findDenScale(xpt, ypt, zpt);
+	double den_scale = findDenScale(pt);
 
 	//double W[4] = {10*(1/grid.den_scale), 0, 0, 100};
 	//double W[4] = {10, 0, 0, 100};                       // W[0] = Weight for collagen orientation
 	//double W[4] = {10, 0, 0, 50};                                                                        // W[1] = Weight for vessel density
 	                                                                        // W[2] = Weight for random component
 	                                                                        // W[3] = Weight for previous vessel direction
-	                                        
-    
-    vec3d coll_angle;      // Component of new vessel orientation resulting from collagen fiber orientation
-    vec3d den_angle;       // Component of new vessel orientation resulting from vessel density
-    vec3d ran_angle;       // Component of new vessel orientation resulting from random walk
-    vec3d per_angle;       // Component of new vessel orientation resulting from previous vessel direction        
-        
-    
+   
     // Find the component of the new vessel direction determined by collagen fiber orientation    
-    coll_angle = findCollAngle(xpt, ypt, zpt);
+    vec3d coll_angle = findCollAngle(pt);
 
-	per_angle = it->uvect;
+	// Component of new vessel orientation resulting from previous vessel direction        
+	vec3d per_angle = it->uvect;
 
-	angle = (coll_angle*W[0] + per_angle*W[3])/(W[0]+W[3]);
+	vec3d angle = (coll_angle*W[0] + per_angle*W[3])/(W[0]+W[3]);
 
 	angle = angle/angle.norm();
 
 	return angle;
-	
 }
 
-
-
-///////////////////////////////////////////////////////////////////////
-// findCollAngle
-///////////////////////////////////////////////////////////////////////
-
-
-vec3d Culture::findCollAngle(double xpt, double ypt, double zpt)
+//-----------------------------------------------------------------------------
+vec3d Culture::findCollAngle(vec3d& pt)
 {   
-	Grid& grid = m_angio.grid;
+	Grid& grid = m_angio.GetGrid();
     
     vec3d coll_angle;
 
     double xix, xiy, xiz;
     double shapeF[8];
     
-    int elem_num = grid.findelem(xpt, ypt, zpt);
+    int elem_num = grid.findelem(pt);
     
     if (elem_num < 0)
 		return coll_angle;
@@ -389,7 +308,7 @@ vec3d Culture::findCollAngle(double xpt, double ypt, double zpt)
     elem = grid.ebin[elem_num];
         
     // Convert to natural coordinates -1 <= Xi <= +1
-    grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, elem_num);        
+    grid.natcoord(xix, xiy, xiz, pt.x, pt.y, pt.z, elem_num);        
     
     // Obtain shape function weights
     grid.shapefunctions(shapeF, xix, xiy, xiz);
@@ -402,15 +321,10 @@ vec3d Culture::findCollAngle(double xpt, double ypt, double zpt)
     return coll_angle;
 }
 
-
-
-///////////////////////////////////////////////////////////////////////
-// findDenScale
-///////////////////////////////////////////////////////////////////////
-
-double Culture::findDenScale(double xpt, double ypt, double zpt)
+//-----------------------------------------------------------------------------
+double Culture::findDenScale(vec3d& pt)
 {
-	Grid& grid = m_angio.grid;
+	Grid& grid = m_angio.GetGrid();
 
 	double coll_den = 0.0;
     double den_scale = 1.0;
@@ -418,7 +332,7 @@ double Culture::findDenScale(double xpt, double ypt, double zpt)
     double xix, xiy, xiz;
     double shapeF[8];
 
-	int elem_num = grid.findelem(xpt, ypt, zpt);
+	int elem_num = grid.findelem(pt);
     
     if (elem_num < 0)
 		return den_scale;
@@ -427,7 +341,7 @@ double Culture::findDenScale(double xpt, double ypt, double zpt)
     elem = grid.ebin[elem_num];
         
     // Convert to natural coordinates -1 <= Xi <= +1
-    grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, elem_num);        
+    grid.natcoord(xix, xiy, xiz, pt.x, pt.y, pt.z, elem_num);        
     
     // Obtain shape function weights
     grid.shapefunctions(shapeF, xix, xiy, xiz);
@@ -443,13 +357,8 @@ double Culture::findDenScale(double xpt, double ypt, double zpt)
 }
 
 
-
-///////////////////////////////////////////////////////////////////////
-// connectSegment
-///////////////////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------
 // creates a new segment to connect close segments
-
 Segment Culture::connectSegment(list<Segment>::iterator it,list<Segment>::iterator it2, int k, int kk)
  {
  	Segment seg;
@@ -494,12 +403,9 @@ Segment Culture::connectSegment(list<Segment>::iterator it,list<Segment>::iterat
 	return seg;
  }
  
-///////////////////////////////////////////////////////////////////////
-// CheckForIntersection
-///////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------
 // Description: checks for intersection between a passed segment and all other existing segments that are not members
 // of vessel containing the segment
-
 void Culture::CheckForIntersection(Segment &seg, list<Segment>::iterator it)
 {
 	double p1[3], p2[3], pp1[3], pp2[3]; //tip points for segment to check intersection
@@ -533,7 +439,8 @@ void Culture::CheckForIntersection(Segment &seg, list<Segment>::iterator it)
 		p2[2] = r0.z;
 	}
 
-	for (it2 = m_angio.cult.m_frag.begin(); it2 != m_angio.cult.m_frag.end(); ++it2)
+	Culture& cult = m_angio.GetCulture();
+	for (it2 = cult.m_frag.begin(); it2 != cult.m_frag.end(); ++it2)
 	{
 		if (it->label!=it2->label)
 		{
@@ -572,10 +479,7 @@ void Culture::CheckForIntersection(Segment &seg, list<Segment>::iterator it)
 }
 
 
-///////////////////////////////////////////////////////////////////////
-// findIntersect
-///////////////////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------
 // variables:
 // a : start x,y point on segment1
 // b : end x,y point on segment1
@@ -651,10 +555,7 @@ double Culture::findIntersect(double a[3], double b[3], double c[3], double d[3]
 }
 
 
-///////////////////////////////////////////////////////////////////////
-// intersectPlane
-///////////////////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------
 // line equation P = LP[3] + u*V[3]
 // Plane equation N[3].(P[3]-P*[3]) = 0
 // solving for u, u={N[3].(P*[3]-LP[3])}/{N[3].V[3]}
@@ -667,14 +568,12 @@ double Culture::findIntersect(double a[3], double b[3], double c[3], double d[3]
 // Top = 4
 // Bottom = 5
 
-
-double N0[3], N1[3], N2[3], N3[3], N4[3], N5[3]; //face normals
-double P0[3], P1[3], P2[3], P3[3], P4[3], P5[3]; //point on faces
-
-
 bool Culture::intersectPlane(Segment &seg, int n, double intersectpt[3])
 {
-	Grid& grid = m_angio.grid;
+	double N0[3], N1[3], N2[3], N3[3], N4[3], N5[3]; //face normals
+	double P0[3], P1[3], P2[3], P3[3], P4[3], P5[3]; //point on faces
+
+	Grid& grid = m_angio.GetGrid();
 
 	//front
 	N0[0] = 0;
@@ -860,7 +759,7 @@ double oppface[6];
 
 Segment Culture::PeriodicBC(Segment &seg)
 {
-	Grid& grid = m_angio.grid;
+	Grid& grid = m_angio.GetGrid();
 
 	oppface[0] = grid.yrange[1];
 	oppface[1] = grid.xrange[0];
@@ -908,7 +807,7 @@ Segment Culture::PeriodicBC(Segment &seg)
 				    m_num_zdead += 1;
 				return seg;
 				
-				m_angio.cult.m_frag.push_front (seg);
+				m_frag.push_front (seg);
 				Segment seg2;
 				m_num_vessel = m_num_vessel + 1;
 				
@@ -1013,7 +912,7 @@ Segment Culture::PeriodicBC(Segment &seg)
 				    m_num_zdead += 1;
 				return seg;
 				
-				m_angio.cult.m_frag.push_front (seg);
+				m_frag.push_front (seg);
 				Segment seg2;
 				m_num_vessel = m_num_vessel + 1;
 				

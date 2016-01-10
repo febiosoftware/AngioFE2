@@ -51,7 +51,7 @@ bool AngioFETask::Run()
 
 	feangio.fileout.save_vessel_state(feangio);									// Output microvessel state
 	feangio.fileout.save_time(feangio);											// Output time information
-	feangio.fileout.writeCollFib(feangio.grid, true);				// Output initial collagen fiber orientation
+	feangio.fileout.writeCollFib(feangio.GetGrid(), true);				// Output initial collagen fiber orientation
 
 	//// FEBIO - Solve for initial step
 	feangio.FE_state++;												// Update the FE state
@@ -109,15 +109,15 @@ bool AngioFETask::Run()
 	
 	feangio.fileout.dataout(feangio);								// Output data file
 		
-	feangio.fileout.writeCollFib(feangio.grid, false);				// Output final collagen fiber orientation
+	feangio.fileout.writeCollFib(feangio.GetGrid(), false);				// Output final collagen fiber orientation
 
-	feangio.fileout.writeECMDen(feangio.grid);						// Output final matrix density
+	feangio.fileout.writeECMDen(feangio.GetGrid());						// Output final matrix density
 
-	feangio.fileout.writeSegConn(feangio.cult.m_frag);						// Output the segment connectivity data
+	feangio.fileout.writeSegConn(feangio.GetCulture().m_frag);						// Output the segment connectivity data
 	
-	feangio.fileout.writeECMDenStore(feangio.grid);
+	feangio.fileout.writeECMDenStore(feangio.GetGrid());
 
-	feangio.fileout.writeECMFibrilStore(feangio.grid);
+	feangio.fileout.writeECMFibrilStore(feangio.GetGrid());
 
 	//feangio.fileout.writeECMDenGrad(feangio.grid);				// Output the ECM density gradient, I don't think this works right...
 

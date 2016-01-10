@@ -58,19 +58,20 @@ void Fileout::closeTracking()
 //-----------------------------------------------------------------------------
 void Fileout::printStatus(FEAngio& angio)
 {
+	Culture& cult = angio.GetCulture();
     cout << endl << "Time: " << angio.m_t << endl;                             // Print out current time to user
 	//cout << "dt: " << data.dt << endl;
     cout << "Segments: " << angio.m_nsegs << endl;                             // Print out current number of segments to user
 	cout << "Total Length: " << angio.m_total_length << endl;                  // Print out the current total length to user
 	cout << "Branch Points: " << angio.m_num_branches << endl;                 // Print out the current number of branches to user
-	cout << "Anastomoses: " << angio.cult.m_num_anastom << endl << endl;            // Print out the current number of anastomoses to user
+	cout << "Anastomoses: " << cult.m_num_anastom << endl << endl;            // Print out the current number of anastomoses to user
     
     logstream << endl << "Time: " << angio.m_t << endl;                        // Print out current time to log file
 	//logstream << "dt: " << data.dt << endl;
     logstream << "Segments: " << angio.m_nsegs << endl;                        // Print out current number of segments to log file
 	logstream << "Total Length: " << angio.m_total_length << endl;             // Print out the current total length to log file
 	logstream << "Branch Points: " << angio.m_num_branches << endl;            // Print out the current number of branches to log file
-	logstream << "Anastomoses: " << angio.cult.m_num_anastom << endl << endl;       // Print out the current number of anastomoses to log file
+	logstream << "Anastomoses: " << cult.m_num_anastom << endl << endl;       // Print out the current number of anastomoses to log file
         
     return;
 }
@@ -98,13 +99,14 @@ void Fileout::dataout(FEAngio &feangio)
 }
 
 //-----------------------------------------------------------------------------
-void Fileout::writeData(FEAngio &feangio)
+void Fileout::writeData(FEAngio &angio)
 {
 	list<Segment>::iterator it;
 	
 	fprintf(m_stream,"%-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-5s %-5s\n","Time","X1","Y1","Z1","X2","Y2","Z2","Length","Vess","Label");  // Write column labels to data.ang
 	
-	for (it = feangio.cult.m_frag.begin(); it != feangio.cult.m_frag.end(); ++it)                         // Iterate through all segments in frag list container (it)
+	Culture& cult = angio.GetCulture();
+	for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it)                         // Iterate through all segments in frag list container (it)
 	{
 		vec3d& r0 = it->m_tip[0].rt;
 		vec3d& r1 = it->m_tip[1].rt;
@@ -118,7 +120,7 @@ void Fileout::writeData(FEAngio &feangio)
 //-----------------------------------------------------------------------------
 void Fileout::writeNodes(FEAngio& angio)
 {
-    Grid& grid = angio.grid;
+    Grid& grid = angio.GetGrid();
      
 	FILE *stream2;                                                                                                                           
 	stream2 = fopen("out_nodes.ang","wt");                                       
@@ -349,7 +351,8 @@ void Fileout::save_vessel_state(FEAngio& angio)
 		
 	fprintf(m_stream2,"%-5s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n","State","Time","X1","Y1","Z1","X2","Y2","Z2","Length");  // Write column labels to out_vess_state.ang
 	
-	for (it = angio.cult.m_frag.begin(); it != angio.cult.m_frag.end(); ++it)								// Iterate through all segments in frag list container (it)
+	Culture& cult = angio.GetCulture();
+	for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it)								// Iterate through all segments in frag list container (it)
 	{
 		vec3d& r0 = it->m_tip[0].rt;
 		vec3d& r1 = it->m_tip[1].rt;

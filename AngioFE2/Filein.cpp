@@ -69,6 +69,9 @@ void Filein::read_param(FEAngio& angio, char* buffer)
 //-----------------------------------------------------------------------------
 void Filein::set_param(FEAngio& angio, char* buffer, char* pname)
 {
+	Grid& grid = angio.GetGrid();
+	Culture& cult = angio.GetCulture();
+
     //// Parameters for angio3d (In paratheneses, string identifying the parameter and an example value):
 	// Branching Probability (brnch_ch 0.1)
 	if (!strcmp(pname,"brnch_ch")){
@@ -77,17 +80,17 @@ void Filein::set_param(FEAngio& angio, char* buffer, char* pname)
 
     //  Matrix conditions (matx_cnd 0) random
 	if (!strcmp(pname,"matx_cnd")){
-        sscanf(buffer,"%*s %*s %i",&angio.grid.load_cond);
+        sscanf(buffer,"%*s %*s %i",&grid.load_cond);
         return;}
     
 	// Initial matrix density (matx_den 3.0) mg/mL
     if (!strcmp(pname,"matx_den")){
-        sscanf(buffer,"%*s %*s %lf",&angio.grid.coll_den);
+        sscanf(buffer,"%*s %*s %lf",&grid.coll_den);
         return;}  
         
 	// Number of initial fragments (nfrag 70, based on 30K frags/mL)
     if (!strcmp(pname,"nfrag")){
-        sscanf(buffer,"%*s %*s %i",&angio.cult.NFRAGS);
+        sscanf(buffer,"%*s %*s %i",&cult.NFRAGS);
         return;}        
     
 	// End of culture period (max_time 6.0) days
@@ -112,38 +115,38 @@ void Filein::set_param(FEAngio& angio, char* buffer, char* pname)
     
 	// Number of nodes in x-direction for autogrid (xnodes 7)
     if (!strcmp(pname,"xnodes")){
-        sscanf(buffer,"%*s %*s %i",&angio.grid.xnodes);
+        sscanf(buffer,"%*s %*s %i",&grid.xnodes);
         return;}  
     
 	// Number of nodes in y-direction for autogrid (ynodes 7)
     if (!strcmp(pname,"ynodes")){
-        sscanf(buffer,"%*s %*s %i",&angio.grid.ynodes);
+        sscanf(buffer,"%*s %*s %i",&grid.ynodes);
         return;} 
     
 	// Number of nodes in z-direction for autogrid (znodes 3)
     if (!strcmp(pname,"znodes")){
-        sscanf(buffer,"%*s %*s %i",&angio.grid.znodes);
+        sscanf(buffer,"%*s %*s %i",&grid.znodes);
         return;} 
     
 	// Alternative way of specifying the number of nodes in each direction.  Reads three int in succession indicating the number of nodes in the x-, y-, and z-
 	// direction, respectively (num_nodes 7 7 3)
     if (!strcmp(pname,"num_nodes")){
-        sscanf(buffer,"%*s %*s %i %i %i",&angio.grid.xnodes,&angio.grid.ynodes,&angio.grid.znodes);
+        sscanf(buffer,"%*s %*s %i %i %i",&grid.xnodes,&grid.ynodes,&grid.znodes);
         return;}
     
 	// Read in the minimum and maximum dimension of the domain in the x-direction (xrange 0 300) um
     if (!strcmp(pname,"xrange")){
-		sscanf(buffer,"%*s %*s %lf %lf",&angio.grid.xrange[0],&angio.grid.xrange[1]);
+		sscanf(buffer,"%*s %*s %lf %lf",&grid.xrange[0],&grid.xrange[1]);
         return;}
     
 	// Read in the minimum and maximum dimension of the domain in the y-direction (yrange 0 300) um
     if (!strcmp(pname,"yrange")){
-		sscanf(buffer,"%*s %*s %lf %lf",&angio.grid.yrange[0],&angio.grid.yrange[1]);
+		sscanf(buffer,"%*s %*s %lf %lf",&grid.yrange[0],&grid.yrange[1]);
         return;}
     
 	// Read in the minimum and maximum dimension of the domain in the z-direction (zrange 0 300) um
     if (!strcmp(pname,"zrange")){
-		sscanf(buffer,"%*s %*s %lf %lf",&angio.grid.zrange[0],&angio.grid.zrange[1]);
+		sscanf(buffer,"%*s %*s %lf %lf",&grid.zrange[0],&grid.zrange[1]);
         return;}
     
 	// Specify if a composite material model is being using 
@@ -183,32 +186,32 @@ void Filein::set_param(FEAngio& angio, char* buffer, char* pname)
 
 		// Specify which type of boundary condition at the front edge of the gel
 	if (!strcmp(pname,"front_bc")){
-        sscanf(buffer,"%*s %*s %c",&angio.grid.frontbc);
+        sscanf(buffer,"%*s %*s %c",&grid.frontbc);
         return;}
 	
 	// Specify which type of boundary condition at the right edge of the gel
 	if (!strcmp(pname,"right_bc")){
-        sscanf(buffer,"%*s %*s %c",&angio.grid.rightbc);
+        sscanf(buffer,"%*s %*s %c",&grid.rightbc);
         return;}
 	
 	// Specify which type of boundary condition at the back edge of the gel
 	if (!strcmp(pname,"back_bc")){
-        sscanf(buffer,"%*s %*s %c",&angio.grid.backbc);
+        sscanf(buffer,"%*s %*s %c",&grid.backbc);
         return;}
 	
 	// Specify which type of boundary condition at the left edge of the gel
 	if (!strcmp(pname,"left_bc")){
-        sscanf(buffer,"%*s %*s %c",&angio.grid.leftbc);
+        sscanf(buffer,"%*s %*s %c",&grid.leftbc);
         return;}
 	
 	// Specify which type of boundary condition at the bottom edge of the gel
 	if (!strcmp(pname,"bottom_bc")){
-        sscanf(buffer,"%*s %*s %c",&angio.grid.bottombc);
+        sscanf(buffer,"%*s %*s %c",&grid.bottombc);
         return;}
 	
 	// Specify which type of boundary condition at the top edge of the gel
 	if (!strcmp(pname,"top_bc")){
-        sscanf(buffer,"%*s %*s %c",&angio.grid.topbc);
+        sscanf(buffer,"%*s %*s %c",&grid.topbc);
         return;}
 
 	// Specify the location of the x symmetry panel
@@ -250,12 +253,12 @@ void Filein::set_param(FEAngio& angio, char* buffer, char* pname)
 
 	// Specify to 'flatten' fibers in z
 	if (!strcmp(pname,"zfibflat")){
-        sscanf(buffer,"%*s %*s %lf",&angio.grid.m_bzfibflat);
+        sscanf(buffer,"%*s %*s %lf",&grid.m_bzfibflat);
         return;}
 
 	// Read in weights for determing the direction of growth
     	if (!strcmp(pname,"gweights")){
-        sscanf(buffer,"%*s %*s %lf %lf",&angio.cult.W[0],&angio.cult.W[3]);
+        sscanf(buffer,"%*s %*s %lf %lf",&cult.W[0],&cult.W[3]);
         return;}
 
     return;

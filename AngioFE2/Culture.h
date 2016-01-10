@@ -28,14 +28,14 @@ public:
 	Segment createNewSeg(list<Segment>::iterator it, int k);
 	
 	// Determine the orientation angle of a newly created segment based on the information stored in GRID
-	vec3d findAngle(list<Segment>::iterator, double xpt, double ypt, double zpt);
+	vec3d findAngle(list<Segment>::iterator, vec3d& r);
 	
 	// Obtain the component of new vessel orientation determined by local collagen fiber orientation 
-	vec3d findCollAngle(double xpt, double ypt, double zpt);
+	vec3d findCollAngle(vec3d& pt);
 	
 	// Find the density scale factor at a point of the grid
 	// TODO: Move to Grid class
-	double findDenScale(double xpt, double ypt, double zpt);
+	double findDenScale(vec3d& pt);
 	
 	// Create a new segment connecting two existing segments that are fusing through anastomosis
 	Segment connectSegment(list<Segment>::iterator it, list<Segment>::iterator it2, int k, int kk);
