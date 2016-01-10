@@ -4,15 +4,18 @@
 #include "angio3d.h"
 
 //-----------------------------------------------------------------------------
+Segment::TIP::TIP()
+{
+	rt = vec3d(0,0,0);
+	active = 0;
+	elem = -1;
+	bdyf_id = -1;
+	BC = 0;
+}
+
+//-----------------------------------------------------------------------------
 Segment::Segment()
 {
-	rt[0] = vec3d(0,0,0);
-	rt[1] = vec3d(0,0,0);
-
-	// initialize the activity of the tips to 0 (i.e. inactive)
-	tip[0]= 0;
-	tip[1]= 0;
-
 	// initialize length
 	length = 0;                                        
 	
@@ -28,20 +31,9 @@ Segment::Segment()
 
     anast = 0;
 
-	elem_tagged = false;
-
-	bdyf_id[0] = -1;
-	bdyf_id[1] = -1;
-	
 	mark_of_death = false;
 	death_label = 0;
 	
-	tip_BC[0] = 0;
-	tip_BC[1] = 0;
-
-	tip_elem[0] = -1;
-	tip_elem[1] = -1;
-
 	seg_num = 0;
 
 	seg_conn[0][0] = 0;
@@ -61,14 +53,14 @@ Segment::~Segment()
 // TODO: This is also calculates the unit vector. Remove this.
 void Segment::findlength()
 {	
-	double new_length = (rt[1] - rt[0]).norm();
+	double new_length = (m_tip[1].rt - m_tip[0].rt).norm();
     
     if (length < 0.0)
         length = -new_length;
 	else
 		length = new_length;
         
-	uvect = rt[1] - rt[0];
+	uvect = m_tip[1].rt - m_tip[0].rt;
 	if (length != 0)
 		uvect = uvect/uvect.norm();
 }
@@ -78,7 +70,7 @@ void Segment::findlength()
 // Updates the unit vector
 void Segment::findunit()
 {	
-	uvect = rt[1] - rt[0];
+	uvect = m_tip[1].rt - m_tip[0].rt;
 	double l = uvect.norm();
 	if (l != 0) uvect /= l;
 }

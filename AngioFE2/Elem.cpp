@@ -148,3 +148,17 @@ double Elem::bb_zmax()
 
 	return ezmax;
 }       
+
+//-----------------------------------------------------------------------------
+void Elem::GetFace(int n, int* nf)
+{
+	switch (n)
+	{
+	case 0: nf[0] = n1->id; nf[1] = n2->id; nf[2] = n6->id; nf[3] = n5->id; break;
+	case 1: nf[0] = n2->id; nf[1] = n4->id; nf[2] = n8->id; nf[3] = n6->id; break;
+	case 2: nf[0] = n4->id; nf[1] = n3->id; nf[2] = n7->id; nf[3] = n8->id; break;
+	case 3: nf[0] = n3->id; nf[1] = n1->id; nf[2] = n5->id; nf[3] = n7->id; break;
+	case 4: nf[0] = n5->id; nf[1] = n6->id; nf[2] = n8->id; nf[3] = n7->id; break;
+	case 5: nf[0] = n3->id; nf[1] = n4->id; nf[2] = n2->id; nf[3] = n1->id; break;
+	}
+}

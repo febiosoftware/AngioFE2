@@ -41,7 +41,6 @@ public:
 	void writeBC(Grid &grid);
 	void printtime();
 	void printrandseed(int randseed);
-	void printsproutnodes(vector<vector<double> > sprout_nodes);
 	void writeSegConn(list<Segment> &frag);
 	void writeECMDenStore(Grid &grid);
 	void writeECMFibrilStore(Grid &grid);

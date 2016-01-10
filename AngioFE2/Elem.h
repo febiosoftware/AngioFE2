@@ -86,20 +86,49 @@ public:
 // Represents an element of the grid
 class Elem
 {
-  ///// ELEM: Member Functions /////
-  public:
+public:
     Elem() : elem_num(-1), volume(0.), volume0(0.), alpha(0.) {}
 	  
-	  // Find the dimensions of the bounding box for the element
+	// Find the dimensions of the bounding box for the element
+	// TODO: Make a class for this
     double bb_xmin();
     double bb_xmax();
     double bb_ymin();
     double bb_ymax();
 	double bb_zmin();
     double bb_zmax();
+
+	void GetFace(int n, int* fn);
+
+	Node* GetNode(int i)
+	{
+		switch(i)
+		{
+		case 0: return n1; break;
+		case 1: return n2; break;
+		case 2: return n3; break;
+		case 3: return n4; break;
+		case 4: return n5; break;
+		case 5: return n6; break;
+		}
+		return 0;
+	}
+
+	Face* GetFace(int i)
+	{
+		switch (i)
+		{
+		case 0: return &f1; break;
+		case 1: return &f2; break;
+		case 2: return &f3; break;
+		case 3: return &f4; break;
+		case 4: return &f5; break;
+		case 5: return &f6; break;
+		}
+		return 0;
+	}
     
-  ///// ELEM: Member Fields /////
-  public:
+public:
 	int elem_num;       // Element Identifier
     
 	double volume;
@@ -107,8 +136,6 @@ class Elem
 
 	double alpha;
 	vec3d fiber_orient;
-
-	//list<list<Segment>::iterator > resident_segs;
 
     Node * n1;            // Bottom, lower, left node
     Node * n2;            // Bottom, lower, right node
@@ -126,7 +153,5 @@ class Elem
     Face f5;            // Top face +z
     Face f6;            // Bottom face -z
 
+	int		m_nbr[6];	// list of indices to neighbor elements (-1 if no neighbor)
 };
-
-
-

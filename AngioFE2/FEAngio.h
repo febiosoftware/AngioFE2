@@ -45,7 +45,6 @@ public:
 	void removeErrors();
 	void find_active_tips();
 	void kill_dead_segs();
-	void enforce_global_BC();
 
 public:
 	void Growth(FEModel& fem);
@@ -67,7 +66,6 @@ public:
 	void initialize_grid_volume();
 	void update_grid_volume();
 	void update_ecm_den_grad();
-	void assemble_sprout_nodes();
 	void output_params();
 	void save_cropped_vessels();
 	void update_sprout_stress_scaling();
@@ -75,9 +73,6 @@ public:
 	void update_angio_sprout(int i, bool bactive, const vec3d& rc, const vec3d& sprout_vect);
 
 protected:
-	// read_FEmesh - Read in the nodes and element connectivity from the FEBio mesh in order to construct the angio3d grid
-	void read_FEmesh(FEMesh &mesh, vector<vec3d>& fiber, vector<double>& density);
-
 	// enforce_fiber_BCS - If a node lies on a boundary face, adjust the collagen fiber orientation at that node accordingly
 	void enforce_fiber_BCS(Node &node, bool circ);
 
@@ -97,7 +92,6 @@ public:	// parameters read directly from file
 
 	// miscellaneous
 	unsigned int	m_irseed;			// Seed number for the random number generator
-	int				m_bzfibflat;		// flatten fiber option
 	int				comp_mat;			// is composite material used (TODO: do we still need this?)
 	double			phi_stiff_factor;	// stiffness factor, which scales the amount of mesh displacement that's sent to the microvessels
 	int				m_bsprout_verify;	// Flag for the sprout verification problem
@@ -108,8 +102,6 @@ public:
     
 	list<list<Segment>::iterator > active_tips;
 	
-	list<list<Segment>::iterator > newborns;
-
 	vector<vector<double> > sprout_nodes;
 
     Grid grid;

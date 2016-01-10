@@ -105,8 +105,6 @@ bool AngioFETask::Run()
 	//// ANGIO3D - Generate output files
 	feangio.output_params();										// Output parameters for simulation (sproutf, tip_range, phi_stiff_factor)
 	
-	//feangio.assemble_sprout_nodes();								// Assemble the sprout locations into a structure				
-	
 	//feangio.fileout.printsproutnodes(feangio.sprout_nodes);		// Output the sprout locations
 	
 	feangio.fileout.dataout(feangio);								// Output data file

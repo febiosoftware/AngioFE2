@@ -87,30 +87,28 @@ Segment Culture::createInitFrag(Data &data, Grid &grid)
 		grid.nattoglobal(xpt, ypt, zpt, xix, xiy, xiz, elem_num);
 	
 		// set the position of the first tip
-		seg.rt[0].x = xpt;
-		seg.rt[0].y = ypt;
-		seg.rt[0].z = zpt;
-		seg.tip_elem[0] = elem_num;
+		seg.m_tip[0].rt = vec3d(xpt, ypt, zpt);
+		seg.m_tip[0].elem = elem_num;
     
 		// Determine vessel orientation based off of collagen fiber orientation
 		seg.uvect = findCollAngle(xpt, ypt, zpt, grid, data);
 
 		// End of new segment is origin plus length component in each direction	
-		seg.rt[1] = seg.rt[0] + seg.uvect*seg.length;				  // Determine the x-coordinate of the end point using the length vector and orientation angles                 
+		seg.m_tip[1].rt = seg.m_tip[0].rt + seg.uvect*seg.length;				  // Determine the x-coordinate of the end point using the length vector and orientation angles                 
 
 		// make the tips active
-		seg.tip[0] = -1;                                            // Set the tip at the start point of the segment as -1 
-		seg.tip[1] = 1;                                             // Set the tip at the end point of the segment as +1
+		seg.m_tip[0].active = -1;                                            // Set the tip at the start point of the segment as -1 
+		seg.m_tip[1].active = 1;                                             // Set the tip at the end point of the segment as +1
 	
 		// Set sprout as an initial fragment
 		seg.m_sprout = Segment::SPROUT_INIT;
 		
 		// find the element where the second tip is
-		elem_num = grid.findelem(seg.rt[1].x, seg.rt[1].y, seg.rt[1].z);
+		elem_num = grid.findelem(seg.m_tip[1].rt);
 	}
 	while (elem_num == -1);
 
-	seg.tip_elem[1] = elem_num;
+	seg.m_tip[1].elem = elem_num;
 
 	return seg;
 }
@@ -198,18 +196,18 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
 
     int elem_num = 0;
     
-	if (it->tip[k] == 1)                                          // If the parent vessel active tip is set as +1...
+	if (it->m_tip[k].active == 1)                                          // If the parent vessel active tip is set as +1...
 	{
 		//seg.length = findLength(it->x[1],it->y[1],it->z[1],grid,data);      // Determine length of new segment                   
 		seg.length = data.vess_length;
 
 	
 		double den_scale = 1.0;
-		den_scale = findDenScale(it->rt[1].x, it->rt[1].y, it->rt[1].z, grid);
+		den_scale = findDenScale(it->m_tip[1].rt.x, it->m_tip[1].rt.y, it->m_tip[1].rt.z, grid);
 			
 		//seg.phi1 = findAngle(it,it->x[1],it->y[1],it->z[1],grid,data,1);    // Determine the angle between the new segment and the x-axis
 		//seg.phi2 = findAngle(it,it->x[1],it->y[1],it->z[1],grid,data,2);    // Determine the angle between the new segment and the x-y plane
-		seg.uvect = findAngle(it,it->rt[1].x,it->rt[1].y,it->rt[1].z,grid,data); 
+		seg.uvect = findAngle(it,it->m_tip[1].rt.x,it->m_tip[1].rt.y,it->m_tip[1].rt.z,grid,data); 
 		
 		seg.length = den_scale*data.vess_length;
 
@@ -254,7 +252,7 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
 
 			//seg.uvect = (seg.uvect + coll_fib)/2;
 			
-			vec3d coll_fib = findCollAngle(it->rt[1].x, it->rt[1].y, it->rt[1].z, grid, data);
+			vec3d coll_fib = findCollAngle(it->m_tip[1].rt.x, it->m_tip[1].rt.y, it->m_tip[1].rt.z, grid, data);
 			vec3d newseg;
 			newseg = coll_fib - seg.uvect*(seg.uvect*coll_fib)*0.5;
 			newseg = newseg/newseg.norm();
@@ -267,23 +265,23 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
 		seg.label = it->label;                                  // Transfer the label of the parent segment to the new segment
 		seg.vessel = it->vessel;                                // Transfer the vessel number of the parent segment to the new segment	
 		
-		seg.rt[0] = it->rt[1];                                    // Set the origin of new segment as the active tip of the previous segment
-		seg.tip_elem[0] = it->tip_elem[1];
+		seg.m_tip[0].rt = it->m_tip[1].rt;                                    // Set the origin of new segment as the active tip of the previous segment
+		seg.m_tip[0].elem = it->m_tip[1].elem;
 		seg.seg_conn[0][0] = it->seg_num;
 
 		//seg.x[1] = seg.x[0]+seg.length*cos(seg.phi2)*cos(seg.phi1);     // Determine the x-coordinate of the end point using the length vector and orientation angles
 		//seg.y[1] = seg.y[0]+seg.length*cos(seg.phi2)*sin(seg.phi1);     // Determine the y-coordinate of the end point using the length vector and orientation angles
 		//seg.z[1] = seg.z[0]+seg.length*sin(seg.phi2);                   // Determine the z-coordinate of the end point using the length vector and orientation angles
     
-		seg.rt[1] = seg.rt[0] + seg.uvect*seg.length;					  // Determine the x-coordinate of the end point using the length vector and orientation angles
+		seg.m_tip[1].rt = seg.m_tip[0].rt + seg.uvect*seg.length;					  // Determine the x-coordinate of the end point using the length vector and orientation angles
 		seg.findlength();
 
-        seg.tip[1] = 1;                                         // Turn on end tip of new segment
-		seg.tip[0] = 0;                                         // Turn off origin tip of new segment
+        seg.m_tip[1].active = 1;                                         // Turn on end tip of new segment
+		seg.m_tip[0].active = 0;                                         // Turn off origin tip of new segment
 		
 		seg.TofBirth = data.t;                                  // Stamp segment with time of birth
-		it->tip[k] = 0;                                         // Turn off previous segment tip
-		seg.bdyf_id[k] = it->bdyf_id[k];
+		it->m_tip[k].active = 0;                                         // Turn off previous segment tip
+		seg.m_tip[k].bdyf_id = it->m_tip[k].bdyf_id;
         
 		seg.m_sprout = Segment::SPROUT_POS;                                         // Set sprout for the new segment as +1, indicating this segment originated from a +1 tip
 					    
@@ -292,34 +290,36 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
 		else
 			it->seg_conn[1][1] = seg.seg_num;
 				
-		elem_num = grid.findelem(seg.rt[1].x, seg.rt[1].y, seg.rt[1].z);
+		elem_num = grid.findelem(seg.m_tip[1].rt);
 		
 		if (elem_num == -1)
+		{
 			bc.checkBC(seg, 1, grid, data, frag);
+		}
 		else
-			seg.tip_elem[1] = elem_num;
+			seg.m_tip[1].elem = elem_num;
 
 	}
 	
 	
-	else if (it->tip[k] == -1)                                    // If the parent vessel active tip is set as +1...
+	else if (it->m_tip[k].active == -1)                                    // If the parent vessel active tip is set as +1...
 	{
 	    //seg.length = -1*findLength(it->x[0],it->y[0],it->z[0],grid,data);  // Determine length of new segment 
 		seg.length = -data.vess_length;
 		
 		double den_scale = 1.0;
-		den_scale = findDenScale(it->rt[0].x, it->rt[0].y, it->rt[0].z, grid);
+		den_scale = findDenScale(it->m_tip[0].rt.x, it->m_tip[0].rt.y, it->m_tip[0].rt.z, grid);
 			
 		//seg.phi1 = findAngle(it,it->x[1],it->y[1],it->z[1],grid,data,1);    // Determine the angle between the new segment and the x-axis
 		//seg.phi2 = findAngle(it,it->x[1],it->y[1],it->z[1],grid,data,2);    // Determine the angle between the new segment and the x-y plane
 		
-		seg.uvect = findAngle(it,it->rt[0].x,it->rt[0].y,it->rt[0].z,grid,data);
+		seg.uvect = findAngle(it,it->m_tip[0].rt.x,it->m_tip[0].rt.y,it->m_tip[0].rt.z,grid,data);
 
 		seg.length = -den_scale*data.vess_length;
 				
 		if (data.branch)                                                   // If new segment is a branch...
 		{
-			vec3d coll_fib = findCollAngle(it->rt[1].x, it->rt[1].y, it->rt[1].z, grid, data);
+			vec3d coll_fib = findCollAngle(it->m_tip[1].rt.x, it->m_tip[1].rt.y, it->m_tip[1].rt.z, grid, data);
 			vec3d newseg;
 			newseg = coll_fib - seg.uvect*(seg.uvect*coll_fib)*0.5;
 			newseg = newseg/newseg.norm();
@@ -333,23 +333,23 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
 		seg.label = it->label;                                  // Transfer the label of the parent segment to the new segment
 		seg.vessel = it->vessel;                                // Transfer the vessel number of the parent segment to the new segment
 		
-		seg.rt[1] = it->rt[0];                                    // Set the origin of new segment as the active tip of the previous segment
-		seg.tip_elem[1] = it->tip_elem[0];
+		seg.m_tip[1].rt = it->m_tip[0].rt;                                    // Set the origin of new segment as the active tip of the previous segment
+		seg.m_tip[1].elem = it->m_tip[0].elem;
 		seg.seg_conn[1][0] = it->seg_num;
 		
 		//seg.x[0] = seg.x[1]+seg.length*cos(seg.phi2)*cos(seg.phi1);     // Determine the x-coordinate of the end point using the length vector and orientation angles
 		//seg.y[0] = seg.y[1]+seg.length*cos(seg.phi2)*sin(seg.phi1);     // Determine the y-coordinate of the end point using the length vector and orientation angles
 		//seg.z[0] = seg.z[1]+seg.length*sin(seg.phi2);                   // Determine the z-coordinate of the end point using the length vector and orientation angles
 		
-		seg.rt[0] = seg.rt[1] + seg.uvect*seg.length;					  // Determine the x-coordinate of the end point using the length vector and orientation angles
+		seg.m_tip[0].rt = seg.m_tip[1].rt + seg.uvect*seg.length;					  // Determine the x-coordinate of the end point using the length vector and orientation angles
 		seg.findlength();
 
-		seg.tip[0] = -1;                                        // Turn on end tip of new segment
-		seg.tip[1] = 0;                                         // Turn off origin tip of new segment
+		seg.m_tip[0].active = -1;                                        // Turn on end tip of new segment
+		seg.m_tip[1].active = 0;                                         // Turn off origin tip of new segment
 		
 		seg.TofBirth = data.t;                                  // Stamp segment with time of birth
-		it->tip[k] = 0;                                         // Turn off previous segment tip
-		seg.bdyf_id[k] = it->bdyf_id[k];
+		it->m_tip[k].active = 0;                                         // Turn off previous segment tip
+		seg.m_tip[k].bdyf_id = it->m_tip[k].bdyf_id;
 
 		seg.m_sprout = Segment::SPROUT_NEG;                                        // Set sprout for the new segment as -1, indicating this segment originated from a -1 tip
 
@@ -359,12 +359,12 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
 			it->seg_conn[0][1] = seg.seg_num;
 		
 		
-		elem_num = grid.findelem(seg.rt[0].x, seg.rt[0].y, seg.rt[0].z);
+		elem_num = grid.findelem(seg.m_tip[0].rt);
 		
 		if (elem_num == -1)
 			bc.checkBC(seg, 0, grid, data, frag);
 		else
-			seg.tip_elem[0] = elem_num;
+			seg.m_tip[0].elem = elem_num;
 	
 		//if (it->sprout == 9){
 		//	data.num_lines++;
@@ -543,19 +543,19 @@ Segment Culture::connectSegment(list<Segment>::iterator it,list<Segment>::iterat
  {
  	Segment seg;
  	
-	seg.length = (it->rt[k] - it2->rt[kk]).norm();
+	seg.length = (it->m_tip[k].rt - it2->m_tip[kk].rt).norm();
 	
- 	seg.rt[0] = it->rt[k];
-	seg.tip_elem[0] = it->tip_elem[k];
-	seg.rt[1] = it2->rt[kk];
-	seg.tip_elem[1] = it2->tip_elem[kk];
+ 	seg.m_tip[0].rt = it->m_tip[k].rt;
+	seg.m_tip[0].elem = it->m_tip[k].elem;
+	seg.m_tip[1].rt = it2->m_tip[kk].rt;
+	seg.m_tip[1].elem = it2->m_tip[kk].elem;
  	
 	seg.TofBirth = data.t;
  	seg.label = it->label;
  	seg.vessel = it->vessel;
  	
- 	seg.tip[0] = 0;
- 	seg.tip[1] = 0;
+ 	seg.m_tip[0].active = 0;
+ 	seg.m_tip[1].active = 0;
  	seg.anast = 1;
  	it->anast = 1;
  	it2->anast = 1;
@@ -599,53 +599,56 @@ void Culture::CheckForIntersection(Segment &seg,list<Segment> &frag, Data &data,
 	intersectpt[1] = 0;
 	
 	double lambda;
+
+	vec3d& r0 = seg.m_tip[0].rt;
+	vec3d& r1 = seg.m_tip[1].rt;
 	
-	if (seg.tip[1] == 1)
+	if (seg.m_tip[1].active == 1)
 	{
-		p1[0] = seg.rt[0].x;
-		p2[0] = seg.rt[1].x;
-		p1[1] = seg.rt[0].y;
-		p2[1] = seg.rt[1].y;
-		p1[2] = seg.rt[0].z;
-		p2[2] = seg.rt[1].z;
+		p1[0] = r0.x;
+		p2[0] = r1.x;
+		p1[1] = r0.y;
+		p2[1] = r1.y;
+		p1[2] = r0.z;
+		p2[2] = r1.z;
 	}
-	else if (seg.tip[0] == -1)
+	else if (seg.m_tip[0].active == -1)
 	{
-		p1[0] = seg.rt[1].x;
-		p2[0] = seg.rt[0].x;
-		p1[1] = seg.rt[1].y;
-		p2[1] = seg.rt[0].y;
-		p1[2] = seg.rt[1].z;
-		p2[2] = seg.rt[0].z;
+		p1[0] = r1.x;
+		p2[0] = r0.x;
+		p1[1] = r1.y;
+		p2[1] = r0.y;
+		p1[2] = r1.z;
+		p2[2] = r0.z;
 	}
 
 	for (it2 = frag.begin(); it2 != frag.end(); ++it2)
 	{
 		if (it->label!=it2->label)
 		{
-			pp1[0] = it2->rt[0].x;
-			pp1[1] = it2->rt[0].y;
-			pp1[2] = it2->rt[0].z;
-			pp2[0] = it2->rt[1].x;
-			pp2[1] = it2->rt[1].y;
-			pp2[2] = it2->rt[1].z;
+			pp1[0] = r0.x;
+			pp1[1] = r0.y;
+			pp1[2] = r0.z;
+			pp2[0] = r1.x;
+			pp2[1] = r1.y;
+			pp2[2] = r1.z;
 
 			lambda = findIntersect(p1,p2,pp1,pp2,intersectpt);
 			if (lambda >=0 && lambda <=1)
 			{
-				if (seg.tip[1] == 1)
+				if (seg.m_tip[1].active == 1)
 				{
-					seg.rt[1].x = intersectpt[0];
-					seg.rt[1].y = intersectpt[1];
-					seg.rt[1].z = intersectpt[2];
-					seg.tip[1] = 0;
+					seg.m_tip[1].rt.x = intersectpt[0];
+					seg.m_tip[1].rt.y = intersectpt[1];
+					seg.m_tip[1].rt.z = intersectpt[2];
+					seg.m_tip[1].active = 0;
 				}
-				else if (seg.tip[0] == -1)
+				else if (seg.m_tip[0].active == -1)
 				{
-					seg.rt[0].x = intersectpt[0];
-					seg.rt[0].y = intersectpt[1];
-					seg.rt[0].z = intersectpt[2];
-					seg.tip[0] = 0;
+					seg.m_tip[0].rt.x = intersectpt[0];
+					seg.m_tip[0].rt.y = intersectpt[1];
+					seg.m_tip[0].rt.z = intersectpt[2];
+					seg.m_tip[0].active = 0;
 				}
 				cout << "3D intersection" << endl;
 				++data.num_anastom;
@@ -814,23 +817,23 @@ bool Culture::intersectPlane(Grid& grid, Segment &seg, int n, double intersectpt
 	double u; //scalar weight to move along segment displacement vector
 
 
-	if (seg.tip[1] == 1)
+	if (seg.m_tip[1].active == 1)
 	{
-		V[0] = seg.rt[1].x - seg.rt[0].x;
-		V[1] = seg.rt[1].y - seg.rt[0].y;
-		V[2] = seg.rt[1].z - seg.rt[0].z;
-		LP[0] = seg.rt[0].x;
-		LP[1] = seg.rt[0].y;
-		LP[2] = seg.rt[0].z;
+		V[0] = seg.m_tip[1].rt.x - seg.m_tip[0].rt.x;
+		V[1] = seg.m_tip[1].rt.y - seg.m_tip[0].rt.y;
+		V[2] = seg.m_tip[1].rt.z - seg.m_tip[0].rt.z;
+		LP[0] = seg.m_tip[0].rt.x;
+		LP[1] = seg.m_tip[0].rt.y;
+		LP[2] = seg.m_tip[0].rt.z;
 	}
 	else
 	{
-		V[0] = seg.rt[0].x - seg.rt[1].x;
-		V[1] = seg.rt[0].y - seg.rt[1].y;
-		V[2] = seg.rt[0].z - seg.rt[1].z;
-		LP[0] = seg.rt[1].x;
-		LP[1] = seg.rt[1].y;
-		LP[2] = seg.rt[1].z;
+		V[0] = seg.m_tip[0].rt.x - seg.m_tip[1].rt.x;
+		V[1] = seg.m_tip[0].rt.y - seg.m_tip[1].rt.y;
+		V[2] = seg.m_tip[0].rt.z - seg.m_tip[1].rt.z;
+		LP[0] = seg.m_tip[1].rt.x;
+		LP[1] = seg.m_tip[1].rt.y;
+		LP[2] = seg.m_tip[1].rt.z;
 	}
 
 	switch (n)
@@ -958,11 +961,11 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 	int n = 0;
 	double intersectpt[3] = {0};
 	
-	if (seg.tip[1] == 1)
+	if (seg.m_tip[1].active == 1)
 	{
-		unit_vec[0] = (seg.rt[1].x-seg.rt[0].x);
-		unit_vec[1] = (seg.rt[1].y-seg.rt[0].y);
-		unit_vec[2] = (seg.rt[1].z-seg.rt[0].z);
+		unit_vec[0] = (seg.m_tip[1].rt.x-seg.m_tip[0].rt.x);
+		unit_vec[1] = (seg.m_tip[1].rt.y-seg.m_tip[0].rt.y);
+		unit_vec[2] = (seg.m_tip[1].rt.z-seg.m_tip[0].rt.z);
 		length = vec_norm(unit_vec);
 		unit_vec[0] /= length;
 		unit_vec[1] /= length;
@@ -973,19 +976,19 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 			if (intersectPlane(grid, seg,n,intersectpt))
 			{
 				//cout << endl << "Vessel " << seg.label << " Crossed Face " << n << endl;
-				seg.rt[1].x = intersectpt[0];
-				seg.rt[1].y = intersectpt[1];
-				seg.rt[1].z = intersectpt[2];
+				seg.m_tip[1].rt.x = intersectpt[0];
+				seg.m_tip[1].rt.y = intersectpt[1];
+				seg.m_tip[1].rt.z = intersectpt[2];
 				if (seg.length < 0)
 				{
-					seg.length = -(seg.rt[1] - seg.rt[0]).norm();
+					seg.length = -(seg.m_tip[1].rt - seg.m_tip[0].rt).norm();
 				}
 				else
 				{
-					seg.length = (seg.rt[1] - seg.rt[0]).norm();
+					seg.length = (seg.m_tip[1].rt - seg.m_tip[0].rt).norm();
 				}
 
-				seg.tip[1] = 0;
+				seg.m_tip[1].active = 0;
 				seg.BCdead = 1;
 				
 				/*if (n > 3){
@@ -1003,55 +1006,55 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 				switch (n)
 				{
 				case 0:
-					seg2.rt[0].x = seg.rt[1].x;
-					seg2.rt[0].y = oppface[n];
-					seg2.rt[0].z = seg.rt[1].z;
+					seg2.m_tip[0].rt.x = seg.m_tip[1].rt.x;
+					seg2.m_tip[0].rt.y = oppface[n];
+					seg2.m_tip[0].rt.z = seg.m_tip[1].rt.z;
 					break;
 					
 				case 1:
-					seg2.rt[0].x = oppface[n];
-					seg2.rt[0].y = seg.rt[1].y;
-					seg2.rt[0].z = seg.rt[1].z;
+					seg2.m_tip[0].rt.x = oppface[n];
+					seg2.m_tip[0].rt.y = seg.m_tip[1].rt.y;
+					seg2.m_tip[0].rt.z = seg.m_tip[1].rt.z;
 					break;
 				case 2:
-					seg2.rt[0].x = seg.rt[1].x;
-					seg2.rt[0].y = oppface[n];
-					seg2.rt[0].z = seg.rt[1].z;
+					seg2.m_tip[0].rt.x = seg.m_tip[1].rt.x;
+					seg2.m_tip[0].rt.y = oppface[n];
+					seg2.m_tip[0].rt.z = seg.m_tip[1].rt.z;
 					break;
 				case 3:
-					seg2.rt[0].x = oppface[n];
-					seg2.rt[0].y = seg.rt[1].y;
-					seg2.rt[0].z = seg.rt[1].z;
+					seg2.m_tip[0].rt.x = oppface[n];
+					seg2.m_tip[0].rt.y = seg.m_tip[1].rt.y;
+					seg2.m_tip[0].rt.z = seg.m_tip[1].rt.z;
 					break;
 				case 4:
-					seg2.rt[0].x = seg.rt[1].x;
-					seg2.rt[0].y = seg.rt[1].y;
-					seg2.rt[0].z = oppface[n];
+					seg2.m_tip[0].rt.x = seg.m_tip[1].rt.x;
+					seg2.m_tip[0].rt.y = seg.m_tip[1].rt.y;
+					seg2.m_tip[0].rt.z = oppface[n];
 					break;
 				case 5:
-					seg2.rt[0].x = seg.rt[1].x;
-					seg2.rt[0].y = seg.rt[1].y;
-					seg2.rt[0].z = oppface[n];
+					seg2.m_tip[0].rt.x = seg.m_tip[1].rt.x;
+					seg2.m_tip[0].rt.y = seg.m_tip[1].rt.y;
+					seg2.m_tip[0].rt.z = oppface[n];
 					break;
 				}
 
 				if (seg.length > 0) 
 				{
-					rem_length = length - (seg.rt[1] - seg.rt[0]).norm();
-					seg2.rt[1].x = seg2.rt[0].x + rem_length*unit_vec[0];
-					seg2.rt[1].y = seg2.rt[0].y + rem_length*unit_vec[1];
-					seg2.rt[1].z = seg2.rt[0].z + rem_length*unit_vec[2];
+					rem_length = length - (seg.m_tip[1].rt - seg.m_tip[0].rt).norm();
+					seg2.m_tip[1].rt.x = seg2.m_tip[0].rt.x + rem_length*unit_vec[0];
+					seg2.m_tip[1].rt.y = seg2.m_tip[0].rt.y + rem_length*unit_vec[1];
+					seg2.m_tip[1].rt.z = seg2.m_tip[0].rt.z + rem_length*unit_vec[2];
 				}
 				else 
 				{
-					rem_length = -length + (seg.rt[1] - seg.rt[0]).norm();
-					seg2.rt[1].x = seg2.rt[0].x - rem_length*unit_vec[0];
-					seg2.rt[1].y = seg2.rt[0].y - rem_length*unit_vec[1];
-					seg2.rt[1].z = seg2.rt[0].z - rem_length*unit_vec[2];
+					rem_length = -length + (seg.m_tip[1].rt- seg.m_tip[0].rt).norm();
+					seg2.m_tip[1].rt.x = seg2.m_tip[0].rt.x - rem_length*unit_vec[0];
+					seg2.m_tip[1].rt.y = seg2.m_tip[0].rt.y - rem_length*unit_vec[1];
+					seg2.m_tip[1].rt.z = seg2.m_tip[0].rt.z - rem_length*unit_vec[2];
 				}
 				
-				seg2.tip[1] = 1;
-				seg2.tip[0] = 0;
+				seg2.m_tip[1].active = 1;
+				seg2.m_tip[0].active = 0;
 				seg2.label = seg.label;
 				seg2.vessel = data.num_vessel;
 				seg2.m_sprout = seg.m_sprout;
@@ -1071,9 +1074,9 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 	
 	else
 	{
-		unit_vec[0] = (seg.rt[0].x-seg.rt[1].x);
-		unit_vec[1] = (seg.rt[0].y-seg.rt[1].y);
-		unit_vec[2] = (seg.rt[0].z-seg.rt[1].z);
+		unit_vec[0] = (seg.m_tip[0].rt.x-seg.m_tip[1].rt.x);
+		unit_vec[1] = (seg.m_tip[0].rt.y-seg.m_tip[1].rt.y);
+		unit_vec[2] = (seg.m_tip[0].rt.z-seg.m_tip[1].rt.z);
 		length = vec_norm(unit_vec);
 		unit_vec[0] /= length;
 		unit_vec[1] /= length;
@@ -1083,19 +1086,19 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 			if (intersectPlane(grid,seg,n,intersectpt))
 			{
 				//cout << endl << "Vessel " << seg.label << " Crossed Face " << n << endl;
-				seg.rt[0].x = intersectpt[0];
-				seg.rt[0].y = intersectpt[1];
-				seg.rt[0].z = intersectpt[2];
+				seg.m_tip[0].rt.x = intersectpt[0];
+				seg.m_tip[0].rt.y = intersectpt[1];
+				seg.m_tip[0].rt.z = intersectpt[2];
 				if (seg.length < 0)
 				{
-					seg.length = -(seg.rt[1] - seg.rt[0]).norm();
+					seg.length = -(seg.m_tip[1].rt - seg.m_tip[0].rt).norm();
 				}
 				else
 				{
-					seg.length = (seg.rt[1] - seg.rt[0]).norm();
+					seg.length = (seg.m_tip[1].rt - seg.m_tip[0].rt).norm();
 				}
 				
-				seg.tip[0] = 0;
+				seg.m_tip[0].active = 0;
                 
                 /*if (n > 3){
 				    data.num_zdead = data.num_zdead+1;
@@ -1112,56 +1115,56 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 				switch (n)
 				{
 				case 0:
-					seg2.rt[1].x = seg.rt[0].x;
-					seg2.rt[1].y = oppface[n];
-					seg2.rt[1].z = seg.rt[0].z;
+					seg2.m_tip[1].rt.x = seg.m_tip[0].rt.x;
+					seg2.m_tip[1].rt.y = oppface[n];
+					seg2.m_tip[1].rt.z = seg.m_tip[0].rt.z;
 					break;
 					
 				case 1:
-					seg2.rt[1].x = oppface[n];
-					seg2.rt[1].y = seg.rt[0].y;
-					seg2.rt[1].z = seg.rt[0].z;
+					seg2.m_tip[1].rt.x = oppface[n];
+					seg2.m_tip[1].rt.y = seg.m_tip[0].rt.y;
+					seg2.m_tip[1].rt.z = seg.m_tip[0].rt.z;
 					break;
 				case 2:
-					seg2.rt[1].x = seg.rt[0].x;
-					seg2.rt[1].y = oppface[n];
-					seg2.rt[1].z = seg.rt[0].z;
+					seg2.m_tip[1].rt.x = seg.m_tip[0].rt.x;
+					seg2.m_tip[1].rt.y = oppface[n];
+					seg2.m_tip[1].rt.z = seg.m_tip[0].rt.z;
 					break;
 				case 3:
-					seg2.rt[1].x = oppface[n];
-					seg2.rt[1].y = seg.rt[0].y;
-					seg2.rt[1].z = seg.rt[0].z;
+					seg2.m_tip[1].rt.x = oppface[n];
+					seg2.m_tip[1].rt.y = seg.m_tip[0].rt.y;
+					seg2.m_tip[1].rt.z = seg.m_tip[0].rt.z;
 					break;
 				case 4:
-					seg2.rt[1].x = seg.rt[0].x;
-					seg2.rt[1].y = seg.rt[0].y;
-					seg2.rt[1].z = oppface[n];
+					seg2.m_tip[1].rt.x = seg.m_tip[0].rt.x;
+					seg2.m_tip[1].rt.y = seg.m_tip[0].rt.y;
+					seg2.m_tip[1].rt.z = oppface[n];
 					break;
 				case 5:
-					seg2.rt[1].x = seg.rt[0].x;
-					seg2.rt[1].y = seg.rt[0].y;
-					seg2.rt[1].z = oppface[n];
+					seg2.m_tip[1].rt.x = seg.m_tip[0].rt.x;
+					seg2.m_tip[1].rt.y = seg.m_tip[0].rt.y;
+					seg2.m_tip[1].rt.z = oppface[n];
 					break;
 				}
 
 				if (seg.length < 0) 
 				{
-					rem_length = -length + (seg.rt[1] - seg.rt[0]).norm();
-					seg2.rt[0].x = seg2.rt[1].x - rem_length*unit_vec[0];
-					seg2.rt[0].y = seg2.rt[1].y - rem_length*unit_vec[1];
-					seg2.rt[0].z = seg2.rt[1].z - rem_length*unit_vec[2];
+					rem_length = -length + (seg.m_tip[1].rt - seg.m_tip[0].rt).norm();
+					seg2.m_tip[0].rt.x = seg2.m_tip[1].rt.x - rem_length*unit_vec[0];
+					seg2.m_tip[0].rt.y = seg2.m_tip[1].rt.y - rem_length*unit_vec[1];
+					seg2.m_tip[0].rt.z = seg2.m_tip[1].rt.z - rem_length*unit_vec[2];
 					
 				}
 				else 
 				{
-					rem_length = length - (seg.rt[1] - seg.rt[0]).norm();
-					seg2.rt[0].x = seg2.rt[1].x + rem_length*unit_vec[0];
-					seg2.rt[0].y = seg2.rt[1].y + rem_length*unit_vec[1];
-					seg2.rt[0].z = seg2.rt[1].z + rem_length*unit_vec[2];
+					rem_length = length - (seg.m_tip[1].rt - seg.m_tip[0].rt).norm();
+					seg2.m_tip[0].rt.x = seg2.m_tip[1].rt.x + rem_length*unit_vec[0];
+					seg2.m_tip[0].rt.y = seg2.m_tip[1].rt.y + rem_length*unit_vec[1];
+					seg2.m_tip[0].rt.z = seg2.m_tip[1].rt.z + rem_length*unit_vec[2];
 				}
 				
-				seg2.tip[1] = 0;
-				seg2.tip[0] = -1;
+				seg2.m_tip[1].active = 0;
+				seg2.m_tip[0].active = -1;
 				seg2.label = seg.label;
 				seg2.vessel = data.num_vessel;
 				seg2.m_sprout = seg.m_sprout;

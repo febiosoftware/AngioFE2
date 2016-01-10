@@ -10,6 +10,7 @@
 #include "Grid.h"
 #include "Data.h"
 #include "angio3d.h"
+#include <FECore/FEMesh.h>
 #include <FECore/vec3d.h>
 #include "Elem.h"
 #include "math.h"
@@ -30,6 +31,9 @@ Grid::Grid()
 	leftbc = 'w';
 	bottombc = 'w';
 	topbc = 'w';
+
+	// flatten fiber option (default to false)
+	m_bzfibflat = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -40,163 +44,181 @@ Grid::~Grid()
 
 //-----------------------------------------------------------------------------
 // Creates grid from FE mesh
-void Grid::create_grid()
+void Grid::CreateGrid(FEMesh &mesh, vector<vec3d>& fiber, vector<double>& density)
 {
-	int elem_num = 0;
-	for (int i = 0; i < iNBC; ++i)
+	// First, we build all the nodes
+	int NN = mesh.Nodes();
+	for (int i = 0; i < NN; ++i)								
 	{
-	    elem_num = ieBC[i][0];
+		Node node;														// Create a new node
+		node.id = i;													// Give the node it's ID 
+		node.rt = mesh.Node(i).m_r0;									// Set the current position as FEBio initial position
+		node.r0 = node.rt;												// Set initial position to current position
+
+		if(coll_den == 0.0)
+		{
+			node.ecm_den = density[i];									// Set the density of the ECM at the node 
+			node.ecm_den0 = node.ecm_den;	
+		}
+		else
+		{
+			node.ecm_den = coll_den;									// Set the density of the ECM at the node 
+			node.ecm_den0 = node.ecm_den;								// Set the initial ECM density to the current ECM density
+		}
+
+		// create a unit fiber vector denoting the local 
+		// collagen orientation.
+		vec3d node_fiber;
+		if (load_cond == 3)
+		{
+			node_fiber = fiber[i];
+		}
+		else
+		{
+			node_fiber.x = 2*(float(rand())/RAND_MAX - 0.5); 
+			node_fiber.y = 2*(float(rand())/RAND_MAX - 0.5); 
+			node_fiber.z = 2*(float(rand())/RAND_MAX - 0.5);
+		}
+		
+		if (m_bzfibflat == 1)
+			node_fiber.z = 0.25*node_fiber.z;
+
+		// normalize the vector
+		node_fiber.unit();
+
+		// assign the node
+		node.collfib = node_fiber;
+
+		// set the initial collagen fiber
+		node.collfib0 = node.collfib;
+
+		// Add the node to the list
+		nodes.push_back(node);
+	}
+
+	// override the grid dimensions based on the mesh
+	xrange[0] = xrange[1] = nodes[0].rt.x;
+	yrange[0] = yrange[1] = nodes[0].rt.y;
+	zrange[0] = zrange[1] = nodes[0].rt.z;
+	for (int j=1; j<NN; ++j)
+	{
+		if (nodes[j].rt.x < xrange[0]) xrange[0] = nodes[j].rt.x;
+		if (nodes[j].rt.x > xrange[1]) xrange[1] = nodes[j].rt.x;
+		if (nodes[j].rt.y < yrange[0]) yrange[0] = nodes[j].rt.y;
+		if (nodes[j].rt.y > yrange[1]) yrange[1] = nodes[j].rt.y;
+		if (nodes[j].rt.z < zrange[0]) zrange[0] = nodes[j].rt.z;
+		if (nodes[j].rt.z > zrange[1]) zrange[1] = nodes[j].rt.z;
+	}
+
+	// add the initial data to the stores
+	for (int i = 0; i < NN; i++){
+		nodes[i].ecm_den_store.push_back(nodes[i].ecm_den0);
+		nodes[i].ecm_fibril_store.push_back(nodes[i].collfib0);}
+	
+	// Read in element connectivity from the FEBio mesh	
+	for (int d = 0; d < mesh.Domains(); d++)
+	{
+		FEDomain& domain = mesh.Domain(d);								// Obtain the domain from FEBio (only one domain)
+		int num_elem = domain.Elements();									// Read in the total number of elements from the FEBio domain
+
+		for (int i = 0; i < num_elem; ++i)									// Iterate through all elements...
+		{
+			FEElement& FEelem = domain.ElementRef(i);						// Obtain element i from the FEBio domain
+
+			Elem elem;
+			elem.elem_num = i;
+			int n1 = FEelem.m_node[0];
+			int n2 = FEelem.m_node[1];
+			int n3 = FEelem.m_node[3];	// Notice 2 and 3 are swapped
+			int n4 = FEelem.m_node[2];
+			int n5 = FEelem.m_node[4];
+			int n6 = FEelem.m_node[5];
+			int n7 = FEelem.m_node[7];	// Notice 6 and 7 are swapped
+			int n8 = FEelem.m_node[6];
+	            
+			elem.n1 = &nodes[n1];
+			elem.n2 = &nodes[n2];
+			elem.n3 = &nodes[n3];
+			elem.n4 = &nodes[n4];
+			elem.n5 = &nodes[n5];
+			elem.n6 = &nodes[n6];
+			elem.n7 = &nodes[n7];
+			elem.n8 = &nodes[n8];
 	        
-	    if (ieBC[i][1] == 1){
-	        ebin[elem_num].f1.BC = true;
-	        //ebin[elem_num].f1.bc_type = y_bctype;}
-			ebin[elem_num].f1.bc_type = frontbc;}
-	            
-	    if (ieBC[i][2] == 1){
-	        ebin[elem_num].f2.BC = true;
-	        //ebin[elem_num].f2.bc_type = x_bctype;}
-	        ebin[elem_num].f2.bc_type = rightbc;}
+			ebin.push_back(elem);
+		}
+	}
+	
+	// Find all the element neighbors
+	FindElementNeighbors();
 
-	    if (ieBC[i][3] == 1){
-	        ebin[elem_num].f3.BC = true;
-	        //ebin[elem_num].f3.bc_type = y_bctype;}
-	        ebin[elem_num].f3.bc_type = backbc;}
+	// Determine the boundary flags for the faces
+	int NE = Elems();
+	for (int i = 0; i < NE; ++i)
+	{
+	    Elem& ei = ebin[i];
 
-	    if (ieBC[i][4] == 1){
-	        ebin[elem_num].f4.BC = true;
-	        //ebin[elem_num].f4.bc_type = x_bctype;}
-			ebin[elem_num].f4.bc_type = leftbc;}
-	            
-	    if (ieBC[i][5] == 1){
-	        ebin[elem_num].f5.BC = true;
-	        //ebin[elem_num].f5.bc_type = z_bctype;}
-	        ebin[elem_num].f5.bc_type = topbc;}
-
-	    if (ieBC[i][6] == 1){
-	        ebin[elem_num].f6.BC = true;    
-	        //ebin[elem_num].f6.bc_type = z_bctype;}}
-			ebin[elem_num].f6.bc_type = bottombc;}
+	    if (ei.m_nbr[0] == -1) { ei.f1.BC = true; ei.f1.bc_type = frontbc; }
+	    if (ei.m_nbr[1] == -1) { ei.f2.BC = true; ei.f2.bc_type = frontbc; }
+	    if (ei.m_nbr[2] == -1) { ei.f3.BC = true; ei.f3.bc_type = frontbc; }
+	    if (ei.m_nbr[3] == -1) { ei.f4.BC = true; ei.f4.bc_type = frontbc; }
+	    if (ei.m_nbr[4] == -1) { ei.f5.BC = true; ei.f5.bc_type = frontbc; }
+	    if (ei.m_nbr[5] == -1) { ei.f6.BC = true; ei.f6.bc_type = frontbc; }
 	}
 }
 
 //-----------------------------------------------------------------------------
-// This is defined in FECore.
-//void solve_3x3(double A[3][3], double b[3], double x[3]);
-
-///////////////////////////////////////////////////////////////////////
-// findelem
-///////////////////////////////////////////////////////////////////////
-/*
-int Grid::findelem(double xpt, double ypt, double zpt)
+// Helper function used by Grid::FindNeighbor to compare two faces.
+bool face_compare(int ni[4], int nj[4])
 {
-	vector<vec3d> r(8);
+	if ((ni[0]!=nj[0])&&(ni[0]!=nj[1])&&(ni[0]!=nj[2])&&(ni[0]!=nj[3])) return false;
+	if ((ni[1]!=nj[0])&&(ni[1]!=nj[1])&&(ni[1]!=nj[2])&&(ni[1]!=nj[3])) return false;
+	if ((ni[2]!=nj[0])&&(ni[2]!=nj[1])&&(ni[2]!=nj[2])&&(ni[2]!=nj[3])) return false;
+	if ((ni[3]!=nj[0])&&(ni[3]!=nj[1])&&(ni[3]!=nj[2])&&(ni[3]!=nj[3])) return false;
+	return true;
+}
+
+
+//-----------------------------------------------------------------------------
+// This function find the neighbors of all elements
+void Grid::FindElementNeighbors()
+{
+	int ni[4], nj[4];
 	int NE = Elems();
 	for (int i=0; i<NE; ++i)
 	{
-		// get the next element
-		Elem& e = ebin[i];
-
-		// get the element nodal coordinates
-		r[0] = e.n1->rt;
-		r[1] = e.n2->rt;
-		r[2] = e.n4->rt;	// why are 3/4 swapped
-		r[3] = e.n3->rt;
-		r[4] = e.n5->rt;
-		r[5] = e.n6->rt;
-		r[6] = e.n8->rt;
-		r[7] = e.n7->rt;	// why are 7/8 swapped
-
-		// find the range
-		double xmin = r[0].x, xmax = r[0].x;
-		double ymin = r[0].y, ymax = r[0].y;
-		double zmin = r[0].z, zmax = r[0].z;
-		for (int j=1; j<8; ++j)
+		Elem& ei = ebin[i];
+		for (int k=0; k<6; ++k)
 		{
-			if (r[j].x < xmin) xmin = r[j].x;
-			if (r[j].x > xmax) xmax = r[j].x;
-			if (r[j].y < ymin) ymin = r[j].y;
-			if (r[j].y > ymax) ymax = r[j].y;
-			if (r[j].z < zmin) zmin = r[j].z;
-			if (r[j].z > zmax) zmax = r[j].z;
-		}
+			ei.GetFace(k, ni);
 
-		// inflat a little bit
-		const double inf = (xmax - xmin)/1000.0;
-		xmin -= inf; xmax += inf;
-		ymin -= inf; ymax += inf;
-		zmin -= inf; zmax += inf;
-
-		// see if this point is inside the box
-		if ((xpt >= xmin)&&(xpt <= xmax)&&
-			(ypt >= ymin)&&(ypt <= ymax)&&
-			(zpt >= zmin)&&(zpt <= zmax))
-		{
-			// If the point y lies inside the box, we apply a Newton method to find
-			// the isoparametric coordinates r
-			double q[3];
-			q[0] = q[1] = q[2] = 0;
-			const double tol = 1e-5;
-			double dr[3], norm;
-			double H[8], G[8][3];
-			do
+			int nbr = -1;
+			for (int j=0; j<NE; ++j)
 			{
-				H[0] = 0.125*(1 - q[0])*(1 - q[1])*(1 - q[2]);
-				H[1] = 0.125*(1 + q[0])*(1 - q[1])*(1 - q[2]);
-				H[2] = 0.125*(1 + q[0])*(1 + q[1])*(1 - q[2]);
-				H[3] = 0.125*(1 - q[0])*(1 + q[1])*(1 - q[2]);
-				H[4] = 0.125*(1 - q[0])*(1 - q[1])*(1 + q[2]);
-				H[5] = 0.125*(1 + q[0])*(1 - q[1])*(1 + q[2]);
-				H[6] = 0.125*(1 + q[0])*(1 + q[1])*(1 + q[2]);
-				H[7] = 0.125*(1 - q[0])*(1 + q[1])*(1 + q[2]);
-
-				G[0][0] = -0.125*(1 - q[1])*(1 - q[2]); G[0][1] = -0.125*(1 - q[0])*(1 - q[2]); G[0][2] = -0.125*(1 - q[0])*(1 - q[1]);
-				G[1][0] =  0.125*(1 - q[1])*(1 - q[2]); G[1][1] = -0.125*(1 + q[0])*(1 - q[2]); G[1][2] = -0.125*(1 + q[0])*(1 - q[1]);
-				G[2][0] =  0.125*(1 + q[1])*(1 - q[2]); G[2][1] =  0.125*(1 + q[0])*(1 - q[2]); G[2][2] = -0.125*(1 + q[0])*(1 + q[1]);
-				G[3][0] = -0.125*(1 + q[1])*(1 - q[2]); G[3][1] =  0.125*(1 - q[0])*(1 - q[2]); G[3][2] = -0.125*(1 - q[0])*(1 + q[1]);
-				G[4][0] = -0.125*(1 - q[1])*(1 + q[2]); G[4][1] = -0.125*(1 - q[0])*(1 + q[2]); G[4][2] =  0.125*(1 - q[0])*(1 - q[1]);
-				G[5][0] =  0.125*(1 - q[1])*(1 + q[2]); G[5][1] = -0.125*(1 + q[0])*(1 + q[2]); G[5][2] =  0.125*(1 + q[0])*(1 - q[1]);
-				G[6][0] =  0.125*(1 + q[1])*(1 + q[2]); G[6][1] =  0.125*(1 + q[0])*(1 + q[2]); G[6][2] =  0.125*(1 + q[0])*(1 + q[1]);
-				G[7][0] = -0.125*(1 + q[1])*(1 + q[2]); G[7][1] =  0.125*(1 - q[0])*(1 + q[2]); G[7][2] =  0.125*(1 - q[0])*(1 + q[1]);
-
-				double R[3] = {0}, A[3][3] = {0};
-				for (int k=0; k<8; ++k)
+				if (i != j)
 				{
-					R[0] += r[k].x*H[k];
-					R[1] += r[k].y*H[k];
-					R[2] += r[k].z*H[k];
-
-					A[0][0] -= r[k].x*G[k][0]; A[0][1] -= r[k].x*G[k][1]; A[0][2] -= r[k].x*G[k][2];
-					A[1][0] -= r[k].y*G[k][0]; A[1][1] -= r[k].y*G[k][1]; A[1][2] -= r[k].y*G[k][2];
-					A[2][0] -= r[k].z*G[k][0]; A[2][1] -= r[k].z*G[k][1]; A[2][2] -= r[k].z*G[k][2];
+					Elem& ej = ebin[j];
+					for (int l=0; l<6; ++l)
+					{
+						ej.GetFace(l, nj);
+						if (face_compare(ni, nj)) { nbr = j; break; }
+					}
 				}
-				R[0] = xpt - R[0];
-				R[1] = ypt - R[1];
-				R[2] = zpt - R[2];
 
-				solve_3x3(A, R, dr);
-				q[0] -= dr[0];
-				q[1] -= dr[1];
-				q[2] -= dr[2];
-
-				norm = dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2];
+				if (nbr != -1) break;
 			}
-			while (norm > tol);
 
-			// see if the point r lies inside the element
-			const double eps = 1.0001;
-			if ((q[0] >= -eps) && (q[0] <= eps) &&
-				(q[1] >= -eps) && (q[1] <= eps) && 
-				(q[2] >= -eps) && (q[2] <= eps)) return i;
+			ei.m_nbr[k] = nbr;
 		}
 	}
-	return -1;
 }
-*/
+
+//-----------------------------------------------------------------------------
 int Grid::findelem(double xpt, double ypt, double zpt)
 {
     int elem_num = -1;
     double bb_eps = 0.1;
-	double eps = 0;
+	double eps = 0.00001;
     
     double xmin, xmax, ymin, ymax, zmin, zmax = {0.0};
     double xix, xiy, xiz = {0.0};
@@ -206,20 +228,19 @@ int Grid::findelem(double xpt, double ypt, double zpt)
     {
         Elem& elem = ebin[i];
         
-        xmin = elem.bb_xmin()*(1. - bb_eps);
-        xmax = elem.bb_xmax()*(1. + bb_eps);
-		if (xmin == 0.0)
-			xmin = -1.0*bb_eps*xmax;
-		
-		ymin = elem.bb_ymin()*(1. - bb_eps);
-        ymax = elem.bb_ymax()*(1. + bb_eps);
-        if (ymin == 0.0)
-			ymin = -1.0*bb_eps*ymax;
+ 		// get the bounding box
+        xmin = elem.bb_xmin();
+        xmax = elem.bb_xmax();
+		ymin = elem.bb_ymin();
+        ymax = elem.bb_ymax();
+		zmin = elem.bb_zmin();
+        zmax = elem.bb_zmax();
 
-		zmin = elem.bb_zmin()*(1. - bb_eps);
-        zmax = elem.bb_zmax()*(1. + bb_eps);
-        if (zmin == 0.0)
-			zmin = -1.0*bb_eps*zmax;
+		// inflate it a bit
+		double inf = (xmax - xmin)/100.0;
+		xmin -= inf; xmax += inf;
+		ymin -= inf; ymax += inf;
+		zmin -= inf; zmax += inf;
 
         
 		if ((xpt >= xmin) && (xpt <= xmax)){
@@ -505,18 +526,63 @@ int Grid::elem_find_neighbor(int elem_num,int neighbor_id)
 }
 
 
-
-
+//-----------------------------------------------------------------------------
+// TODO: Make a,b,c user settings.
+// TODO: This function is only used by FEAngioMaterial. 
+//       Perhaps we should move this function there.
 double Grid::find_density_scale(double coll_den)
 {
+	if (coll_den == 3.0) return 1.0;
+
+	// Determine the density scaling factor using the function defined by a, b, c
 	double den_scale;
 	double a = -0.016;
 	double b = 5.1605;
 	double c = 0.5112;
-	den_scale = a + b*pow(E, -c*coll_den );                        // den_scale - Determine the density scaling factor using the function defined by a, b, c
-
-	if (coll_den == 3.0)
-		den_scale = 1.0;
+	den_scale = a + b*pow(E, -c*coll_den );
 
 	return den_scale;
+}
+
+//-----------------------------------------------------------------------------
+// This function tries to find the face of an element that intersects the segment.
+// It assumes that point1 of the segment is inside the element.
+// This also assumes that the facets are flat.
+// TODO: generalize this for curved surfaces
+bool Grid::FindIntersection(vec3d& r0, vec3d& r1, int elem, vec3d& q, int& face)
+{
+	vec3d d = r1 - r0;
+
+	int nf[4];
+	double lam_min = 1e99;
+
+	face = -1;
+	Elem& el = ebin[elem];
+	for (int i=0; i<6; ++i)
+	{
+		// we only search open faces
+		if (el.m_nbr[i] == -1)
+		{
+			el.GetFace(i, nf);
+			vec3d a1 = nodes[nf[0]].rt;
+			vec3d a2 = nodes[nf[1]].rt;
+			vec3d a3 = nodes[nf[2]].rt;
+
+			vec3d n = (a2-a1)^(a3-a1);
+
+			double D = n*d;
+			if (D != 0.0)
+			{
+				double lam = (n*(a1 - r0))/D;
+				if ((lam <= 1.0001) && (lam >= 0.0) && (lam < lam_min))
+				{
+					q = r0 + d*(0.9*lam);
+					face = i;
+					lam_min = lam;
+				}
+			}
+		}
+	}
+
+	return (face!=-1);
 }

@@ -21,6 +21,7 @@
 #include "Elem.h"
 
 class Data;
+class FEMesh;
 
 using namespace std;
 
@@ -33,32 +34,47 @@ const int znodes = 20;
 class Grid  
 {
 public:
-	///// GRID: Member Functions /////
 	Grid();
 	virtual ~Grid();
 
-    virtual void create_grid();
+	// Create the grid from the FEMesh
+    void CreateGrid(FEMesh &mesh, vector<vec3d>& fiber, vector<double>& density);
 
-	// GRID.IsOutsideBox - Inline function that determines if a newly created vessel Segment is outside of the domain
+	// find an intersection of a segment with an element
+	// The intersection point is returned in q.
+	bool FindIntersection(vec3d& r0, vec3d& r1, int elem, vec3d& q, int& face);
+
+
+public:
+	// Inline function that determines if a newly created vessel Segment is outside of the domain
 	bool IsOutsideBox(const Segment& seg);
 
-	// GRID.natcoordinates - Accepts a position in global coordinates and determines the position in natural coorindates for the particular grid element
+	// Accepts a position in global coordinates and determines the position in natural coorindates for the particular grid element
     void natcoord(double &xix, double &xiy, double &xiz, double xpt, double ypt, double zpt, int elem_num);
     
 	// find the element in which this point lies
     int findelem(double xpt, double ypt, double zpt);
 
-    // GRID.shapefunctions - Determine the shape function values for a given position in natural coorindates
+	// find the element in which this point lies
+	int findelem(vec3d& pt) { return findelem(pt.x, pt.y, pt.z); }
+
+    // Determine the shape function values for a given position in natural coorindates
     void shapefunctions(double (&shapeF)[8], double xix, double xiy, double xiz);
     
-    // GRID.shapefun_d1 - Determine the first order derivative of the shape functions for a particular node
+    // Determine the first order derivative of the shape functions for a particular node
     void shapefun_d1(double (&dshapeF)[3], const double xix, const double xiy, const double xiz, int node);
     
+	// Convert from natural to global coordinates for element
     void nattoglobal(double &xpt, double &ypt, double &zpt, double xix, double xiy, double xiz, int elem_num);
 
+	// find the neighbor of an element
 	int elem_find_neighbor(int elem_num,int neighbor_id);
 	
+	// find the density scale
 	double find_density_scale(double coll_den);
+
+private:
+	void FindElementNeighbors();
     
 public:
 	// number of grid nodes
@@ -68,8 +84,10 @@ public:
 	int Elems() { return (int) ebin.size(); }
     
 public:
-	int load_cond;
-	
+	int		load_cond;
+	int		m_bzfibflat;		// flatten fiber option
+
+public:
 	int xnodes;
 	int ynodes;
 	int znodes;
@@ -95,42 +113,24 @@ public:
 	char leftbc;
 	char bottombc;
 	char topbc;
-
-public:
-    int iNBC;
-    vector<vector<int> > ieBC;
 };
 
-
-
-
-   
-    
-    
-    
-///////////////////////////////////////////////////////////////////////
-// Inline Member Functions
-///////////////////////////////////////////////////////////////////////
-
-
-
-///////////////////////////////////////////////////////////////////////////////////
-// IsOutsideBox
-///////////////////////////////////////////////////////////////////////////////////
-
-// GRID.IsOutsideBox - Determines if a vessel segment has grown outside of the domain
+//-----------------------------------------------------------------------------
 //      Input:       const Segment& seg - Newly created vessel Segment
 //
 //      Output:      Boolean operator 'true' if segment is outside the domain
 
 inline bool Grid::IsOutsideBox(const Segment& seg) //determine if segment is outside box
 {
-	if (seg.rt[0].x < xrange[0] || seg.rt[0].x > xrange[1] ||
-		seg.rt[1].x < xrange[0] || seg.rt[1].x > xrange[1] ||
-		seg.rt[0].y < yrange[0] || seg.rt[0].y > yrange[1] ||
-		seg.rt[1].y < yrange[0] || seg.rt[1].y > yrange[1] ||
-		seg.rt[0].z < zrange[0] || seg.rt[0].z > zrange[1] ||
-		seg.rt[1].z < zrange[0] || seg.rt[1].z > zrange[1])
+	const vec3d& r0 = seg.m_tip[0].rt;
+	const vec3d& r1 = seg.m_tip[1].rt;
+
+	if (r0.x < xrange[0] || r0.x > xrange[1] ||
+		r1.x < xrange[0] || r1.x > xrange[1] ||
+		r0.y < yrange[0] || r0.y > yrange[1] ||
+		r1.y < yrange[0] || r1.y > yrange[1] ||
+		r0.z < zrange[0] || r0.z > zrange[1] ||
+		r1.z < zrange[0] || r1.z > zrange[1])
 		return true;
 	else
 		return false;

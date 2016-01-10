@@ -143,7 +143,9 @@ void Fileout::writeData(FEAngio &feangio)
 	
 	for (it = feangio.cult.m_frag.begin(); it != feangio.cult.m_frag.end(); ++it)                         // Iterate through all segments in frag list container (it)
 	{
-		fprintf(stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i %-5.2i\n",it->TofBirth,it->rt[0].x,it->rt[0].y,it->rt[0].z,it->rt[1].x,it->rt[1].y,it->rt[1].z,it->length,it->seg_num,it->label);
+		vec3d& r0 = it->m_tip[0].rt;
+		vec3d& r1 = it->m_tip[1].rt;
+		fprintf(stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i %-5.2i\n",it->TofBirth,r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length,it->seg_num,it->label);
 	}
 	fclose(stream);                                                         // Close stream to 'data.ang' (stream)
 	
@@ -371,23 +373,6 @@ void Fileout::printtime()
 void Fileout::printrandseed(int randseed)
 {
 	logstream << endl << "Rand seed:" << randseed << endl << endl;
-	return;
-}
-
-
-void Fileout::printsproutnodes(vector<vector<double> > sprout_nodes)
-{
-	FILE *node_stream;
-	
-	node_stream = fopen("out_sprout_nodes.ang","wt");	
-
-	int num_nodes = sprout_nodes.size();
-
-	for (int i = 0; i < num_nodes; ++i)
-		fprintf(node_stream, "%-5.2i %-12.7f %-12.7f %-12.7f %-5.2i \n", int(sprout_nodes[i][0]), sprout_nodes[i][1], sprout_nodes[i][2], sprout_nodes[i][3], int(sprout_nodes[i][4]));
-
-	fclose(node_stream);
-	
 	return;
 }
 

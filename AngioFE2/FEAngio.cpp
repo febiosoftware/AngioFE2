@@ -66,9 +66,6 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem)
 	m_Sy = 0.;						// Location of the y-symmetry plane
 	m_Sz = 0.;						// Location of the z-symmetry plane
 
-	// flatten fiber option (default to false)
-	m_bzfibflat = 0;
-
 	// Input random seed number
 	m_irseed = (unsigned int) time(0);
 
@@ -142,11 +139,8 @@ bool FEAngio::Init()
 
 	}
 
-	// Use the mesh from FEBio to create the grid for angio3d
-	read_FEmesh(m_fem.GetMesh(), fiber, density);
-
-	// create the grid (needs to be done after mesh is processed)
-	grid.create_grid();
+	// create the grid based on the FEBio mesh
+	grid.CreateGrid(m_fem.GetMesh(), fiber, density);
 
 	// initialize data variable
 	data.init_data(grid);
@@ -253,7 +247,7 @@ void FEAngio::Growth(FEModel& fem)
 	{
 		for (k=0; k<=1; ++k)											// Iterate through each tip of the vessel segment...
 		{
-	        if (it->tip[k] != 0)											// If tip is active (not 0)...
+			if (it->m_tip[k].active != 0)											// If tip is active (not 0)...
 			{
 		        Segment seg;													// Declare SEGMENT object 'seg'
 				seg = cult.createNewSeg(it,grid,data,k,cult.m_frag);					// Create new vessel segment at the current tip existing segment 
@@ -294,9 +288,9 @@ void FEAngio::Branch(list<Segment>::iterator it, FEModel& fem)
 	
     double den_scale = 1.0;												// Declare the density scaling factor
 
-	double xpt = (it->rt[1].x + it->rt[0].x)/2;								// Set the branch point to be half-way along the length of the segment
-	double ypt = (it->rt[1].y + it->rt[0].y)/2;
-	double zpt = (it->rt[1].z + it->rt[0].z)/2;
+	double xpt = (it->m_tip[1].rt.x + it->m_tip[0].rt.x)/2;								// Set the branch point to be half-way along the length of the segment
+	double ypt = (it->m_tip[1].rt.y + it->m_tip[0].rt.y)/2;
+	double zpt = (it->m_tip[1].rt.z + it->m_tip[0].rt.z)/2;
 	
 	den_scale = cult.findDenScale(xpt, ypt, zpt, grid);					// Set the density scaling factor
 	
@@ -317,7 +311,7 @@ void FEAngio::Branch(list<Segment>::iterator it, FEModel& fem)
 		    else
 			    k = 1;
     							
-			it->tip[k] = sign(0.5f - float(rand())/RAND_MAX);        // Randomly assign the branch to grow as +1 or -1
+			it->m_tip[k].active = sign(0.5f - float(rand())/RAND_MAX);        // Randomly assign the branch to grow as +1 or -1
     				
 			seg = cult.createNewSeg(it,grid,data,k,cult.m_frag);           // Create the new vessel segment
 
@@ -364,8 +358,8 @@ bool FEAngio::Subgrowth(int sub_steps, FEModel& fem)
 			Segment& seg = (*(*tip_it));											// Dereference the tip iterator to obtain the active segment
 
 			// Step growth for the active segment
-			if (seg.tip[0] == -1) seg.rt[0] = seg.rt[1] + seg.uvect*(subgrowth_scale*seg.length);
-			if (seg.tip[1] ==  1) seg.rt[1] = seg.rt[0] + seg.uvect*(subgrowth_scale*seg.length);
+			if (seg.m_tip[0].active == -1) seg.m_tip[0].rt = seg.m_tip[1].rt + seg.uvect*(subgrowth_scale*seg.length);
+			if (seg.m_tip[1].active ==  1) seg.m_tip[1].rt = seg.m_tip[0].rt + seg.uvect*(subgrowth_scale*seg.length);
 		}
 
 		update_body_forces(fem, 1.0);									// Update the positions of the body forces
@@ -420,12 +414,12 @@ void FEAngio::displace_vessels()
 	{
 		for (k=0; k<=1;++k)                                         // Iterate through both segment tips (k)
 		{
-			xpt = it->rt[k].x;											// Set position to the current segment tip
-			ypt = it->rt[k].y;
-			zpt = it->rt[k].z;
+			xpt = it->m_tip[k].rt.x;											// Set position to the current segment tip
+			ypt = it->m_tip[k].rt.y;
+			zpt = it->m_tip[k].rt.z;
 		    
 			int BC_face = 0;
-			elem_num = it->tip_elem[k];								// Find the element that contains the segment tip
+			elem_num = it->m_tip[k].elem;								// Find the element that contains the segment tip
 		    
 			if (elem_num != -1)										// If the segment is inside the mesh and has a real element number...
 			{
@@ -443,14 +437,14 @@ void FEAngio::displace_vessels()
 				weighted_disp = disp*phi_stiff_factor;					// Calculate the weighted displacement vector
 		
 				// store the old position
-				vec3d rt_old = it->rt[k];
+				vec3d rt_old = it->m_tip[k].rt;
 				
 				// Update the segment tip position using the new weighted displacement vector
-				it->rt[k] = rt_old + weighted_disp;
+				it->m_tip[k].rt = rt_old + weighted_disp;
 			
-				if (grid.findelem(it->rt[k].x,it->rt[k].y,it->rt[k].z) == -1){	// If using the weighted displacement vector causes the segment to move outside the mesh...
+				if (grid.findelem(it->m_tip[k].rt.x,it->m_tip[k].rt.y,it->m_tip[k].rt.z) == -1){	// If using the weighted displacement vector causes the segment to move outside the mesh...
 					weighted_disp = disp;									// Update using the full displacement vector instead
-					it->rt[k] = rt_old + weighted_disp;
+					it->m_tip[k].rt = rt_old + weighted_disp;
 				}
 			}
 			else													// If the segment doesn't have a real element number...
@@ -493,24 +487,24 @@ void FEAngio::apply_sprout_forces(FEModel& fem, int load_curve, double scale)
 	{
 		seg = (*(*tip_it));												// Obtain the growth tip
 
-		if (seg.tip[0] == -1){											// If it's a -1 tip...
-			tip = seg.rt[0];												// Obtain the position of the active tip
+		if (seg.m_tip[0].active == -1){											// If it's a -1 tip...
+			tip = seg.m_tip[0].rt;												// Obtain the position of the active tip
 			
 			// TODO: Why is this calculated? This is already stored in Segment
-			sprout_vect = seg.rt[0] - seg.rt[1];							// Calculate the directional unit vector of the sprout
+			sprout_vect = seg.m_tip[0].rt - seg.m_tip[1].rt;							// Calculate the directional unit vector of the sprout
 			sprout_vect = sprout_vect/sprout_vect.norm();
 
-			(*tip_it)->bdyf_id[0] = create_body_force(sprout_vect, tip.x, tip.y, tip.z, magnitude, 1.0/m_tip_range, fem, load_curve);}				// Create a new body force, set the tips body force ID
+			(*tip_it)->m_tip[0].bdyf_id = create_body_force(sprout_vect, tip.x, tip.y, tip.z, magnitude, 1.0/m_tip_range, fem, load_curve);}				// Create a new body force, set the tips body force ID
 		
-		if (seg.tip[1] == 1){											// If it's a +1 tip...
-			tip = seg.rt[1];												// Obtain the position of the active tip
+		if (seg.m_tip[1].active == 1){											// If it's a +1 tip...
+			tip = seg.m_tip[1].rt;												// Obtain the position of the active tip
 			
-			sprout_vect.x = seg.rt[1].x - seg.rt[0].x;							// Calculate the directional unit vector of the sprout
-			sprout_vect.y = seg.rt[1].y - seg.rt[0].y;
-			sprout_vect.z = seg.rt[1].z - seg.rt[0].z;
+			sprout_vect.x = seg.m_tip[1].rt.x - seg.m_tip[0].rt.x;							// Calculate the directional unit vector of the sprout
+			sprout_vect.y = seg.m_tip[1].rt.y - seg.m_tip[0].rt.y;
+			sprout_vect.z = seg.m_tip[1].rt.z - seg.m_tip[0].rt.z;
 			sprout_vect = sprout_vect/sprout_vect.norm();
 
-			(*tip_it)->bdyf_id[1] = create_body_force(sprout_vect, tip.x, tip.y, tip.z, magnitude, 1.0/m_tip_range, fem, load_curve);}				// Create a new body force, set the tips body force ID
+			(*tip_it)->m_tip[1].bdyf_id = create_body_force(sprout_vect, tip.x, tip.y, tip.z, magnitude, 1.0/m_tip_range, fem, load_curve);}				// Create a new body force, set the tips body force ID
 	}
 
 	return;
@@ -593,27 +587,27 @@ void FEAngio::update_body_forces(FEModel& fem, double scale)
 	{
 		const Segment& seg = (*frag_it);								// Obtain the segment, keep it constant to prevent changes
 
-		if (((seg.tip[0] == -1) || (seg.tip_BC[0] == 1)) && (seg.bdyf_id[0] >= 0)){		  // Turn on the body force for any active -1 segment OR -1 segment that has encountered a boundary and stopped growing...
+		if (((seg.m_tip[0].active == -1) || (seg.m_tip[0].BC == 1)) && (seg.m_tip[0].bdyf_id >= 0)){		  // Turn on the body force for any active -1 segment OR -1 segment that has encountered a boundary and stopped growing...
 		//if ((seg.tip[0] == -1) && (seg.bdyf_id[0] >= 0)){									// Turn on the body force for any active -1 segment
-			tip = seg.rt[0];																	// Obtain the tip position
+			tip = seg.m_tip[0].rt;																	// Obtain the tip position
 
-			sprout_vect = seg.rt[0] - seg.rt[1];												// Calculate the sprout directional vector
+			sprout_vect = seg.m_tip[0].rt - seg.m_tip[1].rt;												// Calculate the sprout directional vector
 			sprout_vect = sprout_vect/sprout_vect.norm();			
 
 //--> SAM
-			update_angio_sprout(seg.bdyf_id[0], true, tip, sprout_vect);
+			update_angio_sprout(seg.m_tip[0].bdyf_id, true, tip, sprout_vect);
 //<-- SAM
 			}
 		
-		if (((seg.tip[1] == 1) || (seg.tip_BC[1] == 1)) && (seg.bdyf_id[1] >= 0)){		  // Turn on the body force for any active +1 segment OR +1 segment that has encountered a boundary and stopped growing...
+		if (((seg.m_tip[1].active == 1) || (seg.m_tip[1].BC == 1)) && (seg.m_tip[1].bdyf_id >= 0)){		  // Turn on the body force for any active +1 segment OR +1 segment that has encountered a boundary and stopped growing...
 		//if ((seg.tip[1] == 1) && (seg.bdyf_id[1] >= 0)){									// Turn on the body force for any active +1 segment
-			tip = seg.rt[1];																	// Obtain the tip position
+			tip = seg.m_tip[1].rt;																	// Obtain the tip position
 			
-			sprout_vect = seg.rt[1] - seg.rt[0];												// Calculate the sprout directional vector
+			sprout_vect = seg.m_tip[1].rt - seg.m_tip[0].rt;												// Calculate the sprout directional vector
 			sprout_vect = sprout_vect/sprout_vect.norm();
 
 //--> SAM
-			update_angio_sprout(seg.bdyf_id[1], true, tip, sprout_vect);
+			update_angio_sprout(seg.m_tip[1].bdyf_id, true, tip, sprout_vect);
 //<-- SAM
 			}
 	}
@@ -655,21 +649,21 @@ void FEAngio::create_branching_force(Segment& seg, FEModel& fem)
 	else total_bdyf = m_pbf->Sprouts();
 	
 	vec3d tip(0,0,0);
-	if (seg.tip[0] == -1){														// If the new branch is a -1 segment... 														
-		tip = seg.rt[0];															// Obtain the position of the new tip
+	if (seg.m_tip[0].active == -1){														// If the new branch is a -1 segment... 														
+		tip = seg.m_tip[0].rt;															// Obtain the position of the new tip
 		
-		sprout_vect = seg.rt[0] - seg.rt[1];										// Calculate the sprout directional unit vector									
+		sprout_vect = seg.m_tip[0].rt - seg.m_tip[1].rt;										// Calculate the sprout directional unit vector									
 		sprout_vect = sprout_vect/sprout_vect.norm();
 		
-		seg.bdyf_id[0] = total_bdyf - 1;}											// Assign the body force ID
+		seg.m_tip[0].bdyf_id = total_bdyf - 1;}											// Assign the body force ID
 		
-	if (seg.tip[1] == 1){														// If the new branch is a +1 segment...
-		tip = seg.rt[1];															// Obtain the position of the new tip
+	if (seg.m_tip[1].active == 1){														// If the new branch is a +1 segment...
+		tip = seg.m_tip[1].rt;															// Obtain the position of the new tip
 		
-		sprout_vect = seg.rt[1] - seg.rt[0];										// Calculate the sprout directional unit vector									
+		sprout_vect = seg.m_tip[1].rt - seg.m_tip[0].rt;										// Calculate the sprout directional unit vector									
 		sprout_vect = sprout_vect/sprout_vect.norm();
 		
-		seg.bdyf_id[1] = total_bdyf - 1;}											// Assign the body force ID
+		seg.m_tip[1].bdyf_id = total_bdyf - 1;}											// Assign the body force ID
 
 //--> SAM
 	if (m_pmat)
@@ -701,7 +695,9 @@ void FEAngio::save_vessel_state()
 	
 	for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it)								// Iterate through all segments in frag list container (it)
 	{
-		fprintf(stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n",FE_state,it->TofBirth,it->rt[0].x,it->rt[0].y,it->rt[0].z,it->rt[1].x,it->rt[1].y,it->rt[1].z,it->length);  // Write to out_vess_state.ang
+		vec3d& r0 = it->m_tip[0].rt;
+		vec3d& r1 = it->m_tip[1].rt;
+		fprintf(stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n",FE_state,it->TofBirth,r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length);  // Write to out_vess_state.ang
 	}
 	
 	return;
@@ -1161,34 +1157,34 @@ void FEAngio::adjust_mesh_stiffness(FEModel& fem)
 		{
 			if (k == 1){													// If this is the first subdivision, find the origin of the segment
 				if (seg.length > 0.){											// If it's a +1 segment...
-					subunit.rt[0] = seg.rt[0];
+					subunit.m_tip[0].rt = seg.m_tip[0].rt;
 				}
 				else{															// If it's a -1 segment...
-					subunit.rt[1] = seg.rt[1];
+					subunit.m_tip[1].rt = seg.m_tip[1].rt;
 					subunit.length = -1.;
 				}
 		}
 			
 			// Calculate the subdivision
 			if (seg.length > 0.){										// If it's a +1 segment...			
-				subunit.rt[1] = subunit.rt[0] + seg.uvect*(sub_scale*seg.length);     
+				subunit.m_tip[1].rt = subunit.m_tip[0].rt + seg.uvect*(sub_scale*seg.length);     
 			}
 			else{														// If it's a -1 segment...
-				subunit.rt[0] = subunit.rt[1] + seg.uvect*(sub_scale*seg.length);     
+				subunit.m_tip[0].rt = subunit.m_tip[1].rt + seg.uvect*(sub_scale*seg.length);     
 			}
 
 			subunit.findlength();										// Find the length of the subdivision
 			
-			mid = (subunit.rt[1] + subunit.rt[0])*0.5;
+			mid = (subunit.m_tip[1].rt + subunit.m_tip[0].rt)*0.5;
 
 			elem_num = grid.findelem(mid.x, mid.y, mid.z);				// Find the element that the midpoint is within
 
 			// Calculate the orientation of the subdivision
 			if (seg.length > 0.){										// If it's a +1 segment...
-				vess_vect = subunit.rt[1] - subunit.rt[0];
+				vess_vect = subunit.m_tip[1].rt - subunit.m_tip[0].rt;
 			}
 			else{														// If it's a -1 segment...
-				vess_vect = subunit.rt[0] - subunit.rt[1];
+				vess_vect = subunit.m_tip[0].rt - subunit.m_tip[1].rt;
 			}
 
 			if (vess_vect.norm() != 0.)									// Normalize to find the unit vector
@@ -1215,10 +1211,10 @@ void FEAngio::adjust_mesh_stiffness(FEModel& fem)
 			
 			// Set the origin of the next subdivision to the end of the current one
 			if (seg.length > 0.){
-				subunit.rt[0] = subunit.rt[1];
+				subunit.m_tip[0].rt = subunit.m_tip[1].rt;
 			}
 			else{
-				subunit.rt[1] = subunit.rt[0];
+				subunit.m_tip[1].rt = subunit.m_tip[0].rt;
 			}
 		}
 	}
@@ -1359,62 +1355,6 @@ void FEAngio::update_grid_volume()
 	return;
 }
 
-
-///////////////////////////////////////////////////////////////////////
-// FEAngio - assemble_sprout_nodes
-//		Assemble all vessel segment nodes into a container, being careful not to repeat and track how many segments a node shares
-///////////////////////////////////////////////////////////////////////
-
-void FEAngio::assemble_sprout_nodes()
-{
-    list<Segment>::iterator it;											// Iterator for the segment container frag
-    vec3d pt;
-    //int pos = 1;
-	double count = 1.0;													// Set the total segment node counter to 1
-	bool exist = false;													// Set the exist flag to false
-
-    for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it)						// Iterate through all segments in frag list container (it)                               
-	{
-		for (int k=0; k<=1; ++k)											// Iterate through both segment tips (k)
-		{
-			exist = false;													// Set exist flag to false
-			pt = it->rt[k];													// Set the position of the segment tip
-
-			vector<double> snode;											// Create the container for the segment nodes
-			snode.resize(5);												// Resize the container
-
-			if (count == 1.0){												// If this is the first time the segment is being counted...
-				snode[0] = count;												// Set the node number
-				snode[1] = pt.x;													// Set the x-position
-				snode[2] = pt.y;													// Set the y-position
-				snode[3] = pt.z;													// Set the z-position
-				snode[4] = 1.0;													// Set the number of times this segment has been counted
-				sprout_nodes.push_back(snode);									// Add the segment node to the container
-				count = count + 1.0;}											// Add to the total segment node count
-			else{															// If this isn't the first time the segment has been counted...
-				for (int i = 0; i < int(count - 1.0); ++i)						// For each time the segment has been counted...
-				{
-					if ((pt.x == sprout_nodes[i][1]) && (pt.y == sprout_nodes[i][2]) && (pt.z == sprout_nodes[i][3])){	// If we have the same segment...
-						sprout_nodes[i][4] = sprout_nodes[i][4] + 1.0;				// Increase the number of times this segment has been counted by 1 
-						exist = true;}												// Set exist flag to true
-				}
-
-				if (exist == false){										// If the exist flag is false
-					snode[0] = count;											// Set the node number
-					snode[1] = pt.x;												// Set the x-position
-					snode[2] = pt.y;												// Set the y-position
-					snode[3] = pt.z;												// Set the z-position
-					snode[4] = 1.0;												// Set the number of times this segment has been counted
-					sprout_nodes.push_back(snode);								// Add the segment node to the container
-					count = count + 1.0;}										// Add to the total segment node count
-			}
-		}
-	}
-
-	return;
-}
-
-
 ///////////////////////////////////////////////////////////////////////
 // FEAngio - output_params
 //		Output parameter values after the simulation ends
@@ -1461,10 +1401,12 @@ void FEAngio::save_cropped_vessels()
 
 	for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it)                         // Iterate through all segments in frag list container (it)
 	{
-		if (((it->rt[0].x <= xmax) && (it->rt[0].x >= xmin)) && ((it->rt[1].x <= xmax) && (it->rt[1].x >= xmin))){
-			if (((it->rt[0].y <= ymax) && (it->rt[0].y >= ymin)) && ((it->rt[1].y <= ymax) && (it->rt[1].y >= ymin))){
-				if (((it->rt[0].z <= zmax) && (it->rt[0].z >= zmin)) && ((it->rt[1].z <= zmax) && (it->rt[1].z >= zmin))){
-					fprintf(data_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i %-5.2i\n",it->TofBirth,it->rt[0].x,it->rt[0].y,it->rt[0].z,it->rt[1].x,it->rt[1].y,it->rt[1].z,it->length,it->seg_num,it->label);  // Write to data.ang		
+		vec3d& r0 = it->m_tip[0].rt;
+		vec3d& r1 = it->m_tip[1].rt;
+		if (((r0.x <= xmax) && (r0.x >= xmin)) && ((r1.x <= xmax) && (r1.x >= xmin))){
+			if (((r0.y <= ymax) && (r0.y >= ymin)) && ((r1.y <= ymax) && (r1.y >= ymin))){
+				if (((r0.z <= zmax) && (r0.z >= zmin)) && ((r1.z <= zmax) && (r1.z >= zmin))){
+					fprintf(data_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i %-5.2i\n",it->TofBirth,r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length,it->seg_num,it->label);  // Write to data.ang		
 					fprintf(seg_conn_stream,"%-5.2i %-5.2i %-5.2i %-5.2i %-5.2i\n",it->seg_num,it->seg_conn[0][0],it->seg_conn[0][1],it->seg_conn[1][0],it->seg_conn[1][1]);  // Write to seg_conn.ang
 				}
 			}
@@ -1659,196 +1601,6 @@ void FEAngio::circ_gel()
 
 	return;
 }
-
-
-
-
-///////////////////////////////////////////////////////////////////////
-// read_FEmesh
-///////////////////////////////////////////////////////////////////////
-
-void FEAngio::read_FEmesh(FEMesh &mesh, vector<vec3d>& fiber, vector<double>& density)
-{
-	int NN = mesh.Nodes();
-	for (int i = 0; i < NN; ++i)								// Iterate through all nodes...
-	{
-		Node node;														// Create a new node
-		node.id = i;													// Give the node it's ID 
-		node.rt = mesh.Node(i).m_r0;									// Set the current position as FEBio initial position
-		node.r0 = node.rt;												// Set initial position to current position
-
-		if(grid.coll_den == 0.0)
-		{
-			node.ecm_den = density[i];									// Set the density of the ECM at the node 
-			node.ecm_den0 = node.ecm_den;	
-		}
-		else
-		{
-			node.ecm_den = grid.coll_den;									// Set the density of the ECM at the node 
-			node.ecm_den0 = node.ecm_den;									// Set the initial ECM density to the current ECM density
-		}
-
-		vec3d node_fiber;
-		if (grid.load_cond == 3)
-		{
-			node_fiber = fiber[i];
-		}
-		else
-		{
-			node_fiber.x = 2*(float(rand())/RAND_MAX - 0.5); 
-			node_fiber.y = 2*(float(rand())/RAND_MAX - 0.5); 
-			node_fiber.z = 2*(float(rand())/RAND_MAX - 0.5);
-		}
-		
-		if (m_bzfibflat == 1)
-			node_fiber.z = 0.25*node_fiber.z;
-
-		if (node_fiber.norm() != 0.0)
-			node_fiber = node_fiber/node_fiber.norm();
-
-		node.collfib.x = node_fiber.x;
-		node.collfib.y = node_fiber.y;
-		node.collfib.z = node_fiber.z;
-				
-/*		// TODO: Not sure what this is for since new_prob was hardcoded to true
-		if (new_prob == false){
-			if ((node.x <= grid.xrange[0]) || (node.x >= grid.xrange[1]))			// If the node lies on a boundary normal to the x-axis...
-				enforce_fiber_BCS(node, false);									// Enforce the fiber boudary conditions
-		
-			if ((node.y <= grid.yrange[0]) || (node.y >= grid.yrange[1]))			// If the node lies on a boundary normal to the y-axis...
-				enforce_fiber_BCS(node, false);									// Enforce the fiber boundary conditions
-		
-			if ((node.z <= grid.zrange[0]) || (node.z >= grid.zrange[1]))			// If the node lies on a boundary normal to the z-axis...
-				enforce_fiber_BCS(node, false);									// Enforce the fiber boundary conditions
-		}
-*/
-/*		if (m_bcirc == 1){
-			vec3d r;
-			r.x = node.rt.x - grid.xrange[1];
-			r.y = node.rt.y - grid.yrange[1];
-			
-			if (fabs(r.norm() - radius) <= 1.0)
-				enforce_fiber_BCS(node, true);}
-*/				
-		// set the initial collagen fiber
-		node.collfib0 = node.collfib;
-
-		// Add the node to the list
-		grid.nodes.push_back(node);
-	}
-
-	// add the initial data to the stores
-	for (int i = 0; i < NN; i++){
-		grid.nodes[i].ecm_den_store.push_back(grid.nodes[i].ecm_den0);
-		grid.nodes[i].ecm_fibril_store.push_back(grid.nodes[i].collfib0);}
-	
-	// Read in element connectivity from the FEBio mesh	
-	for (int d = 0; d < mesh.Domains(); d++)
-	{
-		FEDomain& domain = mesh.Domain(d);								// Obtain the domain from FEBio (only one domain)
-		int num_elem = domain.Elements();									// Read in the total number of elements from the FEBio domain
-
-		for (int i = 0; i < num_elem; ++i)									// Iterate through all elements...
-		{
-			FEElement& FEelem = domain.ElementRef(i);						// Obtain element i from the FEBio domain
-
-			Elem elem;
-			elem.elem_num = i;
-			int n1 = FEelem.m_node[0];
-			int n2 = FEelem.m_node[1];
-			int n3 = FEelem.m_node[3];
-			int n4 = FEelem.m_node[2];
-			int n5 = FEelem.m_node[4];
-			int n6 = FEelem.m_node[5];
-			int n7 = FEelem.m_node[7];
-			int n8 = FEelem.m_node[6];
-	            
-			elem.n1 = &grid.nodes[n1];
-			elem.n2 = &grid.nodes[n2];
-			elem.n3 = &grid.nodes[n3];
-			elem.n4 = &grid.nodes[n4];
-			elem.n5 = &grid.nodes[n5];
-			elem.n6 = &grid.nodes[n6];
-			elem.n7 = &grid.nodes[n7];
-			elem.n8 = &grid.nodes[n8];
-	        
-			grid.ebin.push_back(elem);
-		}
-	}
-	
-
-	//// Determine boundary faces for each element
-	int BC_violate = 0;												// Create and initialize the boundary inidicator
-	int BC_count = 0;												// Create and initialize the boundary element counter			
-
-	int NE = (int) grid.Elems();
-	for (int i = 0; i < NE; ++i)								// Iterate through all elements...
-	{
-		Elem& el = grid.ebin[i];
-
-		vector<int> eBC_violate;										// Create the boundary face vector
-        eBC_violate.resize(7);
-        
-		eBC_violate[0] = i;									// Set the element ID within the boundary face vector
-
-		// 
-		// If face 1 lies on the boundary of the domain...
-		if ((el.n1->rt.y <= grid.yrange[0]) && (el.n2->rt.y <= grid.yrange[0]) && (el.n5->rt.y <= grid.yrange[0]) && (el.n6->rt.y <= grid.yrange[0]))
-		{
-			BC_violate = 1;												// Turn on the boundary indicator
-		    eBC_violate[1] = 1;											// Indicate that face 1 of this element lies at the minimum in the y-direction
-		}
-		
-		// If face 2 lies on the boundary of the domain...
-		if ((el.n2->rt.x >= grid.xrange[1]) && (el.n4->rt.x >= grid.xrange[1]) && (el.n6->rt.x >= grid.xrange[1]) && (el.n8->rt.x >= grid.xrange[1]))
-		{
-			BC_violate = 1;												// Turn on the boundary indicator
-		    eBC_violate[2] = 1;											// Indicate that face 2 of this element lies at the maximum in the x-direction 
-		}
-		
-		// If face 3 lies on the boundary of the domain...
-		if ((el.n3->rt.y >= grid.yrange[1]) && (el.n4->rt.y >= grid.yrange[1]) && (el.n7->rt.y >= grid.yrange[1]) && (el.n8->rt.y >= grid.yrange[1]))
-		{
-			BC_violate = 1;												// Turn on the boundary indicator
-		    eBC_violate[3] = 1;											// Indicate that face 3 of this element lies at the maximum in the y-direction
-		}
-		
-		// If face 4 lies on the boundary of the domain...
-		if ((el.n1->rt.x <= grid.xrange[0]) && (el.n3->rt.x <= grid.xrange[0]) && (el.n5->rt.x <= grid.xrange[0]) && (el.n7->rt.x <= grid.xrange[0]))
-		{
-			BC_violate = 1;												// Turn on the boundary indicator
-		    eBC_violate[4] = 1;											// Indicate that face 4 of this element lies at the minimum in the x-direction
-		}
-
-		// If face 5 lies on the boundary of the domain...
-		if ((el.n5->rt.z >= grid.zrange[1]) && (el.n6->rt.z >= grid.zrange[1]) && (el.n7->rt.z >= grid.zrange[1]) && (el.n8->rt.z >= grid.zrange[1]))
-		{
-			BC_violate = 1;												// Turn on the boundary indicator
-		    eBC_violate[5] = 1;											// Indicate that face 5 of this element lies at the maximum in the z-direction
-		}
-		
-		// If face 6 lies on the boundary of the domain...
-		if ((el.n1->rt.z <= grid.zrange[0]) && (el.n2->rt.z <= grid.zrange[0]) && (el.n3->rt.z <= grid.zrange[0]) && (el.n4->rt.z <= grid.zrange[0]))
-		{
-			BC_violate = 1;												// Turn on the boundar indicator
-		    eBC_violate[6] = 1;											// Indicate that face 6 of this element lies at the minimum in the z-direction
-		}
-		
-		if (BC_violate == 1)											// If the boundary indicator is on...
-		{
-			grid.ieBC.push_back(eBC_violate);								// Add the element's boundary face vector to the contianer in the INPUT class 				
-			BC_count++;														// Increment the boundary element counter
-		}
-
-		BC_violate = 0;													// Turn off the boundary indicator
-	}
-	
-	grid.iNBC = BC_count;											// Set the total number of elements at the boundaries
-		
-	return;
-}
-
-
 
 ///////////////////////////////////////////////////////////////////////
 // enfore_fiber_BCS
@@ -2154,7 +1906,7 @@ void FEAngio::Growth()
 
 		for (k=0; k<=1; ++k)                                        // Iterate through each tip of the vessel fragment (k)
 		{
-	        if (it->tip[k] != 0)                                        // If tip is active (not 0) then create a new segment
+	        if (it->m_tip[k].active != 0)                                        // If tip is active (not 0) then create a new segment
 			{
 		        Segment seg;                                                // Declare SEGMENT object 'seg'
 				seg = cult.createNewSeg(it,grid,data,k,cult.m_frag);               // CULTURE.createNewSeg(list iterator, grid, data, tip, frag container)
@@ -2224,7 +1976,7 @@ void FEAngio::Branch(list<Segment>::iterator it)
 	
     double den_scale = 1.0;
 
-	vec3d pt = (it->rt[1] + it->rt[0])*0.5;
+	vec3d pt = (it->m_tip[1].rt + it->m_tip[0].rt)*0.5;
 	
 	den_scale = cult.findDenScale(pt.x, pt.y, pt.z, grid);
 	
@@ -2245,7 +1997,7 @@ void FEAngio::Branch(list<Segment>::iterator it)
 		    else
 			    k = 1;
     							
-			it->tip[k] = sign(0.5f - float(rand())/RAND_MAX);        // Randomly assign the branch to grow as +1 or -1
+			it->m_tip[k].active = sign(0.5f - float(rand())/RAND_MAX);        // Randomly assign the branch to grow as +1 or -1
     				
 			seg = cult.createNewSeg(it,grid,data,k,cult.m_frag);           // CULTURE.createNewSeg(list iterator, grid, data, tip, frag container)
 			                                                            // Create new vessel segment on existing segment to 
@@ -2298,7 +2050,7 @@ void FEAngio::Fuse()
 
 void FEAngio::check4anast(list<Segment>::iterator it, int k)
 {
-    if (it->tip[k] == 0)
+    if (it->m_tip[k].active == 0)
         return;
 	
 	if (it->anast == 1)
@@ -2311,8 +2063,8 @@ void FEAngio::check4anast(list<Segment>::iterator it, int k)
 	
     for (it2 = cult.m_frag.begin(); it2 != cult.m_frag.end(); ++it2)          // Iterate through all segments in frag list container again (it2)
 	{                                                           
-	    dist0 = (it->rt[k] - it2->rt[0]).norm(); dist0 *= dist0;
-		dist1 = (it->rt[k] - it2->rt[1]).norm(); dist1 *= dist1;
+	    dist0 = (it->m_tip[k].rt - it2->m_tip[0].rt).norm(); dist0 *= dist0;
+		dist1 = (it->m_tip[k].rt - it2->m_tip[1].rt).norm(); dist1 *= dist1;
 
         anastomose(dist0, dist1, k, it, it2);
     } 
@@ -2352,8 +2104,8 @@ void FEAngio::anastomose(double dist0, double dist1, int k, list<Segment>::itera
 	seg = cult.connectSegment(it,it2,k,kk,grid,data,cult.m_frag);      // CULTURE.connectSegment(segment 1, segment 2, tip 1, tip 2, grid, data, frag list container)
 					                                            // This function will create a segment between to two segments to complete the anastomosis
 	cult.m_frag.push_front (seg);                                      // Append new segment at the top of the list 'frag'                  
-	it->tip[k]=0;                                               // Deactivate tip of segment 1 after anastomosis
-	it2->tip[kk]=0;                                             // Deactivate tip of segment 2 after anastomosis (tip-tip anastomosis only)
+	it->m_tip[k].active=0;                                               // Deactivate tip of segment 1 after anastomosis
+	it2->m_tip[kk].active=0;                                             // Deactivate tip of segment 2 after anastomosis (tip-tip anastomosis only)
 
     
 	return;
@@ -2373,7 +2125,9 @@ void FEAngio::removeErrors()
 		for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it){
 			if (fabs(it->length) >= 2.0*length_limit){
 				it->death_label = -7;
-				fprintf(killed_segs_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i\n",it->TofBirth,it->rt[0].x,it->rt[0].y,it->rt[0].z,it->rt[1].x,it->rt[1].y,it->rt[1].z,it->length,it->death_label);
+				vec3d& r0 = it->m_tip[0].rt;
+				vec3d& r1 = it->m_tip[1].rt;
+				fprintf(killed_segs_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i\n",it->TofBirth,r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length,it->death_label);
 				it = cult.m_frag.erase(it);}
 			if (it == cult.m_frag.end())
 				return;
@@ -2395,9 +2149,9 @@ void FEAngio::find_active_tips()
 	
 	for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it)             // Iterate through all segments in frag list container (it)                               
 	{
-		if (it->tip[0] != 0){
+		if (it->m_tip[0].active != 0){
 			active_tips.push_back(it);}
-		else if (it->tip[1] != 0){
+		else if (it->m_tip[1].active != 0){
 			active_tips.push_back(it);}
 	} 
 			
@@ -2416,68 +2170,10 @@ void FEAngio::kill_dead_segs()
     
 		for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it){
 			if (it->mark_of_death == true){
-				fprintf(killed_segs_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i\n",it->TofBirth,it->rt[0].x,it->rt[0].y,it->rt[0].z,it->rt[1].x,it->rt[1].y,it->rt[1].z,it->length,it->death_label);
+				vec3d& r0 = it->m_tip[0].rt;
+				vec3d& r1 = it->m_tip[1].rt;
+				fprintf(killed_segs_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i\n",it->TofBirth,r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length,it->death_label);
 				it = cult.m_frag.erase(it);}
-			if (it == cult.m_frag.end())
-				return;
 		}
 	}
-                
-    return;
-}
-
-///////////////////////////////////////////////////////////////////////
-// enforce_global_BC
-///////////////////////////////////////////////////////////////////////
-
-void FEAngio::enforce_global_BC()
-{
-	list<Segment>::iterator it;
-    
-	double eps = 0.001;
-    
-	double xmin = grid.xrange[0]*(1 - eps);
-	double xmax = grid.xrange[1]*(1 + eps);
-	if (xmin == 0.0)
-		xmin = -1.0*eps*xmax;
-		
-	double ymin = grid.yrange[0]*(1 - eps);
-	double ymax = grid.yrange[1]*(1 + eps);
-	if (ymin == 0.0)
-		ymin = -1.0*eps*ymax;
-	
-	double zmin = grid.zrange[0]*(1 - eps);
-	double zmax = grid.zrange[1]*(1 + eps);
-	if (zmin == 0.0)
-		zmin = -1.0*eps*zmax;
-	
-	for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it){
-		for (int k=0; k<=1;++k){
-			if (it->rt[k].x < xmin){
-				it->rt[k].x = grid.xrange[0];
-				it->tip[k] = 0;}
-			
-			if (it->rt[k].x > xmax){
-				it->rt[k].x = grid.xrange[1];
-				it->tip[k] = 0;}
-
-			if (it->rt[k].y < ymin){
-				it->rt[k].y = grid.yrange[0];
-				it->tip[k] = 0;}
-
-			if (it->rt[k].y > ymax){
-				it->rt[k].y = grid.yrange[1];
-				it->tip[k] = 0;}
-
-			if (it->rt[k].z < zmin){
-				it->rt[k].z = grid.zrange[0];
-				it->tip[k] = 0;}
-
-			if (it->rt[k].z > zmax){
-				it->rt[k].z = grid.zrange[1];
-				it->tip[k] = 0;}
-		}
-	}
-	
-	return;
 }

@@ -250,7 +250,7 @@ void Filein::set_param(FEAngio& angio, char* buffer, char* pname)
 
 	// Specify to 'flatten' fibers in z
 	if (!strcmp(pname,"zfibflat")){
-        sscanf(buffer,"%*s %*s %lf",&angio.m_bzfibflat);
+        sscanf(buffer,"%*s %*s %lf",&angio.grid.m_bzfibflat);
         return;}
 
 	// Read in weights for determing the direction of growth

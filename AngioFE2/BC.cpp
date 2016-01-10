@@ -58,21 +58,20 @@ void BC::checkBC(Segment &seg, int k, Grid &grid, Data &data, list<Segment> &fra
     double xix, xiy, xiz = {0.0};
 	
     if (k == 1){
-		xpt = seg.rt[1].x;
-		ypt = seg.rt[1].y;
-		zpt = seg.rt[1].z;}
+		xpt = seg.m_tip[1].rt.x;
+		ypt = seg.m_tip[1].rt.y;
+		zpt = seg.m_tip[1].rt.z;}
 	if (k == 0){
-		xpt = seg.rt[0].x;
-		ypt = seg.rt[0].y;
-		zpt = seg.rt[0].z;}
+		xpt = seg.m_tip[0].rt.x;
+		ypt = seg.m_tip[0].rt.y;
+		zpt = seg.m_tip[0].rt.z;}
 	
 	int face = 0;
 	
+	// TODO: Do we need to do this, since I think we can only get here if elem_num = -1
 	elem_num = grid.findelem(xpt, ypt, zpt);
-
-	if (elem_num != -1){
-		return;}
-	else{
+	if (elem_num != -1) return;
+/*	else{
 		int NE = grid.Elems();
 		for (int i = 0; i < NE; i++){
 			Elem& elem = grid.ebin[i];
@@ -521,43 +520,46 @@ void BC::checkBC(Segment &seg, int k, Grid &grid, Data &data, list<Segment> &fra
 							break;}}}
 		}
 	}
-		
-	if (elem_num != -1)
+*/		
+//	if (elem_num != -1)
+	if (elem_num == -1)
 	{	
-		if (((seg.tip[0] == 0) && (seg.tip[1] == 0)) || (seg.length == 0.0)){
+		if (((seg.m_tip[0].active == 0) && (seg.m_tip[1].active == 0)) || (seg.length == 0.0)){
 			seg.mark_of_death = true;
 			seg.death_label = 3;
 			return;}
 
 		vec3d i_point;
-		
-		Elem elem = grid.ebin[elem_num];
+		int face;
+		int elem_num;
+		vec3d r0 = (k==0? seg.m_tip[1].rt : seg.m_tip[0].rt);
+		vec3d r1 = (k==0? seg.m_tip[0].rt : seg.m_tip[1].rt);
+		elem_num = (k==0?seg.m_tip[1].elem : seg.m_tip[0].elem);
 
-		i_point = find_intersect(elem, face, seg, grid);
+		// It looks like the tip_elem variable is not updated correctly
+		// so we have to do this expensive search. 
+		if (elem_num == -1) elem_num = grid.findelem(r0.x, r0.y, r0.z);
+		assert(elem_num != -1);
 
-		if (face == 1){
-			enforceBC(i_point, face, elem.f1.bc_type, seg, elem_num, grid, k, data, frag);
-			return;}
+		if (grid.FindIntersection(r0, r1, elem_num, i_point, face))
+		{
 
-		if (face == 2){
-			enforceBC(i_point, face, elem.f2.bc_type, seg, elem_num, grid, k, data, frag);
-			return;}
-
-		if (face == 3){
-			enforceBC(i_point, face, elem.f3.bc_type, seg, elem_num, grid, k, data, frag);
-			return;}
-
-		if (face == 4){
-			enforceBC(i_point, face, elem.f4.bc_type, seg, elem_num, grid, k, data, frag);
-			return;}
-
-		if (face == 5){
-			enforceBC(i_point, face, elem.f5.bc_type, seg, elem_num, grid, k, data, frag);
-			return;}
-
-		if (face == 6){
-			enforceBC(i_point, face, elem.f6.bc_type, seg, elem_num, grid, k, data, frag);
-			return;}
+//		i_point = find_intersect(elem, face, seg, grid);
+			Elem& elem = grid.ebin[elem_num];
+			assert(face != -1);
+			assert(elem.m_nbr[face] == -1);
+			assert(elem.GetFace(face)->BC == true);
+			if (face == 0) { enforceBC(i_point, face+1, elem.f1.bc_type, seg, elem_num, grid, k, data, frag); return;}
+			if (face == 1) { enforceBC(i_point, face+1, elem.f2.bc_type, seg, elem_num, grid, k, data, frag); return;}
+			if (face == 2) { enforceBC(i_point, face+1, elem.f3.bc_type, seg, elem_num, grid, k, data, frag); return;}
+			if (face == 3) { enforceBC(i_point, face+1, elem.f4.bc_type, seg, elem_num, grid, k, data, frag); return;}
+			if (face == 4) { enforceBC(i_point, face+1, elem.f5.bc_type, seg, elem_num, grid, k, data, frag); return;}
+			if (face == 5) { enforceBC(i_point, face+1, elem.f6.bc_type, seg, elem_num, grid, k, data, frag); return;}
+		}
+		else
+		{
+			assert(false);
+		}
 
 		return;
 	}
@@ -568,8 +570,8 @@ void BC::checkBC(Segment &seg, int k, Grid &grid, Data &data, list<Segment> &fra
 		if (BC_bouncy == true)
 			seg.death_label = 10;
 
-		return;}
-
+		return;
+	}
 } 
 
 
@@ -596,23 +598,23 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
         ++data.nsegs;
 		seg2.seg_num = data.nsegs;
 
-		elem_num = grid.findelem(seg2.rt[k].x, seg2.rt[k].y, seg2.rt[k].z);
+		elem_num = grid.findelem(seg2.m_tip[k].rt);
         
 		if (elem_num != -1){
-			seg2.tip_elem[k] = elem_num;
+			seg2.m_tip[k].elem = elem_num;
 			frag.push_front(seg2);}
 		else{
 			checkBC(seg2, k, grid, data, frag);
-			elem_num = grid.findelem(seg2.rt[k].x, seg2.rt[k].y, seg2.rt[k].z);
+			elem_num = grid.findelem(seg2.m_tip[k].rt);
 			if (elem_num != -1){
-				seg2.tip_elem[k] = elem_num;
+				seg2.m_tip[k].elem = elem_num;
 				frag.push_front(seg2);}}
 
 		BC_bouncy = false;
 		BC_violated = false;
 		
 		if (seg2.mark_of_death == true)
-			seg.tip_BC[k] = 1;
+			seg.m_tip[k].BC = 1;
 
 		return;}
     
@@ -622,23 +624,23 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
 				
 		seg2 = inplanewallBC(i_point, face, seg, elem_num, grid, k, data, frag);
 
-		elem_num = grid.findelem(seg2.rt[k].x, seg2.rt[k].y, seg2.rt[k].z);
+		elem_num = grid.findelem(seg2.m_tip[k].rt);
         
 		if (elem_num != -1){
-			seg2.tip_elem[k] = elem_num;
+			seg2.m_tip[k].elem = elem_num;
 			frag.push_front(seg2);}
 		else{
 			checkBC(seg2, k, grid, data, frag);
-			elem_num = grid.findelem(seg2.rt[k].x, seg2.rt[k].y, seg2.rt[k].z);
+			elem_num = grid.findelem(seg2.m_tip[k].rt);
 			if (elem_num != -1){
-				seg2.tip_elem[k] = elem_num;
+				seg2.m_tip[k].elem = elem_num;
 				frag.push_front(seg2);}}
 
 		BC_bouncy = false;
 		BC_violated = false;
 		
 		if (seg2.mark_of_death == true)
-			seg.tip_BC[k] = 1;
+			seg.m_tip[k].BC = 1;
 
 		return;} 
 
@@ -654,23 +656,23 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
 				
 		seg2 = symplaneperiodicwallBC(i_point, face, seg, elem_num, grid, k, data, frag);
 
-		elem_num = grid.findelem(seg2.rt[1].x, seg2.rt[1].y, seg2.rt[1].z);
+		elem_num = grid.findelem(seg2.m_tip[1].rt);
         
 		if (elem_num != -1){
-			seg2.tip_elem[k] = elem_num;
+			seg2.m_tip[k].elem = elem_num;
 			frag.push_front(seg2);}
 		else{
 			checkBC(seg2, k, grid, data, frag);
-			elem_num = grid.findelem(seg2.rt[k].x, seg2.rt[k].y, seg2.rt[k].z);
+			elem_num = grid.findelem(seg2.m_tip[k].rt);
 			if (elem_num != -1){
-				seg2.tip_elem[k] = elem_num;
+				seg2.m_tip[k].elem = elem_num;
 				frag.push_front(seg2);}}
 
 		BC_bouncy = false;
 		BC_violated = false;
 		
 		if (seg2.mark_of_death == true)
-			seg.tip_BC[k] = 1;
+			seg.m_tip[k].BC = 1;
 
 		return;} 
 
@@ -685,28 +687,18 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
 
 void BC::flatwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k, Grid &grid)
 {
-    double xpt_i, ypt_i, zpt_i = {0.};
-
-	xpt_i = i_point.x;
-	ypt_i = i_point.y;
-	zpt_i = i_point.z;
-	
 	if (k == 1){
-        seg.rt[1].x = xpt_i;
-        seg.rt[1].y = ypt_i;
-        seg.rt[1].z = zpt_i;
+        seg.m_tip[1].rt = i_point;
         seg.findlength();
-        seg.tip[1] = 0;}
+        seg.m_tip[1].active = 0;}
     else if (k == 0){
-        seg.rt[0].x = xpt_i;
-        seg.rt[0].y = ypt_i;
-        seg.rt[0].z = zpt_i;
+        seg.m_tip[0].rt = i_point;
         seg.findlength();
-        seg.tip[0] = 0;}
+        seg.m_tip[0].active = 0;}
     
     seg.BCdead = 1;
 
-	seg.tip_BC[k] = 1;
+	seg.m_tip[k].BC = 1;
 
     return;
 }
@@ -728,12 +720,12 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, Gr
 	double old_length = 0.;
 	double remain_length = 0.;
 
-    xpt_0 = seg.rt[0].x;
-    ypt_0 = seg.rt[0].y;
-    zpt_0 = seg.rt[0].z;
-    xpt_1 = seg.rt[1].x;
-    ypt_1 = seg.rt[1].y;
-    zpt_1 = seg.rt[1].z;
+    xpt_0 = seg.m_tip[0].rt.x;
+    ypt_0 = seg.m_tip[0].rt.y;
+    zpt_0 = seg.m_tip[0].rt.z;
+    xpt_1 = seg.m_tip[1].rt.x;
+    ypt_1 = seg.m_tip[1].rt.y;
+    zpt_1 = seg.m_tip[1].rt.z;
  
 	xpt_i = i_point.x;
 	ypt_i = i_point.y;
@@ -759,21 +751,21 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, Gr
 		zpt_i = (1.0 + eps)*i_point.z;}
 	
 	if (k == 1){
-        seg.rt[1].x = xpt_i;
-        seg.rt[1].y = ypt_i;
-        seg.rt[1].z = zpt_i;
+        seg.m_tip[1].rt.x = xpt_i;
+        seg.m_tip[1].rt.y = ypt_i;
+        seg.m_tip[1].rt.z = zpt_i;
         seg.findlength();
-        seg.tip[1] = 0;
-        seg2.tip[1] = 1;
-		seg2.tip_elem[0] = seg.tip_elem[1];}
+        seg.m_tip[1].active = 0;
+        seg2.m_tip[1].active = 1;
+		seg2.m_tip[0].elem = seg.m_tip[1].elem;}
     else if (k == 0){
-        seg.rt[0].x = xpt_i;
-        seg.rt[0].y = ypt_i;
-        seg.rt[0].z = zpt_i;
+        seg.m_tip[0].rt.x = xpt_i;
+        seg.m_tip[0].rt.y = ypt_i;
+        seg.m_tip[0].rt.z = zpt_i;
         seg.findlength();
-        seg.tip[0] = 0;
-        seg2.tip[0] = -1;
-		seg2.tip_elem[1] = seg.tip_elem[0];}
+        seg.m_tip[0].active = 0;
+        seg2.m_tip[0].active = -1;
+		seg2.m_tip[1].elem = seg.m_tip[0].elem;}
 
     seg.BCdead = 1;
        
@@ -811,8 +803,8 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, Gr
         break;
     
 	case -1:
-		seg2.tip[0] = 0;
-		seg2.tip[1] = 0;
+		seg2.m_tip[0].active = 0;
+		seg2.m_tip[1].active = 0;
 		seg2.mark_of_death = true;
 		seg2.death_label = 1;
 		return seg2;
@@ -820,19 +812,19 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, Gr
 	}
     
 	if (k == 1){
-        seg2.rt[0].x = xpt_i;
-        seg2.rt[0].y = ypt_i;
-        seg2.rt[0].z = zpt_i;
-		seg2.rt[1].x = xpt_i + remain_length*seg_unit.x;
-        seg2.rt[1].y = ypt_i + remain_length*seg_unit.y;
-        seg2.rt[1].z = zpt_i + remain_length*seg_unit.z;}
+        seg2.m_tip[0].rt.x = xpt_i;
+        seg2.m_tip[0].rt.y = ypt_i;
+        seg2.m_tip[0].rt.z = zpt_i;
+		seg2.m_tip[1].rt.x = xpt_i + remain_length*seg_unit.x;
+        seg2.m_tip[1].rt.y = ypt_i + remain_length*seg_unit.y;
+        seg2.m_tip[1].rt.z = zpt_i + remain_length*seg_unit.z;}
     else if (k == 0){
-        seg2.rt[1].x = xpt_i;
-        seg2.rt[1].y = ypt_i;
-        seg2.rt[1].z = zpt_i;
-        seg2.rt[0].x = xpt_i + remain_length*seg_unit.x;
-        seg2.rt[0].y = ypt_i + remain_length*seg_unit.y;
-        seg2.rt[0].z = zpt_i + remain_length*seg_unit.z;}
+        seg2.m_tip[1].rt.x = xpt_i;
+        seg2.m_tip[1].rt.y = ypt_i;
+        seg2.m_tip[1].rt.z = zpt_i;
+        seg2.m_tip[0].rt.x = xpt_i + remain_length*seg_unit.x;
+        seg2.m_tip[0].rt.y = ypt_i + remain_length*seg_unit.y;
+        seg2.m_tip[0].rt.z = zpt_i + remain_length*seg_unit.z;}
 
 	seg2.length = remain_length;
 	seg2.BCdead = 1;
@@ -844,7 +836,7 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, Gr
 		seg2.m_sprout = seg.m_sprout;
     
     //seg2.findphi();
-    seg2.bdyf_id[k] = seg.bdyf_id[k]; 
+    seg2.m_tip[k].bdyf_id = seg.m_tip[k].bdyf_id; 
 
 	return seg2;
 }
@@ -911,14 +903,14 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg, Grid &grid)
 		X3 = (*elem.n3);
 		X4 = (*elem.n4);}
 
-	if (seg.tip[0] == -1){
-		A = seg.rt[1];
-		B = seg.rt[0];
+	if (seg.m_tip[0].active == -1){
+		A = seg.m_tip[1].rt;
+		B = seg.m_tip[0].rt;
 	}
 
-	if (seg.tip[1] == 1){
-		A = seg.rt[0];
-		B = seg.rt[1];
+	if (seg.m_tip[1].active == 1){
+		A = seg.m_tip[0].rt;
+		B = seg.m_tip[1].rt;
 	}
 
 	newton_find_intersect(lam, e1, e2, A, B, X1, X2, X3, X4);
@@ -931,10 +923,10 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg, Grid &grid)
 		int elem_num = elem.elem_num;
 		double xix = 0.; double xiy = 0.; double xiz = 0.;
 
-		if (seg.tip[1] == 1)
-			seg.tip_elem[1] = elem_num;
-		else if (seg.tip[0] == -1)
-			seg.tip_elem[0] = elem_num;
+		if (seg.m_tip[1].active == 1)
+			seg.m_tip[1].elem = elem_num;
+		else if (seg.m_tip[0].active == -1)
+			seg.m_tip[0].elem = elem_num;
 		
 		grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
 
@@ -1021,14 +1013,14 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg, Grid &grid)
 				X3 = (*elem.n3);
 				X4 = (*elem.n4);}
 
-			if (seg.tip[0] == -1){
-				A = seg.rt[1];
-				B = seg.rt[0];
+			if (seg.m_tip[0].active == -1){
+				A = seg.m_tip[1].rt;
+				B = seg.m_tip[0].rt;
 			}
 
-			if (seg.tip[1] == 1){
-				A = seg.rt[0];
-				B = seg.rt[1];
+			if (seg.m_tip[1].active == 1){
+				A = seg.m_tip[0].rt;
+				B = seg.m_tip[1].rt;
 			}
 
 			newton_find_intersect(lam, e1, e2, A, B, X1, X2, X3, X4);
@@ -1041,10 +1033,10 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg, Grid &grid)
 				int elem_num = elem.elem_num;
 				double xix = 0.; double xiy = 0.; double xiz = 0.;
 
-				if (seg.tip[1] == 1)
-					seg.tip_elem[1] = elem_num;
-				else if (seg.tip[0] == -1)
-					seg.tip_elem[0] = elem_num;
+				if (seg.m_tip[1].active == 1)
+					seg.m_tip[1].elem = elem_num;
+				else if (seg.m_tip[0].active == -1)
+					seg.m_tip[0].elem = elem_num;
 
 				grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
 
@@ -1069,10 +1061,10 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg, Grid &grid)
 				intersect_neighbor = search_neighbors_4_intersect(elem, face, lam, e1, e2, A, B, grid, inter);
 
 				if (intersect_neighbor == true){
-					if (seg.tip[1] == 1)
-						seg.tip_elem[1] = elem.elem_num;
-					else if (seg.tip[0] == -1)
-						seg.tip_elem[0] = elem.elem_num;
+					if (seg.m_tip[1].active == 1)
+						seg.m_tip[1].elem = elem.elem_num;
+					else if (seg.m_tip[0].active == -1)
+						seg.m_tip[0].elem = elem.elem_num;
 					
 					return inter;}}		
 		}
@@ -1790,8 +1782,8 @@ vec3d BC::intersceptface(int face, double &xix_0, double &xiy_0, double &xiz_0, 
     
 	if (u == 0){
 	    u = 0.01;
-	    seg.tip[0] = 0;
-	    seg.tip[1] = 0;}
+	    seg.m_tip[0].active = 0;
+	    seg.m_tip[1].active = 0;}
 	    
 	
 	xix_i = lp.x + u*v.x;
@@ -1991,12 +1983,12 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, G
 	double old_length = 0.;
 	double remain_length = 0.;
 
-    xpt_0 = seg.rt[0].x;
-    ypt_0 = seg.rt[0].y;
-    zpt_0 = seg.rt[0].z;
-    xpt_1 = seg.rt[1].x;
-    ypt_1 = seg.rt[1].y;
-    zpt_1 = seg.rt[1].z;
+    xpt_0 = seg.m_tip[0].rt.x;
+    ypt_0 = seg.m_tip[0].rt.y;
+    zpt_0 = seg.m_tip[0].rt.z;
+    xpt_1 = seg.m_tip[1].rt.x;
+    ypt_1 = seg.m_tip[1].rt.y;
+    zpt_1 = seg.m_tip[1].rt.z;
  
 	xpt_i = i_point.x;
 	ypt_i = i_point.y;
@@ -2024,24 +2016,24 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, G
 	seg2.seg_num = data.nsegs;
 
     if (k == 1){
-        seg.rt[1].x = xpt_i;
-        seg.rt[1].y = ypt_i;
-        seg.rt[1].z = zpt_i;
+        seg.m_tip[1].rt.x = xpt_i;
+        seg.m_tip[1].rt.y = ypt_i;
+        seg.m_tip[1].rt.z = zpt_i;
         seg.findlength();
-        seg.tip[1] = 0;
+        seg.m_tip[1].active = 0;
 		seg.seg_conn[1][0] = seg2.seg_num;
-        seg2.tip[1] = 1;
-		seg2.tip_elem[0] = seg.tip_elem[1];
+        seg2.m_tip[1].active = 1;
+		seg2.m_tip[0].elem = seg.m_tip[1].elem;
 		seg2.seg_conn[0][0] = seg.seg_num;}
     else if (k == 0){
-        seg.rt[0].x = xpt_i;
-        seg.rt[0].y = ypt_i;
-        seg.rt[0].z = zpt_i;
+        seg.m_tip[0].rt.x = xpt_i;
+        seg.m_tip[0].rt.y = ypt_i;
+        seg.m_tip[0].rt.z = zpt_i;
         seg.findlength();
-        seg.tip[0] = 0;
+        seg.m_tip[0].active = 0;
 		seg.seg_conn[0][0] = seg2.seg_num;
-        seg2.tip[0] = -1;
-		seg2.tip_elem[1] = seg.tip_elem[0];
+        seg2.m_tip[0].active = -1;
+		seg2.m_tip[1].elem = seg.m_tip[0].elem;
 		seg2.seg_conn[1][0] = seg.seg_num;}
 
     seg.BCdead = 1;
@@ -2103,8 +2095,8 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, G
         break;
     
 	case -1:
-		seg2.tip[0] = 0;
-		seg2.tip[1] = 0;
+		seg2.m_tip[0].active = 0;
+		seg2.m_tip[1].active = 0;
 		seg2.mark_of_death = true;
 		seg2.death_label = 1;
 		return seg2;
@@ -2129,19 +2121,19 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, G
 	seg_unit_inplane = seg.uvect - seg_unit_perp;
 	
 	if (k == 1){
-        seg2.rt[0].x = xpt_i;
-        seg2.rt[0].y = ypt_i;
-        seg2.rt[0].z = zpt_i;
-		seg2.rt[1].x = xpt_i + remain_length*seg_unit_inplane.x;
-        seg2.rt[1].y = ypt_i + remain_length*seg_unit_inplane.y;
-        seg2.rt[1].z = zpt_i + remain_length*seg_unit_inplane.z;}
+        seg2.m_tip[0].rt.x = xpt_i;
+        seg2.m_tip[0].rt.y = ypt_i;
+        seg2.m_tip[0].rt.z = zpt_i;
+		seg2.m_tip[1].rt.x = xpt_i + remain_length*seg_unit_inplane.x;
+        seg2.m_tip[1].rt.y = ypt_i + remain_length*seg_unit_inplane.y;
+        seg2.m_tip[1].rt.z = zpt_i + remain_length*seg_unit_inplane.z;}
     else if (k == 0){
-        seg2.rt[1].x = xpt_i;
-        seg2.rt[1].y = ypt_i;
-        seg2.rt[1].z = zpt_i;
-        seg2.rt[0].x = xpt_i + remain_length*seg_unit_inplane.x;
-        seg2.rt[0].y = ypt_i + remain_length*seg_unit_inplane.y;
-        seg2.rt[0].z = zpt_i + remain_length*seg_unit_inplane.z;}
+        seg2.m_tip[1].rt.x = xpt_i;
+        seg2.m_tip[1].rt.y = ypt_i;
+        seg2.m_tip[1].rt.z = zpt_i;
+        seg2.m_tip[0].rt.x = xpt_i + remain_length*seg_unit_inplane.x;
+        seg2.m_tip[0].rt.y = ypt_i + remain_length*seg_unit_inplane.y;
+        seg2.m_tip[0].rt.z = zpt_i + remain_length*seg_unit_inplane.z;}
 
 	seg2.length = remain_length;
 	seg2.BCdead = 1;
@@ -2155,7 +2147,7 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, G
     
 	seg2.findlength();
 	//seg2.findphi();
-    seg2.bdyf_id[k] = seg.bdyf_id[k]; 
+    seg2.m_tip[k].bdyf_id = seg.m_tip[k].bdyf_id; 
 
 	return seg2;
 }
@@ -2176,12 +2168,12 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	double old_length = 0.;
 	double remain_length = 0.;
 
-    xpt_0 = seg.rt[0].x;
-    ypt_0 = seg.rt[0].y;
-    zpt_0 = seg.rt[0].z;
-    xpt_1 = seg.rt[1].x;
-    ypt_1 = seg.rt[1].y;
-    zpt_1 = seg.rt[1].z;
+    xpt_0 = seg.m_tip[0].rt.x;
+    ypt_0 = seg.m_tip[0].rt.y;
+    zpt_0 = seg.m_tip[0].rt.z;
+    xpt_1 = seg.m_tip[1].rt.x;
+    ypt_1 = seg.m_tip[1].rt.y;
+    zpt_1 = seg.m_tip[1].rt.z;
  
 	xpt_i = i_point.x;
 	ypt_i = i_point.y;
@@ -2209,22 +2201,22 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	seg2.seg_num = data.nsegs;
 
     if (k == 1){
-        seg.rt[1].x = xpt_i;
-        seg.rt[1].y = ypt_i;
-        seg.rt[1].z = zpt_i;
+        seg.m_tip[1].rt.x = xpt_i;
+        seg.m_tip[1].rt.y = ypt_i;
+        seg.m_tip[1].rt.z = zpt_i;
         seg.findlength();
-        seg.tip[1] = 0;
+        seg.m_tip[1].active = 0;
 		seg.seg_conn[1][0] = seg2.seg_num;
-		seg2.tip_elem[0] = seg.tip_elem[1];
+		seg2.m_tip[0].elem = seg.m_tip[1].elem;
 		seg2.seg_conn[0][0] = seg.seg_num;}
     else if (k == 0){
-        seg.rt[0].x = xpt_i;
-        seg.rt[0].y = ypt_i;
-        seg.rt[0].z = zpt_i;
+        seg.m_tip[0].rt.x = xpt_i;
+        seg.m_tip[0].rt.y = ypt_i;
+        seg.m_tip[0].rt.z = zpt_i;
         seg.findlength();
 		seg.seg_conn[0][0] = seg2.seg_num;
-        seg2.tip[0] = -1;
-		seg2.tip_elem[1] = seg.tip_elem[0];
+        seg2.m_tip[0].active = -1;
+		seg2.m_tip[1].elem = seg.m_tip[0].elem;
 		seg2.seg_conn[1][0] = seg.seg_num;}
 
     seg.BCdead = 1;
@@ -2268,14 +2260,14 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	new_ypt = ypt_i + rand_disp.y; 
 	new_zpt = zpt_i + rand_disp.z;
 
-    seg2.rt[0].x = new_xpt;
-    seg2.rt[0].y = new_ypt;
-    seg2.rt[0].z = new_zpt;
-	seg2.rt[1].x = new_xpt + remain_length*new_uvect.x;
-    seg2.rt[1].y = new_ypt + remain_length*new_uvect.y;
-    seg2.rt[1].z = new_zpt + remain_length*new_uvect.z;
+    seg2.m_tip[0].rt.x = new_xpt;
+    seg2.m_tip[0].rt.y = new_ypt;
+    seg2.m_tip[0].rt.z = new_zpt;
+	seg2.m_tip[1].rt.x = new_xpt + remain_length*new_uvect.x;
+    seg2.m_tip[1].rt.y = new_ypt + remain_length*new_uvect.y;
+    seg2.m_tip[1].rt.z = new_zpt + remain_length*new_uvect.z;
 
-	seg2.tip[1] = 1;
+	seg2.m_tip[1].active = 1;
 	seg2.length = remain_length;
 	seg2.BCdead = 1;
     seg2.label = seg.label;
@@ -2285,7 +2277,7 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 		seg2.m_sprout = seg.m_sprout;
     
 	seg2.findlength();
-    seg2.bdyf_id[k] = seg.bdyf_id[k]; 
+    seg2.m_tip[k].bdyf_id = seg.m_tip[k].bdyf_id; 
 
 	return seg2;
 }
