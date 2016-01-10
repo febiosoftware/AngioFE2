@@ -29,6 +29,9 @@ public:
 	// initialize the FEAnio class
 	bool Init();
 
+	//! Get the FE model
+	FEModel& GetFEModel();
+
 public:
 	void initBranch();
 	void updateTime();
@@ -54,9 +57,6 @@ public:
 	int create_body_force(vec3d sprout_vect, double xpt, double ypt, double zpt, double mag, double range, FEModel& fem, int load_curve);
 	void update_body_forces(FEModel& fem, double scale);
 	void create_branching_force(Segment& seg, FEModel& fem);
-	void save_vessel_state();
-	void save_bdy_forces(FEModel& fem);
-	void save_time();
 	void update_grid(FEMesh &mesh);
 	void update_ECM();
 	mat3d calculate_deform_tensor(Elem elem, double e1, double e2, double e3);
@@ -118,21 +118,15 @@ public:
 
 public:
 	// stats
-	double total_length;   // Total vascular length within the domain (sum of the length of all Segments) (in um)
+	double m_total_length;		// Total vascular length within the domain (sum of the length of all Segments) (in um)
+    time_t m_start;				// time of start
 
 public:	// IO stuff
 
 	Fileout fileout;
-	
-	FILE *stream;                                                           
-	FILE *bf_stream;
-
-	FILE *time_stream;
-	bool time_write_headers;
-
 	FILE *killed_segs_stream; 
 	bool kill_off;
-
+	
 public:
 	FESproutBodyForce*	m_pbf;	//!< sprout body-force
 	FEAngioMaterial*	m_pmat;	//!< the angio-material pointer

@@ -27,7 +27,7 @@ public:
 	Fileout();
 	virtual ~Fileout();
 	
-	void timestart();
+public:
 	void writeTracking(FEAngio& angio);
 	void closeTracking();
 	void printStatus(FEAngio& angio);
@@ -39,16 +39,22 @@ public:
 	void writeECMDen(Grid &grid);
 	void writeECMDenGrad(Grid &grid);
 	void writeBC(Grid &grid);
-	void printtime();
+	void printtime(FEAngio& angio);
 	void printrandseed(int randseed);
 	void writeSegConn(list<Segment> &frag);
 	void writeECMDenStore(Grid &grid);
 	void writeECMFibrilStore(Grid &grid);
+	void save_vessel_state(FEAngio& angio);
+	void save_bdy_forces(FEAngio& angio);
+	void save_time(FEAngio& angio);
 
-public:
-    time_t start, stop;                                         // Declare time-keeping variables start, stop, and t_seconds
-	double t_seconds;
+private:
 	ofstream logstream;
-    FILE* stream3;      
-	FILE *stream;                                                           // Open stream to 'data.ang' (stream)
+    FILE*	m_stream3;      
+	FILE*	m_stream;     // Open stream to 'data.ang' (stream)
+	FILE*	m_stream2; 
+	FILE*	bf_stream;
+
+	FILE *time_stream;
+	bool time_write_headers;
 };

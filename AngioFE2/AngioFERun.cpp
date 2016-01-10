@@ -49,8 +49,8 @@ bool AngioFETask::Run()
 	FEAngio& feangio = *pfeangio;
 	FEAnalysis* pstep = fem.GetCurrentStep();
 
-	feangio.save_vessel_state();									// Output microvessel state
-	feangio.save_time();											// Output time information
+	feangio.fileout.save_vessel_state(feangio);									// Output microvessel state
+	feangio.fileout.save_time(feangio);											// Output time information
 	feangio.fileout.writeCollFib(feangio.grid, true);				// Output initial collagen fiber orientation
 
 	//// FEBIO - Solve for initial step
@@ -66,9 +66,9 @@ bool AngioFETask::Run()
 	//// ANGIO3D - Apply sprout forces at active growth tips
 	feangio.apply_sprout_forces(fem, 1, 0.5);						// Apply sprout forces to the mesh
 	feangio.adjust_mesh_stiffness(fem);								// Adjust the stiffness of the mesh based on microvessel volume
-	feangio.save_vessel_state();									// Output microvessel state
+	feangio.fileout.save_vessel_state(feangio);						// Output microvessel state
 	//feangio.save_bdy_forces(fem);									// Output body force state
-	feangio.save_time();											// Output time
+	feangio.fileout.save_time(feangio);								// Output time
 
 	//// ANGIO3D - Simulate angiogenesis
 	feangio.initBranch();											// Handle branching within inital fragments
@@ -97,7 +97,7 @@ bool AngioFETask::Run()
 
 		feangio.update_grid_volume();									// Re-calculate the volume of each elment after the deformation using the Jacobian								
 
-		feangio.save_time();											// Output time information	
+		feangio.fileout.save_time(feangio);											// Output time information	
 		
 		feangio.fileout.printStatus(feangio);						// Print the status of angio3d to the user    
 	}

@@ -24,19 +24,12 @@ bool CreateFiberMap(vector<vec3d>& fiber, FEMaterial* pmat);
 // create a density map based on material point density
 bool CreateDensityMap(vector<double>& density, FEMaterial* pmat);
 
-//////////////////////////////////////////////////////////////////////
-// Construction/Destruction
-//////////////////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------
 FEAngio::FEAngio(FEModel& fem) : m_fem(fem)
 {
     half_cell_l = 0.5*data.dx;                                  // Half the length of one grid element in the x direction, use in determining variable time step
 
-	kill_off = false;
-
     cout << endl << "Angiogenesis Growth Model:" << endl << endl;
-
-	killed_segs_stream = fopen("out_dead_segs.ang","wt");
 
 	yes_branching = true;														// Flag to turn branching on/off
 	yes_anast = true;															// Flag to turn anastomosis on/off
@@ -46,19 +39,13 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem)
 	FE_state = 0;													// State counter to count the number of solved FE states
 	FE_time_step = 0.5;												// Time step within FEBio
 
-	stream = fopen("out_vess_state.ang","wt");						// Open the stream for the vessel state data file		
-	bf_stream = fopen("out_bf_state.ang","wt");						// Open the stream for the body force state data file
-	
-	time_stream = fopen("out_time.ang","wt");						// Open the stream for the time and state data file
-	time_write_headers = true;										// Set the time and state data file to write the headers on its first output
-
 	comp_mat = 0;
 	m_pmat = 0;
 
 	phi_stiff_factor = 1.0;
 	m_sub_cycles = 2;
 
-    total_length = 0.;
+    m_total_length = 0.;
     
 	m_bsprout_verify = 0;				// Sprout verification problem flag
 
@@ -76,15 +63,21 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem)
 	m_tip_range = 250.;		// Sprout force range
 	m_spfactor = 0.;		// Sprout force directional factor
 	m_bsp_sphere = 0;		// Switch between local directional (0), local isotropic (1), and global isotropic (2) sprout froce representations
+
+	kill_off = false;
+	killed_segs_stream = fopen("out_dead_segs.ang","wt");
 }
 
+//-----------------------------------------------------------------------------
 FEAngio::~FEAngio()
 {
-	fclose(stream);													// Close the stream for the vessel state data file
-	fclose(bf_stream);												// Close the stream for the body force state data file
-	fclose(time_stream);											// Close the stream for the time and state data file
-
 	fclose(killed_segs_stream);
+}
+
+//-----------------------------------------------------------------------------
+FEModel& FEAngio::GetFEModel()
+{
+	return m_fem;
 }
 
 //-----------------------------------------------------------------------------
@@ -147,7 +140,8 @@ bool FEAngio::Init()
 	// initialize data variable
 	data.init_data(grid);
 
-	fileout.timestart();
+	// start timer
+	time(&m_start);
 	
 	//// FEBIO - Set parameters for the finite element model
 	FEAnalysis* pstep = m_fem.GetCurrentStep();
@@ -381,7 +375,7 @@ bool FEAngio::Subgrowth(int sub_steps, FEModel& fem)
 		update_grid(mesh);												// Update the growth model mesh using the FE solution
 		displace_vessels();												// Update microvessel position and orientation using the displacement field from the FE solution
 		
-		save_vessel_state();											// Save the current vessel state
+		fileout.save_vessel_state(*this);											// Save the current vessel state
 	}
 
 	
@@ -682,76 +676,6 @@ void FEAngio::create_branching_force(Segment& seg, FEModel& fem)
 	
 	return;
 }
-
-
-///////////////////////////////////////////////////////////////////////
-// FEAngio - save_vessel_state
-//		Save microvessel position at the current time point
-///////////////////////////////////////////////////////////////////////
-
-void FEAngio::save_vessel_state()
-{
-	list<Segment>::iterator it;													// Iterator for the segment container FRAG
-		
-	fprintf(stream,"%-5s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n","State","Time","X1","Y1","Z1","X2","Y2","Z2","Length");  // Write column labels to out_vess_state.ang
-	
-	for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it)								// Iterate through all segments in frag list container (it)
-	{
-		vec3d& r0 = it->m_tip[0].rt;
-		vec3d& r1 = it->m_tip[1].rt;
-		fprintf(stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n",FE_state,it->TofBirth,r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length);  // Write to out_vess_state.ang
-	}
-	
-	return;
-}
-
-
-
-///////////////////////////////////////////////////////////////////////
-// FEAngio - save_bdy_forces
-//		Save positions of the body forces at the current time step (This function needs to be re-written)
-///////////////////////////////////////////////////////////////////////
-
-void FEAngio::save_bdy_forces(FEModel& fem)
-{
-	int NBF = fem.BodyLoads();
-
-	fprintf(bf_stream,"%-5s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n","State","Time","X1","Y1","Z1","X2","Y2","Z2","Length"); 
-
-	for (int i = 0; i < NBF; ++i)
-	{
-		FEBodyForce* pbf = dynamic_cast<FEBodyForce*>(fem.GetBodyLoad(i));
-		FEParameterList& pl = pbf->GetParameterList();
-		FEParam* pa = pl.Find("a");
-		FEParam* prc = pl.Find("rc");
-
-		if (pa && prc)
-		{
-			if (pa->value<double>() != 0.0)
-				fprintf(bf_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n",FE_state, data.t, prc->value<vec3d>().x, prc->value<vec3d>().y, prc->value<vec3d>().z, prc->value<vec3d>().x + 1.0, prc->value<vec3d>().y + 1.0, prc->value<vec3d>().z + 1.0, 1.73); 
-		}
-	}
-
-	return;
-}
-
-
-///////////////////////////////////////////////////////////////////////
-// FEAngio - save_time
-//		Save the current time information			
-///////////////////////////////////////////////////////////////////////
-
-void FEAngio::save_time()
-{
-	if (time_write_headers == true){												// If this is the first time writing to out_time.ang
-		fprintf(time_stream,"%-5s %-12s %-12s\n","State","Vess Time","FE Time");		// Print the column labels
-		time_write_headers = false;}													// Turn off the headers flag
-	
-	fprintf(time_stream,"%-5.2i %-12.7f %-12.7f\n",FE_state, data.t, ((double)FE_state - 1.0)*FE_time_step);	// Print out the FE state, the vessel growth model time, and the FE time
-	
-	return;
-}
-
 
 //-----------------------------------------------------------------------------
 // Update the grid after a deformation using the FE mesh
@@ -1864,30 +1788,19 @@ void FEAngio::updateTime()
 
 	
     data.t = data.t+data.dt;                                    // Update time
-
-    return;
 }
 
-
-
-///////////////////////////////////////////////////////////////////////
-// updateTotalLength
-///////////////////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------
+// Calculates and stores the total lenght of all vessels.
 void FEAngio::updateTotalLength()
 {
-    total_length = 0.;                                  // Initialize total_length to 0
+    m_total_length = 0.;
     list<Segment>::iterator it;
-		
-		
-    for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it)                 // Iterate through all segments stored in 'a_frag' (it)
+    for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it)
     {
-        total_length = total_length + fabs(it->length);        // Calculate total_length        
+        m_total_length += fabs(it->length);    
     }
-
-    return;
 }
-
 
 
 ///////////////////////////////////////////////////////////////////////
