@@ -20,7 +20,6 @@
 #include "Segment.h"
 #include "Elem.h"
 
-class Data;
 class FEMesh;
 
 using namespace std;

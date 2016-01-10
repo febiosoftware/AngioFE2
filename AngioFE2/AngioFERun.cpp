@@ -74,7 +74,7 @@ bool AngioFETask::Run()
 	feangio.initBranch();											// Handle branching within inital fragments
     feangio.updateTotalLength();									// Update the total vascular length within the simulation   
 	
-	while (feangio.data.t < feangio.data.maxt)                      // While culture time is less than the maximum time
+	while (feangio.m_t < feangio.m_maxt)                      // While culture time is less than the maximum time
 	{	
 		feangio.updateTime();											// Determine the current time step and update time
 

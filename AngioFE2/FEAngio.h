@@ -13,7 +13,6 @@
 #include "FEAngioMaterial.h"
 #include "FESproutBodyForce.h"
 #include "Grid.h"
-#include "Data.h"
 #include "Culture.h"
 
 //-----------------------------------------------------------------------------
@@ -94,17 +93,40 @@ public:	// parameters read directly from file
 	int				comp_mat;			// is composite material used (TODO: do we still need this?)
 	double			phi_stiff_factor;	// stiffness factor, which scales the amount of mesh displacement that's sent to the microvessels
 	int				m_bsprout_verify;	// Flag for the sprout verification problem
+    double			m_vessel_width;     // Width of Segments (in um) (TODO: make this a user parameter)
+	double			m_branch_chance;    // Probability of forming a new branch
+    double			m_a1,m_a2,m_a3;     // Parameters for the branching curve (TODO: Make these user parameters)
+
+	// Microvessel growth rate is modeled using the Boltzmann sigmoid curve 	                                                            
+	// TODO: Makes these user parameters
+	//          g(t) = y0 + a/(1+e^-(t-x0)/b)
+	double m_y0;   // Bottom of sigmoid curve
+	double m_a;    // Distance between top and bottom of the curve (a + y0 = top of curve)
+	double m_x0;   // Time point at which t is halfway between top & bottom
+	double m_b;    // Steepness of the curve
+	double m_d;    // Initial value of the curve (t = 0)
+    double m_vess_length;		// TODO: Move this to Culture?
+
+    // Length adjuster, scales the length of new segments
+	// allows fine tuning of total vascular length produced by the simulation.
+	double m_length_adjust;                                       
+
+	
+	// If the shortest distance vector between a segment and any other segment is less than this value
+	// TODO: I think making this a percentage of the growth length makes more sense.
+    double m_anast_dist;
 
 public:
     double	half_cell_l;		// Half the length of one grid element in the x direction, use in determining variable time step
 	int		m_sub_cycles;		// number of FE steps per growth step
+    int		m_n;				// number of total time steps ?
+	double	m_dtA, m_dtB, m_dtC;	// Time step parameters. TODO: make these user variables.
     
 	list<list<Segment>::iterator > active_tips;
 	
 	vector<vector<double> > sprout_nodes;
 
     Grid grid;
-	Data data;
 	Culture cult;  
 
 public:
@@ -116,13 +138,21 @@ public:
 	bool yes_branching;
 	bool yes_anast;
 
+	// time stepping parameters
+	double m_maxt;		// Time at which the simulation ends (in days)
+	double m_t;			// Current time (in days)
+	double m_dt;		// Variable time step (in days)
+
 public:
 	// stats
-	double m_total_length;		// Total vascular length within the domain (sum of the length of all Segments) (in um)
-    time_t m_start;				// time of start
+	double	m_total_length;		// Total vascular length within the domain (sum of the length of all Segments) (in um)
+	int		m_num_branches;		// Counter indicating the number of branches formed during the simulation
+	int		m_nsegs;			// Counter that stores in current number of Segments within the simulation domain
+	bool	m_branch;			// Boolean flag that indicates to the model that the Segment being created is the result of a new branch
 
 public:	// IO stuff
 
+    time_t m_start;				// time of start
 	Fileout fileout;
 	FILE *killed_segs_stream; 
 	bool kill_off;

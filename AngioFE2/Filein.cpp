@@ -72,7 +72,7 @@ void Filein::set_param(FEAngio& angio, char* buffer, char* pname)
     //// Parameters for angio3d (In paratheneses, string identifying the parameter and an example value):
 	// Branching Probability (brnch_ch 0.1)
 	if (!strcmp(pname,"brnch_ch")){
-		sscanf(buffer,"%*s %*s %f",&angio.data.branch_chance);
+		sscanf(buffer,"%*s %*s %f",&angio.m_branch_chance);
         return;}
 
     //  Matrix conditions (matx_cnd 0) random
@@ -87,27 +87,27 @@ void Filein::set_param(FEAngio& angio, char* buffer, char* pname)
         
 	// Number of initial fragments (nfrag 70, based on 30K frags/mL)
     if (!strcmp(pname,"nfrag")){
-        sscanf(buffer,"%*s %*s %i",&angio.data.NFRAGS);
+        sscanf(buffer,"%*s %*s %i",&angio.cult.NFRAGS);
         return;}        
     
 	// End of culture period (max_time 6.0) days
     if (!strcmp(pname,"max_time")){
-        sscanf(buffer,"%*s %*s %lf",&angio.data.maxt);
+        sscanf(buffer,"%*s %*s %lf",&angio.m_maxt);
         return;}  
     
 	// Initial time step (dt 0.25) days
     if (!strcmp(pname,"dt")){
-        sscanf(buffer,"%*s %*s %lf",&angio.data.dt);
+        sscanf(buffer,"%*s %*s %lf",&angio.m_dt);
         return;}  
     
 	// Anastomosis distance (anst_dst 25.0) um 
     if (!strcmp(pname,"anst_dst")){
-		sscanf(buffer,"%*s %*s %lf",&angio.data.anast_dist);
+		sscanf(buffer,"%*s %*s %lf",&angio.m_anast_dist);
         return;}  
         
     // Segment length adjustment scale (lngth_adj 1.0) 
 	if (!strcmp(pname,"lngth_adj")){
-		sscanf(buffer,"%*s %*s %lf",&angio.data.length_adjust);
+		sscanf(buffer,"%*s %*s %lf",&angio.m_length_adjust);
         return;}
     
 	// Number of nodes in x-direction for autogrid (xnodes 7)

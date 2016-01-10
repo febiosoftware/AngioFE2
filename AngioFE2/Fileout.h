@@ -15,7 +15,6 @@
 #include <vector>
 
 class Grid;
-class Data;
 class Segment;
 class FEAngio;
 

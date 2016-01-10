@@ -1,41 +1,24 @@
-///////////////////////////////////////////////////////////////////////
-// BC.cpp
-///////////////////////////////////////////////////////////////////////
-
-
-
-// Include:
 #include "stdafx.h"
 #include <iostream>
-
 #include "BC.h"
-#include <FECore\vec3d.h>
 #include "Culture.h"
+#include "Segment.h"
+#include "FEAngio.h"
 
-using namespace std;
-
-
-///////////////////////////////////////////////////////////////////////
-// Construction/Destruction
-///////////////////////////////////////////////////////////////////////
-
-BC::BC()												// Constructor for BC object
+//-----------------------------------------------------------------------------
+BC::BC(FEAngio& angio) : m_angio(angio)
 {
 	BC_violated = false;
 	BC_bouncy = false;
 }                                   
 
-BC::~BC()                                               // Destructor for BC object
+//-----------------------------------------------------------------------------
+BC::~BC()
 {
 
 }
 
-
-
-///////////////////////////////////////////////////////////////////////
-// checkBC
-///////////////////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------
 // BC.checkBC - Checks if a newly-created segment violates the boundary faces of the element in which it occupies
 //      Input:  - Position of new growth tip (xpt, ypt, zpt)
 //              - Reference to new segment
@@ -44,8 +27,7 @@ BC::~BC()                                               // Destructor for BC obj
 //              - grid, data, and frag objects
 //
 //      Output: - None  
-
-void BC::checkBC(Segment &seg, int k, Grid &grid, Data &data, list<Segment> &frag)
+void BC::checkBC(Segment &seg, int k)
 {
 	int noBC = 0;
     int elem_num = -1;
@@ -69,7 +51,7 @@ void BC::checkBC(Segment &seg, int k, Grid &grid, Data &data, list<Segment> &fra
 	int face = 0;
 	
 	// TODO: Do we need to do this, since I think we can only get here if elem_num = -1
-	elem_num = grid.findelem(xpt, ypt, zpt);
+	elem_num = m_angio.grid.findelem(xpt, ypt, zpt);
 	if (elem_num != -1) return;
 /*	else{
 		int NE = grid.Elems();
@@ -538,23 +520,23 @@ void BC::checkBC(Segment &seg, int k, Grid &grid, Data &data, list<Segment> &fra
 
 		// It looks like the tip_elem variable is not updated correctly
 		// so we have to do this expensive search. 
-		if (elem_num == -1) elem_num = grid.findelem(r0.x, r0.y, r0.z);
+		if (elem_num == -1) elem_num = m_angio.grid.findelem(r0.x, r0.y, r0.z);
 		assert(elem_num != -1);
 
-		if (grid.FindIntersection(r0, r1, elem_num, i_point, face))
+		if (m_angio.grid.FindIntersection(r0, r1, elem_num, i_point, face))
 		{
 
 //		i_point = find_intersect(elem, face, seg, grid);
-			Elem& elem = grid.ebin[elem_num];
+			Elem& elem = m_angio.grid.ebin[elem_num];
 			assert(face != -1);
 			assert(elem.m_nbr[face] == -1);
 			assert(elem.GetFace(face)->BC == true);
-			if (face == 0) { enforceBC(i_point, face+1, elem.f1.bc_type, seg, elem_num, grid, k, data, frag); return;}
-			if (face == 1) { enforceBC(i_point, face+1, elem.f2.bc_type, seg, elem_num, grid, k, data, frag); return;}
-			if (face == 2) { enforceBC(i_point, face+1, elem.f3.bc_type, seg, elem_num, grid, k, data, frag); return;}
-			if (face == 3) { enforceBC(i_point, face+1, elem.f4.bc_type, seg, elem_num, grid, k, data, frag); return;}
-			if (face == 4) { enforceBC(i_point, face+1, elem.f5.bc_type, seg, elem_num, grid, k, data, frag); return;}
-			if (face == 5) { enforceBC(i_point, face+1, elem.f6.bc_type, seg, elem_num, grid, k, data, frag); return;}
+			if (face == 0) { enforceBC(i_point, face+1, elem.f1.bc_type, seg, elem_num, k); return;}
+			if (face == 1) { enforceBC(i_point, face+1, elem.f2.bc_type, seg, elem_num, k); return;}
+			if (face == 2) { enforceBC(i_point, face+1, elem.f3.bc_type, seg, elem_num, k); return;}
+			if (face == 3) { enforceBC(i_point, face+1, elem.f4.bc_type, seg, elem_num, k); return;}
+			if (face == 4) { enforceBC(i_point, face+1, elem.f5.bc_type, seg, elem_num, k); return;}
+			if (face == 5) { enforceBC(i_point, face+1, elem.f6.bc_type, seg, elem_num, k); return;}
 		}
 		else
 		{
@@ -580,13 +562,13 @@ void BC::checkBC(Segment &seg, int k, Grid &grid, Data &data, list<Segment> &fra
 // enforceBC
 ///////////////////////////////////////////////////////////////////////
 
-void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_num, Grid &grid, int k, Data &data, list<Segment> &frag)
+void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_num, int k)
 {
     BC_violated = true;
 	
 	// Flat wall boundary type
     if (bctype == 119){           
-        flatwallBC(i_point, face, seg, elem_num, k, grid);
+        flatwallBC(i_point, face, seg, elem_num, k);
         BC_violated = false;
 		return;}
     
@@ -594,21 +576,21 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
     if (bctype == 98){
         Segment seg2;
 		
-		seg2 = bouncywallBC(i_point, face, seg, elem_num, grid, k, data, frag);
-        ++data.nsegs;
-		seg2.seg_num = data.nsegs;
+		seg2 = bouncywallBC(i_point, face, seg, elem_num, k);
+        ++m_angio.m_nsegs;
+		seg2.seg_num = m_angio.m_nsegs;
 
-		elem_num = grid.findelem(seg2.m_tip[k].rt);
+		elem_num = m_angio.grid.findelem(seg2.m_tip[k].rt);
         
 		if (elem_num != -1){
 			seg2.m_tip[k].elem = elem_num;
-			frag.push_front(seg2);}
+			m_angio.cult.m_frag.push_front(seg2);}
 		else{
-			checkBC(seg2, k, grid, data, frag);
-			elem_num = grid.findelem(seg2.m_tip[k].rt);
+			checkBC(seg2, k);
+			elem_num = m_angio.grid.findelem(seg2.m_tip[k].rt);
 			if (elem_num != -1){
 				seg2.m_tip[k].elem = elem_num;
-				frag.push_front(seg2);}}
+				m_angio.cult.m_frag.push_front(seg2);}}
 
 		BC_bouncy = false;
 		BC_violated = false;
@@ -622,19 +604,19 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
     if (bctype == 105){
         Segment seg2;
 				
-		seg2 = inplanewallBC(i_point, face, seg, elem_num, grid, k, data, frag);
+		seg2 = inplanewallBC(i_point, face, seg, elem_num, k);
 
-		elem_num = grid.findelem(seg2.m_tip[k].rt);
+		elem_num = m_angio.grid.findelem(seg2.m_tip[k].rt);
         
 		if (elem_num != -1){
 			seg2.m_tip[k].elem = elem_num;
-			frag.push_front(seg2);}
+			m_angio.cult.m_frag.push_front(seg2);}
 		else{
-			checkBC(seg2, k, grid, data, frag);
-			elem_num = grid.findelem(seg2.m_tip[k].rt);
+			checkBC(seg2, k);
+			elem_num = m_angio.grid.findelem(seg2.m_tip[k].rt);
 			if (elem_num != -1){
 				seg2.m_tip[k].elem = elem_num;
-				frag.push_front(seg2);}}
+				m_angio.cult.m_frag.push_front(seg2);}}
 
 		BC_bouncy = false;
 		BC_violated = false;
@@ -646,7 +628,7 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
 
 	// Collagen Fiber Bouncy wall boundary type
     if (bctype == 99){
-        collfibwallBC(i_point, face, seg, elem_num, grid, k, data, frag);
+        collfibwallBC(i_point, face, seg, elem_num, k);
         BC_violated = false;
 		return;}   
 
@@ -654,19 +636,19 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
     if (bctype == 112){
         Segment seg2;
 				
-		seg2 = symplaneperiodicwallBC(i_point, face, seg, elem_num, grid, k, data, frag);
+		seg2 = symplaneperiodicwallBC(i_point, face, seg, elem_num, k);
 
-		elem_num = grid.findelem(seg2.m_tip[1].rt);
+		elem_num = m_angio.grid.findelem(seg2.m_tip[1].rt);
         
 		if (elem_num != -1){
 			seg2.m_tip[k].elem = elem_num;
-			frag.push_front(seg2);}
+			m_angio.cult.m_frag.push_front(seg2);}
 		else{
-			checkBC(seg2, k, grid, data, frag);
-			elem_num = grid.findelem(seg2.m_tip[k].rt);
+			checkBC(seg2, k);
+			elem_num = m_angio.grid.findelem(seg2.m_tip[k].rt);
 			if (elem_num != -1){
 				seg2.m_tip[k].elem = elem_num;
-				frag.push_front(seg2);}}
+				m_angio.cult.m_frag.push_front(seg2);}}
 
 		BC_bouncy = false;
 		BC_violated = false;
@@ -685,7 +667,7 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
 // flatwallBC
 ///////////////////////////////////////////////////////////////////////
 
-void BC::flatwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k, Grid &grid)
+void BC::flatwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k)
 {
 	if (k == 1){
         seg.m_tip[1].rt = i_point;
@@ -709,7 +691,7 @@ void BC::flatwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k, 
 // bouncywallBC
 ///////////////////////////////////////////////////////////////////////
 
-Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, Grid &grid, int k, Data &data, list<Segment> &frag)
+Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k)
 {
     BC_bouncy = true;
 	
@@ -829,8 +811,7 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, Gr
 	seg2.length = remain_length;
 	seg2.BCdead = 1;
     seg2.label = seg.label;
-    seg2.TofBirth = data.t;
-    data.num_vessel++; 
+    seg2.TofBirth = m_angio.m_t;
     
 	if (seg.m_sprout != Segment::SPROUT_INIT)
 		seg2.m_sprout = seg.m_sprout;
@@ -847,7 +828,7 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, Gr
 // find_intersect
 ///////////////////////////////////////////////////////////////////////
 
-vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg, Grid &grid)
+vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 {
 	vec3d inter;
 	vec3d A, B;
@@ -928,7 +909,7 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg, Grid &grid)
 		else if (seg.m_tip[0].active == -1)
 			seg.m_tip[0].elem = elem_num;
 		
-		grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
+		m_angio.grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
 
 		if (xix >= 1.0)
 			xix = 0.99;
@@ -943,7 +924,7 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg, Grid &grid)
 		if (xiz <= -1.0)
 			xiz = -0.99;
 				
-		grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, elem_num);
+		m_angio.grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, elem_num);
 
 		return inter;}
 	
@@ -1038,7 +1019,7 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg, Grid &grid)
 				else if (seg.m_tip[0].active == -1)
 					seg.m_tip[0].elem = elem_num;
 
-				grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
+				m_angio.grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
 
 				if (xix >= 1.0)
 					xix = 0.99;
@@ -1053,12 +1034,12 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg, Grid &grid)
 				if (xiz <= -1.0)
 					xiz = -0.99;
 				
-				grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, elem_num);
+				m_angio.grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, elem_num);
 
 				return inter;}
 			else if ((fabs(e1) < 2.0) && (fabs(e2) < 2.0)){
 				bool intersect_neighbor = false;
-				intersect_neighbor = search_neighbors_4_intersect(elem, face, lam, e1, e2, A, B, grid, inter);
+				intersect_neighbor = search_neighbors_4_intersect(elem, face, lam, e1, e2, A, B, inter);
 
 				if (intersect_neighbor == true){
 					if (seg.m_tip[1].active == 1)
@@ -1083,8 +1064,9 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg, Grid &grid)
 // search_neighbors_4_intersect
 ///////////////////////////////////////////////////////////////////////
 
-bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double &e1, double &e2, vec3d &A, vec3d &B, Grid &grid, vec3d &inter) 
+bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double &e1, double &e2, vec3d &A, vec3d &B, vec3d &inter) 
 {
+	Grid& grid = m_angio.grid;
 	int elem_num = elem.elem_num;
 
 	Elem neighbor;
@@ -1817,7 +1799,7 @@ vec3d BC::intersceptface(int face, double &xix_0, double &xiy_0, double &xiz_0, 
 // collfibwallBC
 ///////////////////////////////////////////////////////////////////////
 
-void BC::collfibwallBC(vec3d i_point, int face, Segment &seg, int elem_num, Grid &grid, int k, Data &data, list<Segment> &frag)
+void BC::collfibwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k)
 {
  //   double xpt_0, ypt_0, zpt_0 = {0.};
  //   double xpt_1, ypt_1, zpt_1 = {0.};      
@@ -1972,7 +1954,7 @@ void BC::collfibwallBC(vec3d i_point, int face, Segment &seg, int elem_num, Grid
 // inplanewallBC
 ///////////////////////////////////////////////////////////////////////
 
-Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, Grid &grid, int k, Data &data, list<Segment> &frag)
+Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k)
 {
     BC_bouncy = true;
 	
@@ -2012,8 +1994,8 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, G
 	old_length = seg.length;
 	
 	Segment seg2;
-    ++data.nsegs;
-	seg2.seg_num = data.nsegs;
+    ++m_angio.m_nsegs;
+	seg2.seg_num = m_angio.m_nsegs;
 
     if (k == 1){
         seg.m_tip[1].rt.x = xpt_i;
@@ -2048,7 +2030,7 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, G
 	vec3d c1; vec3d c2; vec3d c3; vec3d c4;
 
 	Elem elem;
-	elem = grid.ebin[elem_num];
+	elem = m_angio.grid.ebin[elem_num];
 	
 	switch (face)
     {
@@ -2138,7 +2120,7 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, G
 	seg2.length = remain_length;
 	seg2.BCdead = 1;
     seg2.label = seg.label;
-    seg2.TofBirth = data.t;
+    seg2.TofBirth = m_angio.m_t;
     /*data.num_vessel++; 
 	seg2.line_num = seg.line_num;*/
 
@@ -2157,7 +2139,7 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, G
 // inplanewallBC
 ///////////////////////////////////////////////////////////////////////
 
-Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int elem_num, Grid &grid, int k, Data &data, list<Segment> &frag)
+Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k)
 {
     BC_bouncy = true;
 	
@@ -2197,8 +2179,8 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	old_length = seg.length;
 	
 	Segment seg2;
-    ++data.nsegs;
-	seg2.seg_num = data.nsegs;
+    ++m_angio.m_nsegs;
+	seg2.seg_num = m_angio.m_nsegs;
 
     if (k == 1){
         seg.m_tip[1].rt.x = xpt_i;
@@ -2271,7 +2253,7 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	seg2.length = remain_length;
 	seg2.BCdead = 1;
     seg2.label = seg.label;
-    seg2.TofBirth = data.t;
+    seg2.TofBirth = m_angio.m_t;
 
 	if (seg.m_sprout != Segment::SPROUT_INIT)
 		seg2.m_sprout = seg.m_sprout;

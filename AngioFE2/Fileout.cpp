@@ -6,7 +6,6 @@
 #include "Fileout.h"
 #include "Segment.h"
 #include "Culture.h"
-#include "Data.h"
 #include "angio3d.h"
 #include "Grid.h"
 #include "Elem.h"
@@ -43,8 +42,7 @@ Fileout::~Fileout()
 //-----------------------------------------------------------------------------
 void Fileout::writeTracking(FEAngio& angio)
 {
-	Data& data = angio.data;
-    fprintf(m_stream3,"%-12.7f %-12.7f %-12.7f %-5i\n",data.dt,data.t,angio.m_total_length,data.num_branches);   // Write to tracking.ang
+    fprintf(m_stream3,"%-12.7f %-12.7f %-12.7f %-5i\n",angio.m_dt,angio.m_t,angio.m_total_length,angio.m_num_branches);   // Write to tracking.ang
     
     return;
 }
@@ -60,20 +58,19 @@ void Fileout::closeTracking()
 //-----------------------------------------------------------------------------
 void Fileout::printStatus(FEAngio& angio)
 {
-	Data& data = angio.data;
-    cout << endl << "Time: " << data.t << endl;                             // Print out current time to user
+    cout << endl << "Time: " << angio.m_t << endl;                             // Print out current time to user
 	//cout << "dt: " << data.dt << endl;
-    cout << "Segments: " << data.nsegs << endl;                             // Print out current number of segments to user
+    cout << "Segments: " << angio.m_nsegs << endl;                             // Print out current number of segments to user
 	cout << "Total Length: " << angio.m_total_length << endl;                  // Print out the current total length to user
-	cout << "Branch Points: " << data.num_branches << endl;                 // Print out the current number of branches to user
-	cout << "Anastomoses: " << data.num_anastom << endl << endl;            // Print out the current number of anastomoses to user
+	cout << "Branch Points: " << angio.m_num_branches << endl;                 // Print out the current number of branches to user
+	cout << "Anastomoses: " << angio.cult.m_num_anastom << endl << endl;            // Print out the current number of anastomoses to user
     
-    logstream << endl << "Time: " << data.t << endl;                        // Print out current time to log file
+    logstream << endl << "Time: " << angio.m_t << endl;                        // Print out current time to log file
 	//logstream << "dt: " << data.dt << endl;
-    logstream << "Segments: " << data.nsegs << endl;                        // Print out current number of segments to log file
+    logstream << "Segments: " << angio.m_nsegs << endl;                        // Print out current number of segments to log file
 	logstream << "Total Length: " << angio.m_total_length << endl;             // Print out the current total length to log file
-	logstream << "Branch Points: " << data.num_branches << endl;            // Print out the current number of branches to log file
-	logstream << "Anastomoses: " << data.num_anastom << endl << endl;       // Print out the current number of anastomoses to log file
+	logstream << "Branch Points: " << angio.m_num_branches << endl;            // Print out the current number of branches to log file
+	logstream << "Anastomoses: " << angio.cult.m_num_anastom << endl << endl;       // Print out the current number of anastomoses to log file
         
     return;
 }
@@ -381,7 +378,7 @@ void Fileout::save_bdy_forces(FEAngio& angio)
 		if (pa && prc)
 		{
 			if (pa->value<double>() != 0.0)
-				fprintf(bf_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n",angio.FE_state, angio.data.t, prc->value<vec3d>().x, prc->value<vec3d>().y, prc->value<vec3d>().z, prc->value<vec3d>().x + 1.0, prc->value<vec3d>().y + 1.0, prc->value<vec3d>().z + 1.0, 1.73); 
+				fprintf(bf_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n",angio.FE_state, angio.m_t, prc->value<vec3d>().x, prc->value<vec3d>().y, prc->value<vec3d>().z, prc->value<vec3d>().x + 1.0, prc->value<vec3d>().y + 1.0, prc->value<vec3d>().z + 1.0, 1.73); 
 		}
 	}
 
@@ -396,7 +393,7 @@ void Fileout::save_time(FEAngio& angio)
 		fprintf(time_stream,"%-5s %-12s %-12s\n","State","Vess Time","FE Time");		// Print the column labels
 		time_write_headers = false;}													// Turn off the headers flag
 	
-	fprintf(time_stream,"%-5.2i %-12.7f %-12.7f\n",angio.FE_state, angio.data.t, ((double)angio.FE_state - 1.0)*angio.FE_time_step);	// Print out the FE state, the vessel growth model time, and the FE time
+	fprintf(time_stream,"%-5.2i %-12.7f %-12.7f\n",angio.FE_state, angio.m_t, ((double)angio.FE_state - 1.0)*angio.FE_time_step);	// Print out the FE state, the vessel growth model time, and the FE time
 	
 	return;
 }

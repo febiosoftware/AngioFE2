@@ -15,6 +15,7 @@
 #include "FEAngioMaterial.h"
 #include "FEBioMech/FEElasticMixture.h"
 #include "Elem.h"
+#include "angio3d.h"
 #include <iostream>
 
 //-----------------------------------------------------------------------------
@@ -27,9 +28,7 @@ bool CreateDensityMap(vector<double>& density, FEMaterial* pmat);
 //-----------------------------------------------------------------------------
 FEAngio::FEAngio(FEModel& fem) : m_fem(fem)
 {
-    half_cell_l = 0.5*data.dx;                                  // Half the length of one grid element in the x direction, use in determining variable time step
-
-    cout << endl << "Angiogenesis Growth Model:" << endl << endl;
+	cout << endl << "Angiogenesis Growth Model:" << endl << endl;
 
 	yes_branching = true;														// Flag to turn branching on/off
 	yes_anast = true;															// Flag to turn anastomosis on/off
@@ -44,8 +43,46 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem)
 
 	phi_stiff_factor = 1.0;
 	m_sub_cycles = 2;
+    m_n = 1;
+	m_branch = false;
 
+	m_length_adjust = 1.0;
+	m_anast_dist = 75.0;
+
+	// initialize time stepping parameters
+	m_t = 0.0;
+    m_maxt = 0.0;
+	m_dt = 0.25;
+
+	// TODO: What are these and make these user parameters
+    m_dtA = 0.0637;
+    m_dtB = 9.0957;
+    m_dtC = 2.6073;
+
+
+	// a1, a2, a3 - Parameters for branching curve
+    m_a1 = -1.2653;
+	m_a2 = 1.535;
+	m_a3 = 0.1108;
+
+	// parameter for growth curve (TODO: Maybe move all this to Culture?)
+    m_a = 1900.0;
+    m_b = 1.4549;
+    m_x0 = 4.9474;
+    m_y0 = -19.1278;
+    m_d = m_y0 + m_a/(1+pow(E,m_x0/m_b));                                 // d - Initial value of growth curve (t = 0)
+
+	m_vess_length = m_d;
+
+	// vessel_width - Diameter of microvessels (Default: 7 um)
+	m_vessel_width = 7;
+
+	// branch probability
+	m_branch_chance = 0.1;
+
+	m_nsegs = 0;			// nsegs - Initialize segment counter
     m_total_length = 0.;
+	m_num_branches = 0;		// Initialize branching counter
     
 	m_bsprout_verify = 0;				// Sprout verification problem flag
 
@@ -104,7 +141,7 @@ bool FEAngio::Init()
 	fileout.printrandseed(m_irseed);					
 
 	// If branching is turned off, we set the branching chance to zero
-	if (yes_branching == false) data.branch_chance = 0.0;
+	if (yes_branching == false) m_branch_chance = 0.0;
 
 	vector<vec3d> fiber;
 	if (grid.load_cond == 3)
@@ -136,9 +173,6 @@ bool FEAngio::Init()
 
 	// create the grid based on the FEBio mesh
 	grid.CreateGrid(m_fem.GetMesh(), fiber, density);
-
-	// initialize data variable
-	data.init_data(grid);
 
 	// start timer
 	time(&m_start);
@@ -204,7 +238,7 @@ bool FEAngio::Init()
 
 	//// ANGIO3D - Seed initial vessel frags
 	initialize_grid_volume();								// Initialize the volume of each element in the grid
-	cult.SeedFragments(data, grid);							// Create initial microvessel fragments                               
+	cult.SeedFragments();							// Create initial microvessel fragments                               
 	kill_dead_segs();										// Remove buggy segments
 	find_active_tips();										// Update the active tip container
 
@@ -246,11 +280,11 @@ void FEAngio::Growth(FEModel& fem)
 			if (it->m_tip[k].active != 0)											// If tip is active (not 0)...
 			{
 		        Segment seg;													// Declare SEGMENT object 'seg'
-				seg = cult.createNewSeg(it,grid,data,k,cult.m_frag);					// Create new vessel segment at the current tip existing segment 
+				seg = cult.createNewSeg(it,k);					// Create new vessel segment at the current tip existing segment 
 
 				cult.m_frag.push_front (seg);											// Append new segment at the top of the list 'frag'
 				
-				++data.nsegs;													// Iterate the total segment counter
+				++m_nsegs;													// Iterate the total segment counter
 			
 			}
             
@@ -288,17 +322,17 @@ void FEAngio::Branch(list<Segment>::iterator it, FEModel& fem)
 	double ypt = (it->m_tip[1].rt.y + it->m_tip[0].rt.y)/2;
 	double zpt = (it->m_tip[1].rt.z + it->m_tip[0].rt.z)/2;
 	
-	den_scale = cult.findDenScale(xpt, ypt, zpt, grid);					// Set the density scaling factor
+	den_scale = cult.findDenScale(xpt, ypt, zpt);					// Set the density scaling factor
 	
 
-	if ( float(rand())/RAND_MAX < den_scale*data.dt*data.branch_chance/data.t || (it->init_branch == true) )	// The segment generates a random number, if this number is less than the branching probability, or if the segment has an initial branch, the form a branch
+	if ( float(rand())/RAND_MAX < den_scale*m_dt*m_branch_chance/m_t || (it->init_branch == true) )	// The segment generates a random number, if this number is less than the branching probability, or if the segment has an initial branch, the form a branch
     {
 	    if ((it->BCdead == 0) && (it->anast == 0))                  // Segments that have encountered a boundary condition or formed an anastomoses may not form a branch
 		{                                                           
 	        
 			Segment seg;                                            // Declare SEGMENT object 'seg'
-			data.num_branches = data.num_branches + 1;              // Iterate the total number of branches +1
-			data.branch = true;                                     // Branching flag set to 'true.' This tells the program that the
+			m_num_branches = m_num_branches + 1;              // Iterate the total number of branches +1
+			m_branch = true;                                     // Branching flag set to 'true.' This tells the program that the
 			                                                        // new vessel segment being created is arising from a branch      
     		it->init_branch = false;								// Turn off the initial branch flag
     				
@@ -309,10 +343,10 @@ void FEAngio::Branch(list<Segment>::iterator it, FEModel& fem)
     							
 			it->m_tip[k].active = sign(0.5f - float(rand())/RAND_MAX);        // Randomly assign the branch to grow as +1 or -1
     				
-			seg = cult.createNewSeg(it,grid,data,k,cult.m_frag);           // Create the new vessel segment
+			seg = cult.createNewSeg(it,k);           // Create the new vessel segment
 
-            data.num_vessel = data.num_vessel + 1;					// Iterate the vessel counter
-		    seg.vessel = data.num_vessel;							// Set the segments ID number
+            cult.m_num_vessel = cult.m_num_vessel + 1;					// Iterate the vessel counter
+		    seg.vessel = cult.m_num_vessel;							// Set the segments ID number
     				                    
 			it->Recent_branch = 1;
 			seg.Recent_branch = 1;                                  // Indicate that this segment just branched, prevents future segments from branching again too soon
@@ -320,7 +354,7 @@ void FEAngio::Branch(list<Segment>::iterator it, FEModel& fem)
 			create_branching_force(seg, fem);						// Create a new sprout force for the branch
 
 			cult.m_frag.push_front (seg);                                  // Append new segment at the top of the list 'frag'
-			data.branch = false;                                    // Turn off branching flag once branching algorithm is complete
+			m_branch = false;                                    // Turn off branching flag once branching algorithm is complete
         }
 	}                                                              
 	
@@ -473,10 +507,10 @@ void FEAngio::apply_sprout_forces(FEModel& fem, int load_curve, double scale)
 	double magnitude = scale*m_sproutf;								// Scale the sprout magnitude
 
 	// Ramp up the sprout force magnitude up to time t = 4.0 days
-	if (data.t == 0.0)
+	if (m_t == 0.0)
 		magnitude = (1.0/4.0)*0.001*scale; 
-	else if (data.t < 4.0)
-		magnitude = (1.0/4.0)*data.t*scale;
+	else if (m_t < 4.0)
+		magnitude = (1.0/4.0)*m_t*scale;
 
 	//#pragma omp parallel for
 	for (tip_it = active_tips.begin(); tip_it != active_tips.end(); ++tip_it)		// For each active growth tip...
@@ -547,10 +581,10 @@ void FEAngio::update_body_forces(FEModel& fem, double scale)
 	double magnitude = scale*m_sproutf;								// Magnitude of the sprout force
 
 	// Ramp up the sprout force magnitude up to time t = 4.0 days
-	if (data.t == 0.0)
+	if (m_t == 0.0)
 		magnitude = (1.0/4.0)*0.001*scale; 
-	else if (data.t < 4.0)
-		magnitude = (1.0/4.0)*data.t*scale;
+	else if (m_t < 4.0)
+		magnitude = (1.0/4.0)*m_t*scale;
 
 	if (m_pmat)
 	{
@@ -1119,7 +1153,7 @@ void FEAngio::adjust_mesh_stiffness(FEModel& fem)
 			if (elem_num != -1)											// If the midpoint has a real element number...
 			{
 				elem_volume = grid.ebin[elem_num].volume;					// Calculate the volume of the element
-				subunit_volume = pi*(data.vessel_width/2.)*(data.vessel_width/2.)*fabs(subunit.length);		// Find the volume of the subdivision
+				subunit_volume = pi*(m_vessel_width/2.)*(m_vessel_width/2.)*fabs(subunit.length);		// Find the volume of the subdivision
 				volume_fraction = subunit_volume/elem_volume;				// Calculate the volume fraction
 
 				grid.ebin[elem_num].alpha = grid.ebin[elem_num].alpha + volume_fraction;	// Add the volume fraction for each subdivision to alpha
@@ -1437,7 +1471,7 @@ void FEAngio::update_sprout_stress_scaling()
 	double y0 = -0.004; double x0 = 3.0; double b = 0.5436; double a = 1.0081;
 
 	if (m_pmat)
-		m_pmat->scale = y0 + a/(1 + exp(-(data.t - x0)/b));
+		m_pmat->scale = y0 + a/(1 + exp(-(m_t - x0)/b));
 	
 	return;
 }
@@ -1762,32 +1796,25 @@ void FEAngio::initBranch()
 	
 	for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it)
 	{
-	     if (float(rand())/RAND_MAX < (data.a1+data.a2))        // Generate random number between 0 and 1
+	     if (float(rand())/RAND_MAX < (m_a1 + m_a2))        // Generate random number between 0 and 1
 			it->init_branch = true;                             // If random number less than a1 + a2, then initial branching is true
 		else
 			it->init_branch = false;                            // If random number is not less than a1 + a2, then initial branching is false
 	}
-	
-	
-	return;
 }
 
-
-
-///////////////////////////////////////////////////////////////////////
-// updateTime
-///////////////////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------
+// Update the time step size and current time value.
 void FEAngio::updateTime()
 {
-	data.dt = data.dt_a*pow(E,data.dt_b/(data.n + data.dt_c));    
-    data.n = data.n + 1.0;
+	m_dt = m_dtA*pow(E,m_dtB/(m_n + m_dtC));
+    m_n += 1;
 
-    if (data.dt > (data.maxt-data.t) && (data.maxt - data.t) > 0)       // If dt is bigger than the amount of time left...
-		data.dt = data.maxt - data.t;                                       // then just set dt equal to the amount of time left (maxt-t)
+    if (m_dt > (m_maxt-m_t) && (m_maxt - m_t) > 0)       // If dt is bigger than the amount of time left...
+		m_dt = m_maxt - m_t;                                       // then just set dt equal to the amount of time left (maxt-t)
 
 	
-    data.t = data.t+data.dt;                                    // Update time
+    m_t = m_t + m_dt;                                    // Update time
 }
 
 //-----------------------------------------------------------------------------
@@ -1824,7 +1851,7 @@ void FEAngio::Growth()
 	        if (it->m_tip[k].active != 0)                                        // If tip is active (not 0) then create a new segment
 			{
 		        Segment seg;                                                // Declare SEGMENT object 'seg'
-				seg = cult.createNewSeg(it,grid,data,k,cult.m_frag);               // CULTURE.createNewSeg(list iterator, grid, data, tip, frag container)
+				seg = cult.createNewSeg(it,k);               // CULTURE.createNewSeg(list iterator, grid, data, tip, frag container)
 				                                                            // Create new vessel segment on existing segment to 
 				                                                            // 'elongate' vessel over time step 
 				
@@ -1858,22 +1885,11 @@ void FEAngio::Growth()
 void FEAngio::updateLength()
 {
 	double lc;                                                  // lc - Length calculation obtained from growth function g(t)
-	//double nt;                                                  // nt - Number of active tips
     
-	lc = data.a/(1.+pow(E,-(data.t-data.x0)/data.b));
-	lc -= data.a/(1.+pow(E,-(data.t-data.dt-data.x0)/data.b));
+	lc = m_a/(1.+pow(E,-(m_t-m_x0)/m_b));
+	lc -= m_a/(1.+pow(E,-(m_t-m_dt-m_x0)/m_b));
 	
-	//nt = double(2*data.NFRAGS + data.num_branches - data.num_anastom);
-	////nt = double(2*data.NFRAGS + data.num_branches - data.num_anastom - data.num_zdead);
-	//
-	//if (nt <= 0)
-	//	nt = double(2*data.NFRAGS + data.num_branches - data.num_anastom - data.num_zdead);
-	//	//nt = 4*data.NFRAGS;
-	
-	data.vess_length = lc*data.length_adjust;
-	//data.vess_length = lc*grid.den_scale*data.length_adjust;
-
-	return;
+	m_vess_length = lc*m_length_adjust;
 }
 
 
@@ -1893,17 +1909,16 @@ void FEAngio::Branch(list<Segment>::iterator it)
 
 	vec3d pt = (it->m_tip[1].rt + it->m_tip[0].rt)*0.5;
 	
-	den_scale = cult.findDenScale(pt.x, pt.y, pt.z, grid);
+	den_scale = cult.findDenScale(pt.x, pt.y, pt.z);
 	
-	//if ( float(rand())/RAND_MAX < grid.den_scale*data.dt*data.branch_chance/data.t || (it->init_branch == true) )
-	if ( float(rand())/RAND_MAX < den_scale*data.dt*data.branch_chance/data.t || (it->init_branch == true) )
+	if ( float(rand())/RAND_MAX < den_scale*m_dt*m_branch_chance/m_t || (it->init_branch == true) )
     {
 	    if ((it->BCdead == 0) && (it->anast == 0))                  // Segments that have encountered a boundary condition or formed an anastomoses may not
 		{                                                           // form a branch.
 	        
 			Segment seg;                                            // Declare SEGMENT object 'seg'
-			data.num_branches = data.num_branches + 1;              // Iterate the total number of branches +1
-			data.branch = true;                                     // Branching flag set to 'true.' This tells the program that the
+			m_num_branches = m_num_branches + 1;              // Iterate the total number of branches +1
+			m_branch = true;                                     // Branching flag set to 'true.' This tells the program that the
 			                                                        // new vessel segment being created is arising from a branch      
     		it->init_branch = false;
     				
@@ -1914,23 +1929,20 @@ void FEAngio::Branch(list<Segment>::iterator it)
     							
 			it->m_tip[k].active = sign(0.5f - float(rand())/RAND_MAX);        // Randomly assign the branch to grow as +1 or -1
     				
-			seg = cult.createNewSeg(it,grid,data,k,cult.m_frag);           // CULTURE.createNewSeg(list iterator, grid, data, tip, frag container)
+			seg = cult.createNewSeg(it,k);           // CULTURE.createNewSeg(list iterator, grid, data, tip, frag container)
 			                                                            // Create new vessel segment on existing segment to 
 			                                                            // create the branching 
 
-            data.num_vessel = data.num_vessel + 1;
-		    seg.vessel = data.num_vessel;
+            cult.m_num_vessel = cult.m_num_vessel + 1;
+		    seg.vessel = cult.m_num_vessel;
     				                    
 			it->Recent_branch = 1;
 			seg.Recent_branch = 1;                                  // Indicate that this segment just branched, prevents it from 
 				                                                        // branching again too soon
     		
-			//++data.nsegs;                                           // Iterate the total segment counter +1
-			//seg.seg_num = data.nsegs;
-
 			cult.m_frag.push_front (seg);                                  // Append new segment at the top of the list 'frag'
 			
-			data.branch = false;                                    // Turn off branching flag once branching algorithm is complete
+			m_branch = false;                                    // Turn off branching flag once branching algorithm is complete
         }
 	}                                                               // End Branching
 	
@@ -1992,9 +2004,6 @@ void FEAngio::check4anast(list<Segment>::iterator it, int k)
 
 void FEAngio::anastomose(double dist0, double dist1, int k, list<Segment>::iterator it, list<Segment>::iterator it2)
 {
-    //double anast_dist = data.vess_length;
-	double anast_dist = data.anast_dist;
-
 	if ((it->anast == 1) || (it2->anast == 1))
         return;
     
@@ -2003,9 +2012,9 @@ void FEAngio::anastomose(double dist0, double dist1, int k, list<Segment>::itera
 
     int kk = 9;
     
-    if (dist0 <= anast_dist)
+    if (dist0 <= m_anast_dist)
         kk = 0;
-    else if (dist1 <= anast_dist)
+    else if (dist1 <= m_anast_dist)
         kk = 1;
   
     if (kk == 9)
@@ -2016,7 +2025,7 @@ void FEAngio::anastomose(double dist0, double dist1, int k, list<Segment>::itera
      
     Segment seg;                                                // Declare SEGMENT object 'seg'
 								
-	seg = cult.connectSegment(it,it2,k,kk,grid,data,cult.m_frag);      // CULTURE.connectSegment(segment 1, segment 2, tip 1, tip 2, grid, data, frag list container)
+	seg = cult.connectSegment(it,it2,k,kk);      // CULTURE.connectSegment(segment 1, segment 2, tip 1, tip 2, grid, data, frag list container)
 					                                            // This function will create a segment between to two segments to complete the anastomosis
 	cult.m_frag.push_front (seg);                                      // Append new segment at the top of the list 'frag'                  
 	it->m_tip[k].active=0;                                               // Deactivate tip of segment 1 after anastomosis
@@ -2033,7 +2042,7 @@ void FEAngio::anastomose(double dist0, double dist1, int k, list<Segment>::itera
 void FEAngio::removeErrors()
 {
 	if (kill_off == false){
-		double length_limit = data.m_d;
+		double length_limit = m_d;
     
 		list<Segment>::iterator it;
     

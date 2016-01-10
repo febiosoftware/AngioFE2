@@ -1,18 +1,26 @@
 #include "stdafx.h"
 #include <iostream>
-
 #include "Culture.h"
-#include "Data.h"
 #include "Grid.h"
 #include "Elem.h"
+#include "FEAngio.h"
+#include "angio3d.h"
 
 //-----------------------------------------------------------------------------
-Culture::Culture()
+Culture::Culture(FEAngio& angio) : bc(angio), m_angio(angio)
 {
 	W[0] = 0;
 	W[1] = 0;
 	W[2] = 0;
 	W[3] = 0;
+
+	NFRAGS = 3;
+    m_num_vessel = NFRAGS - 1;
+
+	m_num_zdead = 0;
+
+	// Initialize anastomoses counter
+	m_num_anastom = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -23,12 +31,12 @@ Culture::~Culture()
 
 //-----------------------------------------------------------------------------
 // Create initial fragments
-void Culture::SeedFragments(Data& data, Grid& grid)
+void Culture::SeedFragments()
 {
-	for (int i=0; i < data.NFRAGS; ++i)
+	for (int i=0; i < NFRAGS; ++i)
 	{
 		// Create an initial segment
-		Segment seg = createInitFrag(data,grid);
+		Segment seg = createInitFrag();
 
 		// Give the segment the appropriate label
 		seg.label = i;
@@ -37,11 +45,11 @@ void Culture::SeedFragments(Data& data, Grid& grid)
 		seg.vessel = seg.label;
 
 		// Store the segment's time of birth
-		seg.TofBirth = data.t;
+		seg.TofBirth = m_angio.m_t;
 
 		// increment the number of segments
-		data.nsegs = data.nsegs+1;
-		seg.seg_num = data.nsegs;
+		m_angio.m_nsegs += 1;
+		seg.seg_num = m_angio.m_nsegs;
 
 		// add it to the list
 		m_frag.push_back(seg);
@@ -55,8 +63,10 @@ void Culture::SeedFragments(Data& data, Grid& grid)
 //
 //      Output: - Initial fragment (seg)
 //
-Segment Culture::createInitFrag(Data &data, Grid &grid)
+Segment Culture::createInitFrag()
 {
+	Grid& grid = m_angio.grid;
+
     double xix, xiy, xiz = {0.};
     double xpt, ypt, zpt = {0.};
 
@@ -64,7 +74,7 @@ Segment Culture::createInitFrag(Data &data, Grid &grid)
     Segment seg;
 
 	// Set seg length to value of growth function at t = 0
-	seg.length = data.m_d;
+	seg.length = m_angio.m_d;
     
 	int elem_num = -1;
 	do
@@ -88,7 +98,7 @@ Segment Culture::createInitFrag(Data &data, Grid &grid)
 		seg.m_tip[0].elem = elem_num;
     
 		// Determine vessel orientation based off of collagen fiber orientation
-		seg.uvect = findCollAngle(xpt, ypt, zpt, grid, data);
+		seg.uvect = findCollAngle(xpt, ypt, zpt);
 
 		// End of new segment is origin plus length component in each direction	
 		seg.m_tip[1].rt = seg.m_tip[0].rt + seg.uvect*seg.length;				  // Determine the x-coordinate of the end point using the length vector and orientation angles                 
@@ -110,62 +120,6 @@ Segment Culture::createInitFrag(Data &data, Grid &grid)
 	return seg;
 }
 
-/*
-Segment Culture::createInitFrag(Data &data, Grid &grid)
-{
-    int elem_num = 0;
-    double xix, xiy, xiz = {0.};
-    double xpt, ypt, zpt = {0.};
-    
-	// --- position randomly
-	// pick an element
-	elem_num = int((float(rand())/RAND_MAX)*grid.Elems());
-
-	// generate random natural coordinates
-	xix = 2*((float(rand())/RAND_MAX) - 0.5);
-	xiy = 2*((float(rand())/RAND_MAX) - 0.5);
-	xiz = 2*((float(rand())/RAND_MAX) - 0.5);
-
-	// convert to global coordinates
-    grid.nattoglobal(xpt, ypt, zpt, xix, xiy, xiz, elem_num);
-
-	// Create a segment
-    Segment seg;
-
-	// Set seg length to value of growth function at t = 0
-	seg.length = data.d;
-    
-	// set the position of the first tip
-    seg.rt[0].x = xpt;
-    seg.rt[0].y = ypt;
-    seg.rt[0].z = zpt;
-    seg.tip_elem[0] = elem_num;
-    
-	// Determine vessel orientation based off of collagen fiber orientation
-	seg.uvect = findCollAngle(xpt, ypt, zpt, grid, data);
-
-	// End of new segment is origin plus length component in each direction	
-	seg.rt[1] = seg.rt[0] + seg.uvect*seg.length;				  // Determine the x-coordinate of the end point using the length vector and orientation angles                 
-
-	// make the tips active
-	seg.tip[0] = -1;                                            // Set the tip at the start point of the segment as -1 
-	seg.tip[1] = 1;                                             // Set the tip at the end point of the segment as +1
-	
-	// Set sprout as an initial fragment
-	seg.m_sprout = Segment::SPROUT_INIT;
-	
-	// find the element where the second tip is
-	elem_num = grid.findelem(seg.rt[1].x, seg.rt[1].y, seg.rt[1].z);
-	
-	// Make sure it is inside the grid
-	if (elem_num == -1)
-		bc.checkBC(seg, 1, grid, data, m_frag);
-	else
-		seg.tip_elem[1] = elem_num;
-
-	return seg;
-}
-*/
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -181,13 +135,15 @@ Segment Culture::createInitFrag(Data &data, Grid &grid)
 //
 //      Output: - Newly created segment (seg)
 
-Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data, int k, list<Segment> &frag)
+Segment Culture::createNewSeg(list<Segment>::iterator it, int k)
 {
+	Grid& grid = m_angio.grid;
+
 	Segment seg;                                                // Declare SEGMENT seg
 	seg.Recent_branch = it->Recent_branch/2;                    // Halve the Recent_branch indicator
     
-	++data.nsegs;                                               // Iterate the total segment counter +1 
-	seg.seg_num = data.nsegs;				
+	++m_angio.m_nsegs;                                               // Iterate the total segment counter +1 
+	seg.seg_num = m_angio.m_nsegs;				
 	
 	//seg.line_num = it->line_num;
 
@@ -196,17 +152,17 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
 	if (it->m_tip[k].active == 1)                                          // If the parent vessel active tip is set as +1...
 	{
 		//seg.length = findLength(it->x[1],it->y[1],it->z[1],grid,data);      // Determine length of new segment                   
-		seg.length = data.vess_length;
+		seg.length = m_angio.m_vess_length;
 
 	
 		double den_scale = 1.0;
-		den_scale = findDenScale(it->m_tip[1].rt.x, it->m_tip[1].rt.y, it->m_tip[1].rt.z, grid);
+		den_scale = findDenScale(it->m_tip[1].rt.x, it->m_tip[1].rt.y, it->m_tip[1].rt.z);
 			
 		//seg.phi1 = findAngle(it,it->x[1],it->y[1],it->z[1],grid,data,1);    // Determine the angle between the new segment and the x-axis
 		//seg.phi2 = findAngle(it,it->x[1],it->y[1],it->z[1],grid,data,2);    // Determine the angle between the new segment and the x-y plane
-		seg.uvect = findAngle(it,it->m_tip[1].rt.x,it->m_tip[1].rt.y,it->m_tip[1].rt.z,grid,data); 
+		seg.uvect = findAngle(it,it->m_tip[1].rt.x,it->m_tip[1].rt.y,it->m_tip[1].rt.z); 
 		
-		seg.length = den_scale*data.vess_length;
+		seg.length = den_scale*m_angio.m_vess_length;
 
 		//if (data.branch)                                                   // If new segment is a branch...
 		//{
@@ -224,7 +180,7 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
 		//}
 		//
 		
-		if (data.branch)                                                   // If new segment is a branch...
+		if (m_angio.m_branch)                                                   // If new segment is a branch...
 		{
 			//double x = seg.uvect.x;
 			//double y = seg.uvect.y;
@@ -249,14 +205,11 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
 
 			//seg.uvect = (seg.uvect + coll_fib)/2;
 			
-			vec3d coll_fib = findCollAngle(it->m_tip[1].rt.x, it->m_tip[1].rt.y, it->m_tip[1].rt.z, grid, data);
+			vec3d coll_fib = findCollAngle(it->m_tip[1].rt.x, it->m_tip[1].rt.y, it->m_tip[1].rt.z);
 			vec3d newseg;
 			newseg = coll_fib - seg.uvect*(seg.uvect*coll_fib)*0.5;
 			newseg = newseg/newseg.norm();
 			seg.uvect = newseg;
-
-			data.num_lines++;
-			//seg.line_num = data.num_lines;
 		}
 
 		seg.label = it->label;                                  // Transfer the label of the parent segment to the new segment
@@ -276,7 +229,7 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
         seg.m_tip[1].active = 1;                                         // Turn on end tip of new segment
 		seg.m_tip[0].active = 0;                                         // Turn off origin tip of new segment
 		
-		seg.TofBirth = data.t;                                  // Stamp segment with time of birth
+		seg.TofBirth = m_angio.m_t;                                  // Stamp segment with time of birth
 		it->m_tip[k].active = 0;                                         // Turn off previous segment tip
 		seg.m_tip[k].bdyf_id = it->m_tip[k].bdyf_id;
         
@@ -291,7 +244,7 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
 		
 		if (elem_num == -1)
 		{
-			bc.checkBC(seg, 1, grid, data, frag);
+			bc.checkBC(seg, 1);
 		}
 		else
 			seg.m_tip[1].elem = elem_num;
@@ -302,29 +255,26 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
 	else if (it->m_tip[k].active == -1)                                    // If the parent vessel active tip is set as +1...
 	{
 	    //seg.length = -1*findLength(it->x[0],it->y[0],it->z[0],grid,data);  // Determine length of new segment 
-		seg.length = -data.vess_length;
+		seg.length = -m_angio.m_vess_length;
 		
 		double den_scale = 1.0;
-		den_scale = findDenScale(it->m_tip[0].rt.x, it->m_tip[0].rt.y, it->m_tip[0].rt.z, grid);
+		den_scale = findDenScale(it->m_tip[0].rt.x, it->m_tip[0].rt.y, it->m_tip[0].rt.z);
 			
 		//seg.phi1 = findAngle(it,it->x[1],it->y[1],it->z[1],grid,data,1);    // Determine the angle between the new segment and the x-axis
 		//seg.phi2 = findAngle(it,it->x[1],it->y[1],it->z[1],grid,data,2);    // Determine the angle between the new segment and the x-y plane
 		
-		seg.uvect = findAngle(it,it->m_tip[0].rt.x,it->m_tip[0].rt.y,it->m_tip[0].rt.z,grid,data);
+		seg.uvect = findAngle(it,it->m_tip[0].rt.x,it->m_tip[0].rt.y,it->m_tip[0].rt.z);
 
-		seg.length = -den_scale*data.vess_length;
+		seg.length = -den_scale*m_angio.m_vess_length;
 				
-		if (data.branch)                                                   // If new segment is a branch...
+		if (m_angio.m_branch)                                                   // If new segment is a branch...
 		{
-			vec3d coll_fib = findCollAngle(it->m_tip[1].rt.x, it->m_tip[1].rt.y, it->m_tip[1].rt.z, grid, data);
+			vec3d coll_fib = findCollAngle(it->m_tip[1].rt.x, it->m_tip[1].rt.y, it->m_tip[1].rt.z);
 			vec3d newseg;
 			newseg = coll_fib - seg.uvect*(seg.uvect*coll_fib)*0.5;
 			newseg = newseg/newseg.norm();
 
 			seg.uvect = newseg;
-			
-			data.num_lines++;
-			//seg.line_num = data.num_lines;
 		}
 
 		seg.label = it->label;                                  // Transfer the label of the parent segment to the new segment
@@ -344,7 +294,7 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
 		seg.m_tip[0].active = -1;                                        // Turn on end tip of new segment
 		seg.m_tip[1].active = 0;                                         // Turn off origin tip of new segment
 		
-		seg.TofBirth = data.t;                                  // Stamp segment with time of birth
+		seg.TofBirth = m_angio.m_t;                                  // Stamp segment with time of birth
 		it->m_tip[k].active = 0;                                         // Turn off previous segment tip
 		seg.m_tip[k].bdyf_id = it->m_tip[k].bdyf_id;
 
@@ -359,52 +309,13 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
 		elem_num = grid.findelem(seg.m_tip[0].rt);
 		
 		if (elem_num == -1)
-			bc.checkBC(seg, 0, grid, data, frag);
+			bc.checkBC(seg, 0);
 		else
 			seg.m_tip[0].elem = elem_num;
-	
-		//if (it->sprout == 9){
-		//	data.num_lines++;
-		//	seg.line_num = data.num_lines;}
 	}
 	
 	return seg;                                                 // Return the new segment 
 }
-
-
-
-///////////////////////////////////////////////////////////////////////
-// findLength
-///////////////////////////////////////////////////////////////////////
-// CULTURE.findLength - Determine the length of a newly created segment based on the growth function g(t)
-//      Input:  - Coordinates of the active tip that is sprouting the new segment (xpt, ypt, zpt)
-//              - GRID object
-//              - DATA object
-//
-//      Output: - Magnitude of length vector (in um)
-
-//double Culture::findLength(double xpt, double ypt, double zpt, Grid &grid, Data &data)
-//{
-//	double lc;                                                  // lc - Length calculation obtained from growth function g(t)
-//	double nt;                                                  // nt - Number of active tips
-//    double length;
-//    
-//	lc = data.a/(1.+pow(E,-(data.t-data.x0)/data.b));
-//	lc -= data.a/(1.+pow(E,-(data.t-data.dt-data.x0)/data.b));
-//	
-//	nt = double(2*data.NFRAGS + data.num_branches - data.num_anastom);
-//	//nt = double(2*data.NFRAGS + data.num_branches - data.num_anastom - data.num_zdead);
-//	
-//	if (nt <= 0)
-//		//nt = double(2*data.NFRAGS + data.num_branches - data.num_anastom - data.num_zdead);
-//		nt = 4*data.NFRAGS;
-//	
-//	length = (data.NFRAGS*lc/nt)*grid.den_scale*data.length_adjust;
-//	
-//	return ;
-//}
-
-
 
 ///////////////////////////////////////////////////////////////////////
 // findAngle
@@ -419,13 +330,13 @@ Segment Culture::createNewSeg(list<Segment>::iterator it,Grid &grid, Data &data,
 //
 //      Output: - Segment orientation angle phi1 or phi1 (in radians)
 
-vec3d Culture::findAngle(list<Segment>::iterator it, double xpt, double ypt, double zpt, Grid &grid,Data &data)
+vec3d Culture::findAngle(list<Segment>::iterator it, double xpt, double ypt, double zpt)
 {
 	vec3d angle;
 
 	double den_scale = 1.0;
 	
-	den_scale = findDenScale(xpt, ypt, zpt, grid);
+	den_scale = findDenScale(xpt, ypt, zpt);
 
 	//double W[4] = {10*(1/grid.den_scale), 0, 0, 100};
 	//double W[4] = {10, 0, 0, 100};                       // W[0] = Weight for collagen orientation
@@ -441,7 +352,7 @@ vec3d Culture::findAngle(list<Segment>::iterator it, double xpt, double ypt, dou
         
     
     // Find the component of the new vessel direction determined by collagen fiber orientation    
-    coll_angle = findCollAngle(xpt, ypt, zpt, grid, data);
+    coll_angle = findCollAngle(xpt, ypt, zpt);
 
 	per_angle = it->uvect;
 
@@ -460,9 +371,10 @@ vec3d Culture::findAngle(list<Segment>::iterator it, double xpt, double ypt, dou
 ///////////////////////////////////////////////////////////////////////
 
 
-vec3d Culture::findCollAngle(double xpt, double ypt, double zpt, Grid &grid, Data &data)
-{       
-    //double coll_angle = 0.0;
+vec3d Culture::findCollAngle(double xpt, double ypt, double zpt)
+{   
+	Grid& grid = m_angio.grid;
+    
     vec3d coll_angle;
 
     double xix, xiy, xiz;
@@ -496,8 +408,10 @@ vec3d Culture::findCollAngle(double xpt, double ypt, double zpt, Grid &grid, Dat
 // findDenScale
 ///////////////////////////////////////////////////////////////////////
 
-double Culture::findDenScale(double xpt, double ypt, double zpt, Grid &grid)
+double Culture::findDenScale(double xpt, double ypt, double zpt)
 {
+	Grid& grid = m_angio.grid;
+
 	double coll_den = 0.0;
     double den_scale = 1.0;
 
@@ -536,7 +450,7 @@ double Culture::findDenScale(double xpt, double ypt, double zpt, Grid &grid)
 
 // creates a new segment to connect close segments
 
-Segment Culture::connectSegment(list<Segment>::iterator it,list<Segment>::iterator it2, int k, int kk, Grid &grid, Data &data, list<Segment> &frag)
+Segment Culture::connectSegment(list<Segment>::iterator it,list<Segment>::iterator it2, int k, int kk)
  {
  	Segment seg;
  	
@@ -547,7 +461,7 @@ Segment Culture::connectSegment(list<Segment>::iterator it,list<Segment>::iterat
 	seg.m_tip[1].rt = it2->m_tip[kk].rt;
 	seg.m_tip[1].elem = it2->m_tip[kk].elem;
  	
-	seg.TofBirth = data.t;
+	seg.TofBirth = m_angio.m_t;
  	seg.label = it->label;
  	seg.vessel = it->vessel;
  	
@@ -558,10 +472,10 @@ Segment Culture::connectSegment(list<Segment>::iterator it,list<Segment>::iterat
  	it2->anast = 1;
 	seg.findlength();
 
- 	++data.num_anastom;
+ 	++m_num_anastom;
  	
-	++data.nsegs;
-	seg.seg_num = data.nsegs;
+	++m_angio.m_nsegs;
+	seg.seg_num = m_angio.m_nsegs;
 
 	seg.seg_conn[0][0] = it->seg_num;
 	
@@ -586,7 +500,7 @@ Segment Culture::connectSegment(list<Segment>::iterator it,list<Segment>::iterat
 // Description: checks for intersection between a passed segment and all other existing segments that are not members
 // of vessel containing the segment
 
-void Culture::CheckForIntersection(Segment &seg,list<Segment> &frag, Data &data, list<Segment>::iterator it)
+void Culture::CheckForIntersection(Segment &seg, list<Segment>::iterator it)
 {
 	double p1[3], p2[3], pp1[3], pp2[3]; //tip points for segment to check intersection
 	list<Segment>::iterator it2; //loop over segments in list
@@ -619,7 +533,7 @@ void Culture::CheckForIntersection(Segment &seg,list<Segment> &frag, Data &data,
 		p2[2] = r0.z;
 	}
 
-	for (it2 = frag.begin(); it2 != frag.end(); ++it2)
+	for (it2 = m_angio.cult.m_frag.begin(); it2 != m_angio.cult.m_frag.end(); ++it2)
 	{
 		if (it->label!=it2->label)
 		{
@@ -648,7 +562,7 @@ void Culture::CheckForIntersection(Segment &seg,list<Segment> &frag, Data &data,
 					seg.m_tip[0].active = 0;
 				}
 				cout << "3D intersection" << endl;
-				++data.num_anastom;
+				++m_num_anastom;
 			}
 		}
 	}
@@ -758,8 +672,9 @@ double N0[3], N1[3], N2[3], N3[3], N4[3], N5[3]; //face normals
 double P0[3], P1[3], P2[3], P3[3], P4[3], P5[3]; //point on faces
 
 
-bool Culture::intersectPlane(Grid& grid, Segment &seg, int n, double intersectpt[3])
+bool Culture::intersectPlane(Segment &seg, int n, double intersectpt[3])
 {
+	Grid& grid = m_angio.grid;
 
 	//front
 	N0[0] = 0;
@@ -943,8 +858,9 @@ bool Culture::intersectPlane(Grid& grid, Segment &seg, int n, double intersectpt
 //table of faces opposite to 0,1,..6
 double oppface[6];
 
-Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &data)
+Segment Culture::PeriodicBC(Segment &seg)
 {
+	Grid& grid = m_angio.grid;
 
 	oppface[0] = grid.yrange[1];
 	oppface[1] = grid.xrange[0];
@@ -970,7 +886,7 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 		
 		for (n=0;n<6;++n)
 		{
-			if (intersectPlane(grid, seg,n,intersectpt))
+			if (intersectPlane(seg,n,intersectpt))
 			{
 				//cout << endl << "Vessel " << seg.label << " Crossed Face " << n << endl;
 				seg.m_tip[1].rt.x = intersectpt[0];
@@ -988,17 +904,13 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 				seg.m_tip[1].active = 0;
 				seg.BCdead = 1;
 				
-				/*if (n > 3){
-				    data.num_zdead = data.num_zdead+1;
-				    return seg;}*/
-				
 				if (n > 3)
-				    data.num_zdead = data.num_zdead+1;
+				    m_num_zdead += 1;
 				return seg;
 				
-				frag.push_front (seg);
+				m_angio.cult.m_frag.push_front (seg);
 				Segment seg2;
-				data.num_vessel = data.num_vessel + 1;
+				m_num_vessel = m_num_vessel + 1;
 				
 				switch (n)
 				{
@@ -1053,7 +965,7 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 				seg2.m_tip[1].active = 1;
 				seg2.m_tip[0].active = 0;
 				seg2.label = seg.label;
-				seg2.vessel = data.num_vessel;
+				seg2.vessel = m_num_vessel;
 				seg2.m_sprout = seg.m_sprout;
 				seg2.length = rem_length;
 //				seg2.phi1 = seg.phi1;
@@ -1061,7 +973,7 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 				seg2.Recent_branch = seg.Recent_branch;
 				seg2.TofBirth = seg.TofBirth;
 				if (grid.IsOutsideBox(seg2))
-					seg = PeriodicBC(seg2,grid,frag,data);
+					seg = PeriodicBC(seg2);
 				else
 					return seg2;
 			}
@@ -1080,7 +992,7 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 		unit_vec[2] /= length;
 		for (n=0;n<6;++n)
 		{
-			if (intersectPlane(grid,seg,n,intersectpt))
+			if (intersectPlane(seg,n,intersectpt))
 			{
 				//cout << endl << "Vessel " << seg.label << " Crossed Face " << n << endl;
 				seg.m_tip[0].rt.x = intersectpt[0];
@@ -1097,17 +1009,13 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 				
 				seg.m_tip[0].active = 0;
                 
-                /*if (n > 3){
-				    data.num_zdead = data.num_zdead+1;
-				    return seg;}*/
-				
 				if (n > 3)
-				    data.num_zdead = data.num_zdead+1;
+				    m_num_zdead += 1;
 				return seg;
 				
-				frag.push_front (seg);
+				m_angio.cult.m_frag.push_front (seg);
 				Segment seg2;
-				data.num_vessel = data.num_vessel + 1;
+				m_num_vessel = m_num_vessel + 1;
 				
 				switch (n)
 				{
@@ -1163,7 +1071,7 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 				seg2.m_tip[1].active = 0;
 				seg2.m_tip[0].active = -1;
 				seg2.label = seg.label;
-				seg2.vessel = data.num_vessel;
+				seg2.vessel = m_num_vessel;
 				seg2.m_sprout = seg.m_sprout;
 				seg2.length = rem_length;
 //				seg2.phi1 = seg.phi1;
@@ -1172,7 +1080,7 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 				seg2.TofBirth = seg.TofBirth;
 				
 				if (grid.IsOutsideBox(seg2))
-					seg = PeriodicBC(seg2,grid,frag,data);
+					seg = PeriodicBC(seg2);
 				else
 					return seg2;
 			}
@@ -1180,5 +1088,3 @@ Segment Culture::PeriodicBC(Segment &seg,Grid &grid,list<Segment> &frag,Data &da
 	}
 	return seg;
 }
-
-

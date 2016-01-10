@@ -8,7 +8,6 @@
 #include "stdafx.h"
 
 #include "Grid.h"
-#include "Data.h"
 #include "angio3d.h"
 #include <FECore/FEMesh.h>
 #include <FECore/vec3d.h>
