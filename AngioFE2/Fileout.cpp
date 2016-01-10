@@ -26,9 +26,7 @@ Fileout::Fileout()
     logstream.open("out_log.ang");
     //stream3 = fopen("tracking.ang","wt");   // tracking.ang: time step, model time, total length in culture, number of branches in culture
 	stream = fopen("out_data.ang","wt");                                        // data.ang: Store 3D coordinates of begining and end of each vessel segment
-																				// as well as total length of the segment
-	num_fe_timesteps = 48;
-}
+}																			// as well as total length of the segment}
 
 Fileout::~Fileout()
 {
@@ -57,9 +55,10 @@ void Fileout::timestart()
 // writeTracking
 ///////////////////////////////////////////////////////////////////////
 
-void Fileout::writeTracking(Data &data)
+void Fileout::writeTracking(FEAngio& angio)
 {
-    fprintf(stream3,"%-12.7f %-12.7f %-12.7f %-5i\n",data.dt,data.t,data.total_length,data.num_branches);   // Write to tracking.ang
+	Data& data = angio.data;
+    fprintf(stream3,"%-12.7f %-12.7f %-12.7f %-5i\n",data.dt,data.t,angio.total_length,data.num_branches);   // Write to tracking.ang
     
     return;
 }
@@ -83,25 +82,25 @@ void Fileout::closeTracking()
 // printStatus
 ///////////////////////////////////////////////////////////////////////
 
-void Fileout::printStatus(Data &data)
+void Fileout::printStatus(FEAngio& angio)
 {
+	Data& data = angio.data;
     cout << endl << "Time: " << data.t << endl;                             // Print out current time to user
 	//cout << "dt: " << data.dt << endl;
     cout << "Segments: " << data.nsegs << endl;                             // Print out current number of segments to user
-	cout << "Total Length: " << data.total_length << endl;                  // Print out the current total length to user
+	cout << "Total Length: " << angio.total_length << endl;                  // Print out the current total length to user
 	cout << "Branch Points: " << data.num_branches << endl;                 // Print out the current number of branches to user
 	cout << "Anastomoses: " << data.num_anastom << endl << endl;            // Print out the current number of anastomoses to user
     
     logstream << endl << "Time: " << data.t << endl;                        // Print out current time to log file
 	//logstream << "dt: " << data.dt << endl;
     logstream << "Segments: " << data.nsegs << endl;                        // Print out current number of segments to log file
-	logstream << "Total Length: " << data.total_length << endl;             // Print out the current total length to log file
+	logstream << "Total Length: " << angio.total_length << endl;             // Print out the current total length to log file
 	logstream << "Branch Points: " << data.num_branches << endl;            // Print out the current number of branches to log file
 	logstream << "Anastomoses: " << data.num_anastom << endl << endl;       // Print out the current number of anastomoses to log file
         
     return;
 }
-
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -157,9 +156,9 @@ void Fileout::writeData(FEAngio &feangio)
 // writeNodes
 ///////////////////////////////////////////////////////////////////////
 
-void Fileout::writeNodes(Data &data, Grid &grid)
+void Fileout::writeNodes(FEAngio& angio)
 {
-    /// File output: 'nodes.ang' /////
+    Grid& grid = angio.grid;
      
 	FILE *stream2;                                                                                                                           
 	stream2 = fopen("out_nodes.ang","wt");                                       
@@ -182,7 +181,7 @@ void Fileout::writeNodes(Data &data, Grid &grid)
 // writeEconn
 ///////////////////////////////////////////////////////////////////////
 
-void Fileout::writeEconn(Data &data, Grid &grid)
+void Fileout::writeEconn(FEAngio& angio)
 {
 /*    /// File output: 'econn.ang' /////
      

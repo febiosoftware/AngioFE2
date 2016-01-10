@@ -17,8 +17,6 @@ Data::Data()
     dt_c = 2.6073;
     n = 1.0;
 
-    total_length = 0.;
-    
     a1 = -1.2653;                                               // a1, a2, a3 - Parameters for branching curve
 	a2 = 1.535;
 	a3 = 0.1108;

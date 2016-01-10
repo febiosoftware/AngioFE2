@@ -58,6 +58,8 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem)
 	phi_stiff_factor = 1.0;
 	m_sub_cycles = 2;
 
+    total_length = 0.;
+    
 	m_bsprout_verify = 0;				// Sprout verification problem flag
 
 	// boundary conditions
@@ -1874,13 +1876,13 @@ void FEAngio::updateTime()
 
 void FEAngio::updateTotalLength()
 {
-    data.total_length = 0.;                                  // Initialize total_length to 0
+    total_length = 0.;                                  // Initialize total_length to 0
     list<Segment>::iterator it;
 		
 		
     for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it)                 // Iterate through all segments stored in 'a_frag' (it)
     {
-        data.total_length = data.total_length + fabs(it->length);        // Calculate total_length        
+        total_length = total_length + fabs(it->length);        // Calculate total_length        
     }
 
     return;

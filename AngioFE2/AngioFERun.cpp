@@ -99,7 +99,7 @@ bool AngioFETask::Run()
 
 		feangio.save_time();											// Output time information	
 		
-		feangio.fileout.printStatus(feangio.data);						// Print the status of angio3d to the user    
+		feangio.fileout.printStatus(feangio);						// Print the status of angio3d to the user    
 	}
 	
 	//// ANGIO3D - Generate output files

@@ -39,7 +39,6 @@ public:
 	int num_zdead;
 	int nsegs;                                                  // DATA.nsegs - Counter that stores in current number of Segments within the simulation domain
 	                                        
-	double total_length;                                        // DATA.total_length - Total vascular length within the domain (sum of the length of all Segments) (in um)
     double vessel_width;                                        // DATA.vessel_width - Width of Segments (in um) 
     
     double dx;                                                  // DATA.dx - Spatial discretization step size in the x-direction (in um)

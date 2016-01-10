@@ -10,7 +10,6 @@
 #include "FEBioMech/FEBodyForce.h"
 #include "FECore/FEParameterList.h"
 #include "FECore/FEElement.h"
-#include "Profiler.h"
 
 //-----------------------------------------------------------------------------
 class FESproutBodyForce : public FEBodyForce
@@ -81,6 +80,4 @@ public:
 
 	vec3d sym;
 	double sym_vects[7][3];
-	
-	//Profiler profiler;
 };

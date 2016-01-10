@@ -10,7 +10,6 @@
 
 #include "FECore/FEModel.h"
 #include "Fileout.h"
-#include "Profiler.h"
 #include "FEAngioMaterial.h"
 #include "FESproutBodyForce.h"
 #include "Grid.h"
@@ -116,6 +115,10 @@ public:
 	
 	bool yes_branching;
 	bool yes_anast;
+
+public:
+	// stats
+	double total_length;   // Total vascular length within the domain (sum of the length of all Segments) (in um)
 
 public:	// IO stuff
 

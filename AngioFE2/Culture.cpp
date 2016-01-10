@@ -39,9 +39,6 @@ void Culture::SeedFragments(Data& data, Grid& grid)
 		// Store the segment's time of birth
 		seg.TofBirth = data.t;
 
-		// Update total length
-		data.total_length = data.total_length + fabs(seg.length);
-		
 		// increment the number of segments
 		data.nsegs = data.nsegs+1;
 		seg.seg_num = data.nsegs;

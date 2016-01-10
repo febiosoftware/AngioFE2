@@ -38,12 +38,10 @@ public:
     void findunit();
 
 public:
-    vec3d	uvect;		// unit direction vector
-
-public:
 	TIP		m_tip[2];		// the two end tips
 
     double length;             // Length of the segment.
+    vec3d	uvect;		// unit direction vector
 	
 	int label;				   // Label that indicates which initial fragment the segment orginated from
 	int vessel;                // Label that indicates which vessel the segment belongs to

@@ -93,7 +93,6 @@
     <ClInclude Include="..\AngioFE2\Filein.h" />
     <ClInclude Include="..\AngioFE2\Fileout.h" />
     <ClInclude Include="..\AngioFE2\Grid.h" />
-    <ClInclude Include="..\AngioFE2\Profiler.h" />
     <ClInclude Include="..\AngioFE2\Segment.h" />
     <ClInclude Include="..\AngioFE2\StdAfx.h" />
     <ClInclude Include="..\AngioFE2\targetver.h" />
@@ -114,7 +113,6 @@
     <ClCompile Include="..\AngioFE2\Filein.cpp" />
     <ClCompile Include="..\AngioFE2\Fileout.cpp" />
     <ClCompile Include="..\AngioFE2\Grid.cpp" />
-    <ClCompile Include="..\AngioFE2\Profiler.cpp" />
     <ClCompile Include="..\AngioFE2\Segment.cpp" />
     <ClCompile Include="..\AngioFE2\StdAfx.cpp" />
   </ItemGroup>

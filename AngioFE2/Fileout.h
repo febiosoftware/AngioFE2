@@ -28,13 +28,13 @@ public:
 	virtual ~Fileout();
 	
 	void timestart();
-	void writeTracking(Data &data);
+	void writeTracking(FEAngio& angio);
 	void closeTracking();
-	void printStatus(Data &data);
+	void printStatus(FEAngio& angio);
 	void dataout(FEAngio &feangio);
     void writeData(FEAngio &feangio);
-	void writeNodes(Data &data, Grid &grid);
-	void writeEconn(Data &data, Grid &grid);
+	void writeNodes(FEAngio& angio);
+	void writeEconn(FEAngio& angio);
 	void writeCollFib(Grid &grid, bool initial);
 	void writeECMDen(Grid &grid);
 	void writeECMDenGrad(Grid &grid);
@@ -51,6 +51,4 @@ public:
 	ofstream logstream;
     FILE* stream3;      
 	FILE *stream;                                                           // Open stream to 'data.ang' (stream)
-
-	int num_fe_timesteps;
 };
