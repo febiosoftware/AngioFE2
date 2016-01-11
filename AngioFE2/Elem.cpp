@@ -65,6 +65,20 @@ void Node::operator = (const Node& n)
 }
 
 //-----------------------------------------------------------------------------
+BBOX Elem::GetBoundingBox()
+{
+	BBOX b(n1->rt);
+	b.Add(n2->rt);
+	b.Add(n3->rt);
+	b.Add(n4->rt);
+	b.Add(n5->rt);
+	b.Add(n6->rt);
+	b.Add(n7->rt);
+	b.Add(n8->rt);
+	return b;
+}
+
+//-----------------------------------------------------------------------------
 double Elem::bb_xmin()
 {
     double exmin = n1->rt.x;

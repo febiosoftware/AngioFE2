@@ -1,12 +1,11 @@
-///////////////////////////////////////////////////////////////////////
-// AngioFETask.h
-///////////////////////////////////////////////////////////////////////
-
 #pragma once
+#include <FECore/FECoreKernel.h>
+#include <FECore/FECoreTask.h>
 
-#include "FECore/FECoreKernel.h"
-#include "FECore/FECoreTask.h"
+//-----------------------------------------------------------------------------
+class FEAngio;
 
+//-----------------------------------------------------------------------------
 class AngioFETask : public FECoreTask
 {
 public:
@@ -16,4 +15,7 @@ public:
 	bool Init(const char* szfile);
 
 	bool Run();
+
+private:
+	FEAngio*	m_pangio;
 };

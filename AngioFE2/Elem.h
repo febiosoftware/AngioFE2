@@ -81,6 +81,61 @@ public:
 	char bc_type;
 };
 
+//-----------------------------------------------------------------------------
+inline double max3(double a, double b, double c)
+{
+	if ((a >= b)&&(a >= c)) return a;
+	if ((b >= a)&&(b >= c)) return b;
+	return c;
+}
+
+//-----------------------------------------------------------------------------
+struct BBOX
+{
+public:
+	BBOX(){}
+	BBOX(const vec3d& p)
+	{
+		xmin = xmax = p.x;
+		ymin = ymax = p.y;
+		zmin = zmax = p.z;
+	}
+
+	void Inflate(double e)
+	{
+		xmin -= e; xmax += e;
+		ymin -= e; ymax += e;
+		zmin -= e; zmax += e;
+	}
+
+	bool IsInside(const vec3d& p)
+	{
+		if ((p.x < xmin)||(p.x > xmax)) return false;
+		if ((p.y < ymin)||(p.y > ymax)) return false;
+		if ((p.z < zmin)||(p.z > zmax)) return false;
+		return true;
+	}
+
+	void Add(const vec3d& p)
+	{
+		if (p.x < xmin) xmin = p.x; if (p.x > xmax) xmax = p.x;
+		if (p.y < ymin) ymin = p.y; if (p.y > ymax) ymax = p.y;
+		if (p.z < zmin) zmin = p.z; if (p.z > zmax) zmax = p.z;
+	}
+
+	double Size()
+	{
+		double wx = xmax - xmin;
+		double wy = ymax - ymin;
+		double wz = zmax - zmin;
+		return max3(wx, wy, wz);
+	}
+
+public:
+	double	xmin, xmax;
+	double	ymin, ymax;
+	double	zmin, zmax;
+};
 
 //-----------------------------------------------------------------------------
 // Represents an element of the grid
@@ -97,6 +152,8 @@ public:
     double bb_ymax();
 	double bb_zmin();
     double bb_zmax();
+
+	BBOX GetBoundingBox();
 
 	void GetFace(int n, int* fn);
 

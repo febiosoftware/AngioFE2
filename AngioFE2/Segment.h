@@ -2,6 +2,20 @@
 #include <FECore/vec3d.h>
 
 //-----------------------------------------------------------------------------
+// A helper class for locating points on the grid using an element number and
+// a natural coordinates
+class GridPoint
+{
+public:
+	int		nelem;		// element number
+	vec3d	q;			// natural coordinates
+
+public:
+	GridPoint() { nelem = -1; }
+	GridPoint(int ne, vec3d& r) { nelem = ne; q = r; }
+};
+
+//-----------------------------------------------------------------------------
 // Microvessels are represent by a collection of line segments. 
 // Growth is represented by the addition of new segments onto the 
 // active tips of exisiting segments. Within the simulation, these 
@@ -20,11 +34,11 @@ public:
 	class TIP
 	{
 	public:
-		vec3d	rt;			// current position of segment tip
-		int		active;		// 1 if active otherwise 0 (I think)
-		int		elem;		// the element ID the tip currently in
-		int		bdyf_id;	// ID of the body force
-		int		BC;			// something to do with body forces?
+		vec3d		rt;			// current position of segment tip
+		int			active;		// 1 if active otherwise 0 (I think)
+		int			bdyf_id;	// ID of the body force
+		int			BC;			// something to do with body forces?
+		GridPoint	pt;			// point in grid where this tip lies
 
 	public:
 		TIP();
@@ -49,7 +63,7 @@ public:
 	
 	int BCdead;                // Boolean flag that indicates that the segment has encountered a boundary condition
 	double TofBirth;           // Time point at which the segment was created
-	double Recent_branch;      // Indicates that the segment was recently involved in the formation of a branch
+
 	bool init_branch;          // Boolean flag that indicates whether or not the initial fragment should form a branch at t = 0
 	int m_sprout;              // Marker that indicates which end of the parent vessel the segment sprouted from.  1 for the +1 end, 
 	                           //                  -1 for the -1 end, 9 for an initially seeded fragment,

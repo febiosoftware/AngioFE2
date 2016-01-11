@@ -65,9 +65,6 @@
     <ClCompile Include="..\AngioFE2\AngioFE.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\AngioFE2\AngioFERun.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\AngioFE2\AngioFETask.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include "FEAngio.h"
+#include "Culture.h"
 
 using namespace std;
 
@@ -75,42 +76,42 @@ void Filein::set_param(FEAngio& angio, char* buffer, char* pname)
     //// Parameters for angio3d (In paratheneses, string identifying the parameter and an example value):
 	// Branching Probability (brnch_ch 0.1)
 	if (!strcmp(pname,"brnch_ch")){
-		sscanf(buffer,"%*s %*s %f",&angio.m_branch_chance);
+		sscanf(buffer,"%*s %*s %f",&cult.m_branch_chance);
         return;}
 
     //  Matrix conditions (matx_cnd 0) random
 	if (!strcmp(pname,"matx_cnd")){
-        sscanf(buffer,"%*s %*s %i",&grid.load_cond);
+        sscanf(buffer,"%*s %*s %i",&angio.m_matrix_cond);
         return;}
     
 	// Initial matrix density (matx_den 3.0) mg/mL
     if (!strcmp(pname,"matx_den")){
-        sscanf(buffer,"%*s %*s %lf",&grid.coll_den);
+        sscanf(buffer,"%*s %*s %lf",&grid.m_coll_den);
         return;}  
         
 	// Number of initial fragments (nfrag 70, based on 30K frags/mL)
     if (!strcmp(pname,"nfrag")){
-        sscanf(buffer,"%*s %*s %i",&cult.NFRAGS);
+        sscanf(buffer,"%*s %*s %i",&cult.m_ninit_frags);
         return;}        
     
 	// End of culture period (max_time 6.0) days
     if (!strcmp(pname,"max_time")){
-        sscanf(buffer,"%*s %*s %lf",&angio.m_maxt);
+        sscanf(buffer,"%*s %*s %lf",&angio.m_time.maxt);
         return;}  
     
 	// Initial time step (dt 0.25) days
     if (!strcmp(pname,"dt")){
-        sscanf(buffer,"%*s %*s %lf",&angio.m_dt);
+        sscanf(buffer,"%*s %*s %lf",&angio.m_time.dt);
         return;}  
     
 	// Anastomosis distance (anst_dst 25.0) um 
     if (!strcmp(pname,"anst_dst")){
-		sscanf(buffer,"%*s %*s %lf",&angio.m_anast_dist);
+		sscanf(buffer,"%*s %*s %lf",&cult.m_anast_dist);
         return;}  
         
     // Segment length adjustment scale (lngth_adj 1.0) 
 	if (!strcmp(pname,"lngth_adj")){
-		sscanf(buffer,"%*s %*s %lf",&angio.m_length_adjust);
+		sscanf(buffer,"%*s %*s %lf",&cult.m_length_adjust);
         return;}
     
 	// Number of nodes in x-direction for autogrid (xnodes 7)
@@ -237,13 +238,13 @@ void Filein::set_param(FEAngio& angio, char* buffer, char* pname)
 	// Specify if branching is on or off
 	if (!strcmp(pname,"branch")){
 		int n;
-        sscanf(buffer,"%*s %*s %i",&n); angio.yes_branching = (n != 0);
+        sscanf(buffer,"%*s %*s %i",&n); cult.yes_branching = (n != 0);
         return;}
 	
 	// Specify if anastomosis is on or off
 	if (!strcmp(pname,"anast")){
 		int n;
-        sscanf(buffer,"%*s %*s %i",&n); angio.yes_anast = (n != 0);
+        sscanf(buffer,"%*s %*s %i",&n); cult.yes_anast = (n != 0);
         return;}
 
 	// Specify the factor for the directional sprout force
@@ -253,7 +254,7 @@ void Filein::set_param(FEAngio& angio, char* buffer, char* pname)
 
 	// Specify to 'flatten' fibers in z
 	if (!strcmp(pname,"zfibflat")){
-        sscanf(buffer,"%*s %*s %lf",&grid.m_bzfibflat);
+        sscanf(buffer,"%*s %*s %lf",&angio.m_bzfibflat);
         return;}
 
 	// Read in weights for determing the direction of growth

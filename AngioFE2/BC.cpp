@@ -4,6 +4,7 @@
 #include "Culture.h"
 #include "Segment.h"
 #include "FEAngio.h"
+#include "angio3d.h"
 
 //-----------------------------------------------------------------------------
 BC::BC(FEAngio& angio) : m_angio(angio)
@@ -19,545 +20,59 @@ BC::~BC()
 }
 
 //-----------------------------------------------------------------------------
-// BC.checkBC - Checks if a newly-created segment violates the boundary faces of the element in which it occupies
-//      Input:  - Position of new growth tip (xpt, ypt, zpt)
-//              - Reference to new segment
-//              - int indicating active tip (0 or 1)
-//              - Number indicating which element the segment's origin occupies
-//              - grid, data, and frag objects
-//
-//      Output: - None  
+// Checks if a newly-created segment violates the boundary faces of the element in which it occupies
 void BC::checkBC(Segment &seg, int k)
 {
-	int noBC = 0;
-    int elem_num = -1;
-    double bb_eps = 0;
-	double eps = 0.;
-    
-    double xpt = 0.; double ypt = 0.; double zpt = 0.;
-	int BC_violate = 0;
-	double xmin, xmax, ymin, ymax, zmin, zmax = {0.0};
-    double xix, xiy, xiz = {0.0};
-	
-    if (k == 1){
-		xpt = seg.m_tip[1].rt.x;
-		ypt = seg.m_tip[1].rt.y;
-		zpt = seg.m_tip[1].rt.z;}
-	if (k == 0){
-		xpt = seg.m_tip[0].rt.x;
-		ypt = seg.m_tip[0].rt.y;
-		zpt = seg.m_tip[0].rt.z;}
-	
-	int face = 0;
-	
-	// TODO: Do we need to do this, since I think we can only get here if elem_num = -1
 	Grid& grid = m_angio.GetGrid();
-	elem_num = grid.findelem(xpt, ypt, zpt);
-	if (elem_num != -1) return;
-/*	else{
-		int NE = grid.Elems();
-		for (int i = 0; i < NE; i++){
-			Elem& elem = grid.ebin[i];
-        
-			noBC = 0;
-                 
-			xmin = elem.bb_xmin()*(1 - bb_eps);
-			xmax = elem.bb_xmax()*(1 + bb_eps);
-			if (xmin == 0.0)
-				xmin = -1.0*bb_eps*xmax;
-		
-			ymin = elem.bb_ymin()*(1 - bb_eps);
-			ymax = elem.bb_ymax()*(1 + bb_eps);
-			if (ymin == 0.0)
-				ymin = -1.0*bb_eps*ymax;
 
-			zmin = elem.bb_zmin()*(1 - bb_eps);
-			zmax = elem.bb_zmax()*(1 + bb_eps);
-			if (zmin == 0.0)
-				zmin = -1.0*bb_eps*zmax;
-                            
-			// face 1
-			if (elem.f1.BC == true){
-				if ((xpt >= xmin) && (xpt <= xmax)){
-					if (ypt <= ymin){
-						if ((zpt >= zmin) && (zpt <= zmax)){
-							grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);
-                        
-							if ((fabs(xix) <= 1.0 + eps) && (xiy < -1.0) && (fabs(xiz) <= 1.0 + eps)){
-								elem_num = i;
-								face = 1;
-								BC_violate = 1;
-								break;}}}}}
-            
-			// face 2
-			if (elem.f2.BC == true){
-				if (xpt >= xmax){
-					if ((ypt >= ymin) && (ypt <= ymax)){
-						if ((zpt >= zmin) && (zpt <= zmax)){
-							grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);
-                        
-							if ((xix > 1.0) && (fabs(xiy) <= 1.0 + eps) && (fabs(xiz) <= 1.0 + eps)){
-								elem_num = i;
-								face = 2;
-								BC_violate = 1;
-								break;}}}}}
-                                   
-			// face 3
-			if (elem.f3.BC == true){
-				if ((xpt >= xmin) && (xpt <= xmax)){
-					if (ypt >= ymax){
-						if ((zpt >= zmin) && (zpt <= zmax)){
-							grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);
-                        
-							if ((fabs(xix) <= 1.0 + eps) && (xiy > 1.0) && (fabs(xiz) <= 1.0 + eps)){
-								elem_num = i;
-								face = 3;
-								BC_violate = 1;
-								break;}}}}}
-            
-			// face 4
-			if (elem.f4.BC == true){
-				if (xpt <= xmin){
-					if ((ypt >= ymin) && (ypt <= ymax)){
-						if ((zpt >= zmin) && (zpt <= zmax)){
-							grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);
-                        
-							if ((xix < -1.0) && (fabs(xiy) <= 1.0 + eps) && (fabs(xiz) <= 1.0 + eps)){
-								elem_num = i;
-								face = 4;
-								BC_violate = 1;
-								break;}}}}}
-            
-			// face 5
-			if (elem.f5.BC == true){
-				if ((xpt >= xmin) && (xpt <= xmax)){
-					if ((ypt >= ymin) && (ypt <= ymax)){
-						if (zpt >= zmax){
-							grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);
-                        
-							if ((fabs(xix) <= 1.0 + eps) && (fabs(xiy) <= 1.0 + eps) && (xiz > 1.0)){
-								elem_num = i;
-								face = 5;
-								BC_violate = 1;
-								break;}}}}}
-            
-			// face 6
-			if (elem.f6.BC == true){
-				if ((xpt >= xmin) && (xpt <= xmax)){
-					if ((ypt >= ymin) && (ypt <= ymax)){
-						if (zpt <= zmin){
-							grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);
-                        
-							if ((fabs(xix) <= 1.0 + eps) && (fabs(xiy) <= 1.0 + eps) && (xiz < -1.0)){
-								elem_num = i;
-								face = 6;
-								BC_violate = 1;
-								break;}}}}}
-            
-			// 1 and 2
-			if ((elem.f1.BC == true) && (elem.f2.BC == true)){
-				if ((ypt <= ymin) && (xpt >= xmax)){
-					if ((zpt >= zmin) && (zpt <= zmax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if (((xiy < -1.0) && (xix > 1.0)) && (fabs(xiz) <= 1.0 + eps)){
-							elem_num = i;
-						
-							if (fabs(xiy) > fabs(xix))
-								face = 1;
-							else
-								face = 2;
-						
-							BC_violate = 1;
-							break;}}}} 
-            
-			// 2 and 3
-			if ((elem.f2.BC == true) && (elem.f3.BC == true)){
-				if ((xpt >= xmax) && (ypt >= ymax)){
-					if ((zpt >= zmin) && (zpt <= zmax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if (((xix > 1.0) && (xiy > 1.0)) && (fabs(xiz) <= 1.0 + eps)){
-							elem_num = i;
-						
-							if (fabs(xix) > fabs(xiy))
-								face = 2;
-							else
-								face = 3;
-
-							BC_violate = 1;
-							break;}}}}                
-            
-			// 3 and 4
-			if ((elem.f3.BC == true) && (elem.f4.BC == true)){
-				if ((ypt >= ymax) && (xpt <= xmin)){
-					if ((zpt >= zmin) && (zpt <= zmax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if (((xiy > 1.0) && (xix < -1.0)) && (fabs(xiz) <= 1.0 + eps)){
-							elem_num = i;
-						
-							if (fabs(xiy) > fabs(xix))
-								face = 3;
-							else
-								face = 4;
-						
-							BC_violate = 1;
-							break;}}}}
-            
-			// 4 and 1
-			if ((elem.f4.BC == true) && (elem.f1.BC == true)){
-				if ((xpt <= xmin) && (ypt <= ymin)){
-					if ((zpt >= zmin) && (zpt <= zmax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if (((xix < -1.0) && (xiy < -1.0)) && (fabs(xiz) <= 1.0 + eps)){
-							elem_num = i;
-						
-							if (fabs(xix) > fabs(xiy))
-								face = 4;
-							else
-								face = 1;
-
-							BC_violate = 1;
-							break;}}}}
-            
-			// 5 and 1
-			if ((elem.f5.BC == true) && (elem.f1.BC == true)){
-				if ((zpt >= zmax) && (ypt <= ymin)){
-					if ((xpt >= xmin) && (xpt <= xmax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if (((xiz > 1.0) && (xiy < -1.0)) && (fabs(xix) <= 1.0 + eps)){
-							elem_num = i;
-						
-							if (fabs(xiz) > fabs(xiy))
-								face = 5;
-							else
-								face = 1;
-
-							BC_violate = 1;
-							break;}}}} 
-            
-			// 5 and 2
-			if ((elem.f5.BC == true) && (elem.f2.BC == true)){
-				if ((zpt >= zmax) && (xpt >= xmax)){
-					if ((ypt >= ymin) && (ypt <= ymax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if (((xiz > 1.0) && (xix > 1.0)) && (fabs(xiy) <= 1.0 + eps)){
-							elem_num = i;
-						
-							if (fabs(xiz) > fabs(xix))
-								face = 5;
-							else
-								face = 2;
-						
-							BC_violate = 1;
-							break;}}}}           
-            
-			// 5 and 3
-			if ((elem.f5.BC == true) && (elem.f3.BC == true)){
-				if ((zpt >= zmax) && (ypt >= ymax)){
-					if ((xpt >= xmin) && (xpt <= xmax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if (((xiz > 1.0) && (xiy > 1.0)) && (fabs(xix) <= 1.0 + eps)){
-							elem_num = i;
-						
-							if (fabs(xiz) > fabs(xiy))
-								face = 5;
-							else
-								face = 3;
-						
-							BC_violate = 1;
-							break;}}}} 
-                        
-			// 5 and 4
-			if ((elem.f5.BC == true) && (elem.f4.BC == true)){
-				if ((zpt >= zmax) && (xpt <= xmin)){
-					if ((ypt >= ymin) && (ypt <= ymax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if (((xiz > 1.0) && (xix < -1.0)) && (fabs(xiy) <= 1.0 + eps)){
-							elem_num = i;
-						
-							if (fabs(xiz) > fabs(xix))
-								face = 5;
-							else
-								face = 4;
-
-							BC_violate = 1;
-							break;}}}}       
-		
-			// 6 and 1
-			if ((elem.f6.BC == true) && (elem.f1.BC == true)){
-				if ((zpt <= zmin) && (ypt <= ymin)){
-					if ((xpt >= xmin) && (xpt <= xmax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if (((xiz < -1.0) && (xiy < -1.0)) && (fabs(xix) <= 1.0 + eps)){
-							elem_num = i;
-						
-							if (fabs(xiz) > fabs(xiy))
-								face = 6;
-							else
-								face = 1;						
-						
-							BC_violate = 1;
-							break;}}}} 
-            
-			// 6 and 2
-			if ((elem.f6.BC == true) && (elem.f2.BC == true)){
-				if ((zpt <= zmin) && (xpt >= xmax)){
-					if ((ypt >= ymin) && (ypt <= ymax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if (((xiz < -1.0) && (xix > 1.0)) && (fabs(xiy) <= 1.0 + eps)){
-							elem_num = i;
-						
-							if (fabs(xiz) > fabs(xix))
-								face = 6;
-							else
-								face = 2;
-
-							BC_violate = 1;
-							break;}}}}           
-            
-			// 6 and 3
-			if ((elem.f6.BC == true) && (elem.f3.BC == true)){
-				if ((zpt <= zmin) && (ypt >= ymax)){
-					if ((xpt >= xmin) && (xpt <= xmax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if (((xiz < -1.0) && (xiy > 1.0)) && (fabs(xix) <= 1.0 + eps)){
-							elem_num = i;
-						
-							if (fabs(xiz) > fabs(xiy))
-								face = 6;
-							else
-								face = 3;
-
-							BC_violate = 1;
-							break;}}}} 
-                        
-			// 6 and 4
-			if ((elem.f6.BC == true) && (elem.f4.BC == true)){
-				if ((zpt <= zmin) && (xpt <= xmin)){
-					if ((ypt >= ymin) && (ypt <= ymax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if (((xiz < -1.0) && (xix < -1.0)) && (fabs(xiy) <= 1.0 + eps)){
-							elem_num = i;
-						
-							if (fabs(xiz) > fabs(xix))
-								face = 6;
-							else
-								face = 4;
-
-							BC_violate = 1;
-							break;}}}}
+	// get the tip point
+	vec3d pt = seg.m_tip[k].rt;
 	
-			// 4 and 1 and 6
-			if ((elem.f4.BC == true) && (elem.f1.BC == true) && (elem.f6.BC == true)){
-				if ((xpt <= xmin) && (ypt <= ymin) && (zpt <= zmin)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if ((xix < -1.0) && (xiy < -1.0) && (xiz < -1.0)){
-							elem_num = i;
-						
-							if ((fabs(xix) > fabs(xiy)) && (fabs(xix) > fabs(xiz)))
-								face = 4;
-							else if ((fabs(xiy) > fabs(xix)) && (fabs(xiy) > fabs(xiz)))
-								face = 1;
-							else
-								face = 6;
+	// See if this point lies inside an element
+	int elem_num = grid.findelem(pt);
+	if (elem_num != -1) return;
 
-							BC_violate = 1;
-							break;}}}
-						
-			// 1 and 2 and 6
-			if ((elem.f1.BC == true) && (elem.f2.BC == true) && (elem.f6.BC == true)){
-				if ((ypt <= ymin) && (xpt >= xmax) && (zpt <= zmin)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if ((xiy < -1.0) && (xix > 1.0) && (xiz < -1.0)){
-							elem_num = i;
-						
-							if ((fabs(xiy) > fabs(xix)) && (fabs(xiy) > fabs(xiz)))
-								face = 1;
-							else if ((fabs(xix) > fabs(xiy)) && (fabs(xix) > fabs(xiz)))
-								face = 2;
-							else
-								face = 6;
-
-							BC_violate = 1;
-							break;}}}
-		
-			// 2 and 3 and 6
-			if ((elem.f2.BC == true) && (elem.f3.BC == true) && (elem.f6.BC == true)){
-				if ((xpt >= xmax) && (ypt >= ymax) && (zpt <= zmin)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if ((xix > 1.0) && (xiy > 1.0) && (xiz < -1.0)){
-							elem_num = i;
-						
-							if ((fabs(xix) > fabs(xiy)) && (fabs(xix) > fabs(xiz)))
-								face = 2;
-							else if ((fabs(xiy) > fabs(xix)) && (fabs(xiy) > fabs(xiz)))
-								face = 3;
-							else
-								face = 6;
-
-							BC_violate = 1;
-							break;}}}
-
-			// 3 and 4 and 6
-			if ((elem.f3.BC == true) && (elem.f4.BC == true) && (elem.f6.BC == true)){
-				if ((ypt >= ymax) && (xpt <= xmin) && (zpt <= zmin)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if ((xiy > 1.0) && (xix < -1.0) && (xiz < -1.0)){
-							elem_num = i;
-						
-							if ((fabs(xiy) > fabs(xix)) && (fabs(xiy) > fabs(xiz)))
-								face = 3;
-							else if ((fabs(xix) > fabs(xiy)) && (fabs(xix) > fabs(xiz)))
-								face = 4;
-							else
-								face = 6;
-
-							BC_violate = 1;
-							break;}}}
-
-			// 4 and 1 and 5
-			if ((elem.f4.BC == true) && (elem.f1.BC == true) && (elem.f5.BC == true)){
-				if ((xpt <= xmin) && (ypt <= ymin) && (zpt >= zmax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if ((xix < -1.0) && (xiy < -1.0) && (xiz > 1.0)){
-							elem_num = i;
-						
-							if ((fabs(xix) > fabs(xiy)) && (fabs(xix) > fabs(xiz)))
-								face = 4;
-							else if ((fabs(xiy) > fabs(xix)) && (fabs(xiy) > fabs(xiz)))
-								face = 1;
-							else
-								face = 5;
-
-							BC_violate = 1;
-							break;}}}
-						
-			// 1 and 2 and 5
-			if ((elem.f1.BC == true) && (elem.f2.BC == true) && (elem.f5.BC == true)){
-				if ((ypt <= ymin) && (xpt >= xmax) && (zpt >= zmax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if ((xiy < -1.0) && (xix > 1.0) && (xiz > 1.0)){
-							elem_num = i;
-						
-							if ((fabs(xiy) > fabs(xix)) && (fabs(xiy) > fabs(xiz)))
-								face = 1;
-							else if ((fabs(xix) > fabs(xiy)) && (fabs(xix) > fabs(xiz)))
-								face = 2;
-							else
-								face = 6;
-
-							BC_violate = 1;
-							break;}}}
-		
-			// 2 and 3 and 5
-			if ((elem.f2.BC == true) && (elem.f3.BC == true) && (elem.f5.BC == true)){
-				if ((xpt >= xmax) && (ypt >= ymax) && (zpt >= zmax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if ((xix > 1.0) && (xiy > 1.0) && (xiz > 1.0)){
-							elem_num = i;
-						
-							if ((fabs(xix) > fabs(xiy)) && (fabs(xix) > fabs(xiz)))
-								face = 2;
-							else if ((fabs(xiy) > fabs(xix)) && (fabs(xiy) > fabs(xiz)))
-								face = 3;
-							else
-								face = 6;
-
-							BC_violate = 1;
-							break;}}}
-
-			// 3 and 4 and 5
-			if ((elem.f3.BC == true) && (elem.f4.BC == true) && (elem.f5.BC == true)){
-				if ((ypt >= ymax) && (xpt <= xmin) && (zpt >= zmax)){
-						grid.natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);    
-        
-						if ((xiy > 1.0) && (xix < -1.0) && (xiz > 1.0)){
-							elem_num = i;
-						
-							if ((fabs(xiy) > fabs(xix)) && (fabs(xiy) > fabs(xiz)))
-								face = 3;
-							else if ((fabs(xix) > fabs(xiy)) && (fabs(xix) > fabs(xiz)))
-								face = 4;
-							else
-								face = 6;
-
-							BC_violate = 1;
-							break;}}}
-		}
-	}
-*/		
-//	if (elem_num != -1)
-	if (elem_num == -1)
-	{	
-		if (((seg.m_tip[0].active == 0) && (seg.m_tip[1].active == 0)) || (seg.length == 0.0)){
-			seg.mark_of_death = true;
-			seg.death_label = 3;
-			return;}
-
-		vec3d i_point;
-		int face;
-		int elem_num;
-		vec3d r0 = (k==0? seg.m_tip[1].rt : seg.m_tip[0].rt);
-		vec3d r1 = (k==0? seg.m_tip[0].rt : seg.m_tip[1].rt);
-		elem_num = (k==0?seg.m_tip[1].elem : seg.m_tip[0].elem);
-
-		// It looks like the tip_elem variable is not updated correctly
-		// so we have to do this expensive search. 
-		if (elem_num == -1) elem_num = grid.findelem(r0.x, r0.y, r0.z);
-		assert(elem_num != -1);
-
-		if (grid.FindIntersection(r0, r1, elem_num, i_point, face))
-		{
-
-//		i_point = find_intersect(elem, face, seg, grid);
-			Elem& elem = grid.ebin[elem_num];
-			assert(face != -1);
-			assert(elem.m_nbr[face] == -1);
-			assert(elem.GetFace(face)->BC == true);
-			if (face == 0) { enforceBC(i_point, face+1, elem.f1.bc_type, seg, elem_num, k); return;}
-			if (face == 1) { enforceBC(i_point, face+1, elem.f2.bc_type, seg, elem_num, k); return;}
-			if (face == 2) { enforceBC(i_point, face+1, elem.f3.bc_type, seg, elem_num, k); return;}
-			if (face == 3) { enforceBC(i_point, face+1, elem.f4.bc_type, seg, elem_num, k); return;}
-			if (face == 4) { enforceBC(i_point, face+1, elem.f5.bc_type, seg, elem_num, k); return;}
-			if (face == 5) { enforceBC(i_point, face+1, elem.f6.bc_type, seg, elem_num, k); return;}
-		}
-		else
-		{
-			assert(false);
-		}
-
-		return;
-	}
-	else{
+	if (((seg.m_tip[0].active == 0) && (seg.m_tip[1].active == 0)) || (seg.length == 0.0)){
+		assert(false);
 		seg.mark_of_death = true;
-		seg.death_label = 4;
-		
-		if (BC_bouncy == true)
-			seg.death_label = 10;
+		seg.death_label = 3;
+		return;}
 
-		return;
+	// get the end-points and reference element
+	vec3d r0 = (k==0? seg.m_tip[1].rt : seg.m_tip[0].rt);
+	vec3d r1 = (k==0? seg.m_tip[0].rt : seg.m_tip[1].rt);
+	elem_num = (k==0?seg.m_tip[1].pt.nelem : seg.m_tip[0].pt.nelem);
+	assert(elem_num >= 0);
+
+	// find the intersection with the element's boundary
+	int face;
+	vec3d i_point;
+	if (grid.FindIntersection(r0, r1, elem_num, i_point, face))
+	{
+		Elem& elem = grid.ebin[elem_num];
+		assert(face != -1);
+		assert(elem.m_nbr[face] == -1);
+		assert(elem.GetFace(face)->BC == true);
+
+		seg.m_tip[k].pt.nelem = elem_num;
+
+		// For now, just turn off the tip
+		seg.m_tip[k].active = 0;
+		seg.m_tip[k].rt = i_point;
+
+/*		if (face == 0) { enforceBC(i_point, face+1, elem.f1.bc_type, seg, elem_num, k); return;}
+		if (face == 1) { enforceBC(i_point, face+1, elem.f2.bc_type, seg, elem_num, k); return;}
+		if (face == 2) { enforceBC(i_point, face+1, elem.f3.bc_type, seg, elem_num, k); return;}
+		if (face == 3) { enforceBC(i_point, face+1, elem.f4.bc_type, seg, elem_num, k); return;}
+		if (face == 4) { enforceBC(i_point, face+1, elem.f5.bc_type, seg, elem_num, k); return;}
+		if (face == 5) { enforceBC(i_point, face+1, elem.f6.bc_type, seg, elem_num, k); return;}
+*/
+	}
+	else
+	{
+		assert(false);
 	}
 } 
-
-
 
 ///////////////////////////////////////////////////////////////////////
 // enforceBC
@@ -580,19 +95,19 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
         Segment seg2;
 		
 		seg2 = bouncywallBC(i_point, face, seg, elem_num, k);
-        ++m_angio.m_nsegs;
-		seg2.seg_num = m_angio.m_nsegs;
+        ++cult.m_nsegs;
+		seg2.seg_num = cult.m_nsegs;
 
 		elem_num = grid.findelem(seg2.m_tip[k].rt);
         
 		if (elem_num != -1){
-			seg2.m_tip[k].elem = elem_num;
+			seg2.m_tip[k].pt.nelem = elem_num;
 			cult.m_frag.push_front(seg2);}
 		else{
 			checkBC(seg2, k);
 			elem_num = grid.findelem(seg2.m_tip[k].rt);
 			if (elem_num != -1){
-				seg2.m_tip[k].elem = elem_num;
+				seg2.m_tip[k].pt.nelem = elem_num;
 				cult.m_frag.push_front(seg2);}}
 
 		BC_bouncy = false;
@@ -612,13 +127,13 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
 		elem_num = grid.findelem(seg2.m_tip[k].rt);
         
 		if (elem_num != -1){
-			seg2.m_tip[k].elem = elem_num;
+			seg2.m_tip[k].pt.nelem = elem_num;
 			cult.m_frag.push_front(seg2);}
 		else{
 			checkBC(seg2, k);
 			elem_num = grid.findelem(seg2.m_tip[k].rt);
 			if (elem_num != -1){
-				seg2.m_tip[k].elem = elem_num;
+				seg2.m_tip[k].pt.nelem = elem_num;
 				cult.m_frag.push_front(seg2);}}
 
 		BC_bouncy = false;
@@ -644,13 +159,13 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
 		elem_num = grid.findelem(seg2.m_tip[1].rt);
         
 		if (elem_num != -1){
-			seg2.m_tip[k].elem = elem_num;
+			seg2.m_tip[k].pt.nelem = elem_num;
 			cult.m_frag.push_front(seg2);}
 		else{
 			checkBC(seg2, k);
 			elem_num = grid.findelem(seg2.m_tip[k].rt);
 			if (elem_num != -1){
-				seg2.m_tip[k].elem = elem_num;
+				seg2.m_tip[k].pt.nelem = elem_num;
 				cult.m_frag.push_front(seg2);}}
 
 		BC_bouncy = false;
@@ -742,7 +257,8 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, in
         seg.findlength();
         seg.m_tip[1].active = 0;
         seg2.m_tip[1].active = 1;
-		seg2.m_tip[0].elem = seg.m_tip[1].elem;}
+		seg2.m_tip[0].pt = seg.m_tip[1].pt;
+	}
     else if (k == 0){
         seg.m_tip[0].rt.x = xpt_i;
         seg.m_tip[0].rt.y = ypt_i;
@@ -750,7 +266,8 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, in
         seg.findlength();
         seg.m_tip[0].active = 0;
         seg2.m_tip[0].active = -1;
-		seg2.m_tip[1].elem = seg.m_tip[0].elem;}
+		seg2.m_tip[1].pt = seg.m_tip[0].pt;
+	}
 
     seg.BCdead = 1;
        
@@ -814,7 +331,7 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, in
 	seg2.length = remain_length;
 	seg2.BCdead = 1;
     seg2.label = seg.label;
-    seg2.TofBirth = m_angio.m_t;
+    seg2.TofBirth = m_angio.m_time.t;
     
 	if (seg.m_sprout != Segment::SPROUT_INIT)
 		seg2.m_sprout = seg.m_sprout;
@@ -910,9 +427,9 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 		double xix = 0.; double xiy = 0.; double xiz = 0.;
 
 		if (seg.m_tip[1].active == 1)
-			seg.m_tip[1].elem = elem_num;
+			seg.m_tip[1].pt.nelem = elem_num;
 		else if (seg.m_tip[0].active == -1)
-			seg.m_tip[0].elem = elem_num;
+			seg.m_tip[0].pt.nelem = elem_num;
 		
 		grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
 
@@ -1020,9 +537,9 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 				double xix = 0.; double xiy = 0.; double xiz = 0.;
 
 				if (seg.m_tip[1].active == 1)
-					seg.m_tip[1].elem = elem_num;
+					seg.m_tip[1].pt.nelem = elem_num;
 				else if (seg.m_tip[0].active == -1)
-					seg.m_tip[0].elem = elem_num;
+					seg.m_tip[0].pt.nelem = elem_num;
 
 				grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
 
@@ -1048,9 +565,9 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 
 				if (intersect_neighbor == true){
 					if (seg.m_tip[1].active == 1)
-						seg.m_tip[1].elem = elem.elem_num;
+						seg.m_tip[1].pt.nelem = elem.elem_num;
 					else if (seg.m_tip[0].active == -1)
-						seg.m_tip[0].elem = elem.elem_num;
+						seg.m_tip[0].pt.nelem = elem.elem_num;
 					
 					return inter;}}		
 		}
@@ -1961,6 +1478,8 @@ void BC::collfibwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int 
 
 Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k)
 {
+	Culture& cult = m_angio.GetCulture();
+
     BC_bouncy = true;
 	
 	double xpt_0, ypt_0, zpt_0 = {0.};
@@ -1999,8 +1518,8 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
 	old_length = seg.length;
 	
 	Segment seg2;
-    ++m_angio.m_nsegs;
-	seg2.seg_num = m_angio.m_nsegs;
+    ++cult.m_nsegs;
+	seg2.seg_num = cult.m_nsegs;
 
     if (k == 1){
         seg.m_tip[1].rt.x = xpt_i;
@@ -2010,7 +1529,7 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
         seg.m_tip[1].active = 0;
 		seg.seg_conn[1][0] = seg2.seg_num;
         seg2.m_tip[1].active = 1;
-		seg2.m_tip[0].elem = seg.m_tip[1].elem;
+		seg2.m_tip[0].pt = seg.m_tip[1].pt;
 		seg2.seg_conn[0][0] = seg.seg_num;}
     else if (k == 0){
         seg.m_tip[0].rt.x = xpt_i;
@@ -2020,7 +1539,7 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
         seg.m_tip[0].active = 0;
 		seg.seg_conn[0][0] = seg2.seg_num;
         seg2.m_tip[0].active = -1;
-		seg2.m_tip[1].elem = seg.m_tip[0].elem;
+		seg2.m_tip[1].pt = seg.m_tip[0].pt;
 		seg2.seg_conn[1][0] = seg.seg_num;}
 
     seg.BCdead = 1;
@@ -2126,7 +1645,7 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
 	seg2.length = remain_length;
 	seg2.BCdead = 1;
     seg2.label = seg.label;
-    seg2.TofBirth = m_angio.m_t;
+    seg2.TofBirth = m_angio.m_time.t;
     /*data.num_vessel++; 
 	seg2.line_num = seg.line_num;*/
 
@@ -2147,6 +1666,8 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
 
 Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k)
 {
+	Culture& cult = m_angio.GetCulture();
+
     BC_bouncy = true;
 	
 	double xpt_0, ypt_0, zpt_0 = {0.};
@@ -2185,8 +1706,8 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	old_length = seg.length;
 	
 	Segment seg2;
-    ++m_angio.m_nsegs;
-	seg2.seg_num = m_angio.m_nsegs;
+    ++cult.m_nsegs;
+	seg2.seg_num = cult.m_nsegs;
 
     if (k == 1){
         seg.m_tip[1].rt.x = xpt_i;
@@ -2195,7 +1716,7 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
         seg.findlength();
         seg.m_tip[1].active = 0;
 		seg.seg_conn[1][0] = seg2.seg_num;
-		seg2.m_tip[0].elem = seg.m_tip[1].elem;
+		seg2.m_tip[0].pt = seg.m_tip[1].pt;
 		seg2.seg_conn[0][0] = seg.seg_num;}
     else if (k == 0){
         seg.m_tip[0].rt.x = xpt_i;
@@ -2204,7 +1725,7 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
         seg.findlength();
 		seg.seg_conn[0][0] = seg2.seg_num;
         seg2.m_tip[0].active = -1;
-		seg2.m_tip[1].elem = seg.m_tip[0].elem;
+		seg2.m_tip[1].pt = seg.m_tip[0].pt;
 		seg2.seg_conn[1][0] = seg.seg_num;}
 
     seg.BCdead = 1;
@@ -2223,10 +1744,8 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	double disp_dist_max = 100;
 	double disp_dist;
 
-	rand_disp.x = 2*(float(rand())/RAND_MAX - 0.5);
-	rand_disp.y = 2*(float(rand())/RAND_MAX - 0.5);
-	rand_disp.z = 2*(float(rand())/RAND_MAX - 0.5);
-	disp_dist = disp_dist_min + (float(rand())/RAND_MAX)*(disp_dist_max - disp_dist_min);
+	rand_disp = vrand();
+	disp_dist = disp_dist_min + frand()*(disp_dist_max - disp_dist_min);
 	
 	if ((face == 1) || (face == 3)){
 		new_uvect.y = -1.0*new_uvect.y;
@@ -2259,7 +1778,7 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	seg2.length = remain_length;
 	seg2.BCdead = 1;
     seg2.label = seg.label;
-    seg2.TofBirth = m_angio.m_t;
+    seg2.TofBirth = m_angio.m_time.t;
 
 	if (seg.m_sprout != Segment::SPROUT_INIT)
 		seg2.m_sprout = seg.m_sprout;

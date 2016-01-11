@@ -7,10 +7,7 @@
 
 #include <math.h>
 
-//using namespace std;
-
 const double pi = 3.14159265;                                   // Global constant pi
-const double E = 2.718281828;                                   // Global constant e (Euler's number)
 
 
 ///////////////////////// LINEAR ALGEBRA FUNCTIONS /////////////////////////
@@ -25,8 +22,7 @@ inline double vec_norm(double a[3])
 	return sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
 }
 
-inline int sign(float n) { return (n>=0.f?1:-1); }
-
+inline int sign(double n) { return (n>=0.0? 1 : -1); }
 
 
 ///////////////////////////// OTHER FUNCTIONS /////////////////////////////
@@ -62,3 +58,10 @@ inline double ang_dom(double angle)
     
     return angle;
 }
+
+// generates a random number between 0, 1
+inline double frand() { return (double) rand() / RAND_MAX; }
+
+// generates a random vector in the unit cube [-1, +1]
+// TODO: This doesn't generate a truly random vector since there will be bias towards corners.
+inline vec3d vrand() { return vec3d(2.0*(frand()-0.5), 2.0*(frand()-0.5), 2*(frand() - 0.5)); }

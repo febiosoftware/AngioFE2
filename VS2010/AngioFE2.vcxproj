@@ -98,7 +98,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\AngioFE2\AngioFE.cpp" />
-    <ClCompile Include="..\AngioFE2\AngioFERun.cpp" />
     <ClCompile Include="..\AngioFE2\AngioFETask.cpp" />
     <ClCompile Include="..\AngioFE2\AngioPlot.cpp" />
     <ClCompile Include="..\AngioFE2\BC.cpp" />
