@@ -26,7 +26,6 @@ Segment::Segment()
     
 	// initialize status flags
 	m_nflag = 0;
-	m_sprout = SPROUT_UNKNOWN;
 
 	// TODO: remove this
 	mark_of_death = false;

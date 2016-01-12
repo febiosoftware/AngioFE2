@@ -1,6 +1,6 @@
 #pragma once
 #include <FEBioMech/FEElasticMaterial.h>
-#include "Grid.h"
+#include "FEAngio.h"
 
 //-----------------------------------------------------------------------------
 // A new material point class is defined to store the elastic parameters for 
@@ -22,7 +22,10 @@ public:
 
 public:
 	// These are the material parameters
-	double	m_D;
+	double		m_D;		// collagen density (?)
+
+public:
+	GridPoint	m_pt;	// grid point location of this material point
 
 	DECLARE_PARAMETER_LIST();
 };
@@ -64,22 +67,20 @@ public:
 	// update the sprout position
 	void UpdateSprout(SPROUT& s, const vec3d& r);
 
-	// get the total sprout stress
-	mat3ds SproutStress(const vec3d& x);
-
 	// return number of sprouts
 	int Sprouts() { return (int) m_spr.size(); }
 
 	// get a sprout
 	SPROUT& GetSprout(int i) { return m_spr[i]; }
 
-	vec3d CurrentSproutPosition(SPROUT& s);
+	// calculate the current spatial position, given an element and local coordinates
+	vec3d CurrentPosition(FEElement* pe, double r, double s, double t);
 
 	// we use this to define a sprout in the material section of the input file
 	virtual void SetParameter(FEParam& p);
 
-	//! Assign a grid (TODO: Do we really need this?)
-	void SetGrid(Grid* pgrid) { m_pgrid = pgrid; }
+	//! Assign a grid
+	void SetFEAngio(FEAngio* pangio) { m_pangio = pangio; }
 
 private:
 	double	m_a;
@@ -110,12 +111,11 @@ public:
 	double sym_vects[7][3];
 
 private:
-	Grid * m_pgrid;
+	FEAngio * m_pangio;
 
 public:
 	void ApplySym();
 	void MirrorSym(vec3d x, mat3ds &si, SPROUT sp, double den_scale);
-	double findDenScale(double xpt, double ypt, double zpt);
 };
 
 //-----------------------------------------------------------------------------

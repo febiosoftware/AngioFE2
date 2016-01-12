@@ -16,25 +16,19 @@ public:
 };
 
 //-----------------------------------------------------------------------------
-// Microvessels are represent by a collection of line segments. 
+// Microvessels are represented by a collection of line segments. 
 // Growth is represented by the addition of new segments onto the 
 // active tips of exisiting segments. Within the simulation, these 
-// line segments are found in the SEGMENT class.
+// line segments are found in the Segment class.
 class Segment  
 {
 public:
-	enum {
-		SPROUT_UNKNOWN,	// unknown sprout type
-		SPROUT_INIT,	// initial sprout
-		SPROUT_POS,		// fragment sprouted from +1 end
-		SPROUT_NEG		// fragment sprouted from -1 end
-	};
-
 	// status flags
 	enum {
-		BC_DEAD     = 1,
-		INIT_BRANCH = 2,
-		ANAST       = 4
+		BC_DEAD     = 1,		// segment is "dead" because it reached a boundar condition (?)
+		INIT_BRANCH = 2,		// this is an initial sprout that is allowed to branch
+		ANAST       = 4,		// this segment underwent anastimoses
+		INIT_SPROUT = 8			// this is an intitial segment
 	};
 
 	// struct defining a tip of the segment
@@ -80,6 +74,9 @@ public:
 	// get the status of a flag
 	bool GetFlag(unsigned int nflag) { return ((m_nflag & nflag) != 0); }
 
+	// get all the flags
+	unsigned int GetFlags() { return m_nflag; }
+
 	// set the time of birth
 	void SetTimeOfBirth(double t) { m_TofBirth = t; }
 
@@ -91,12 +88,8 @@ public:
 	int m_nvessel;		// Label that indicates which vessel the segment belongs to
 	int m_nid;			// segment id (unique zero-based ID)
 
-	int m_sprout;              // Marker that indicates which end of the parent vessel the segment sprouted from.  1 for the +1 end, 
-	                           //                  -1 for the -1 end, 9 for an initially seeded fragment,
-	                           //                  0 for a frament not touched by the growth routine for some reason.
-
 	// TODO: I don't think there is any reason why segments should be killed and this
-	//       is probably a way to clean up after bugs. Better solution: fix bugs
+	//       is probably a way to clean up after bugs. Better solution: fix bugs and remove this.
 	bool mark_of_death;			// this flag marks the segment as dead and should be removed.
 	int death_label;			// cause of death
 

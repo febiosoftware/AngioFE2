@@ -178,46 +178,40 @@ void Grid::FindElementNeighbors()
 }
 
 //-----------------------------------------------------------------------------
-int Grid::findelem(double xpt, double ypt, double zpt)
+// Find the element in which the point lies.
+int Grid::findelem(const vec3d& pt)
 {
-    int elem_num = -1;
-    double bb_eps = 0.1;
-	double eps = 0.00001;
-    
-    double xmin, xmax, ymin, ymax, zmin, zmax = {0.0};
-    double xix, xiy, xiz = {0.0};
+	const double eps = 0.00001;
+    double xix = 0.0, xiy = 0.0, xiz = 0.0;
 
+	// loop over all elements
 	int NE = Elems();
     for (int i = 0; i < NE; i++)
     {
+		// get the next candidate
         Elem& elem = ebin[i];
         
  		// get the bounding box
-        xmin = elem.bb_xmin();
-        xmax = elem.bb_xmax();
-		ymin = elem.bb_ymin();
-        ymax = elem.bb_ymax();
-		zmin = elem.bb_zmin();
-        zmax = elem.bb_zmax();
+		BBOX b = elem.GetBoundingBox();
 
 		// inflate it a bit
-		double inf = (xmax - xmin)/100.0;
-		xmin -= inf; xmax += inf;
-		ymin -= inf; ymax += inf;
-		zmin -= inf; zmax += inf;
+		double inf = b.Size();
+		b.Inflate(inf);
 
-        
-		if ((xpt >= xmin) && (xpt <= xmax)){
-            if ((ypt >= ymin) && (ypt <= ymax)){
-                if ((zpt >= zmin) && (zpt <= zmax)){
-                    natcoord(xix, xiy, xiz, xpt, ypt, zpt, i);
-                    
-                    if ((fabs(xix) <= (1.0 + eps)) && (fabs(xiy) <= (1.0 + eps)) && (fabs(xiz) <= (1.0 + eps))){
-                        elem_num = i;
-						return elem_num;}}}}
+		// Do a quick check to see if the point lies inside the bounding box
+		if (b.IsInside(pt))
+		{
+			// get the natural coordinates of the point in the element
+			natcoord(xix, xiy, xiz, pt.x, pt.y, pt.z, i);
+
+			// see if the natural coordinates fall within the valid range
+			if ((fabs(xix) <= (1.0 + eps)) && (fabs(xiy) <= (1.0 + eps)) && (fabs(xiz) <= (1.0 + eps)))
+			{
+				return i;
+			}
+		}
 	}
-
-    return elem_num;
+    return -1;
 }
 
 //-----------------------------------------------------------------------------
@@ -737,32 +731,74 @@ int Grid::elem_find_neighbor(int elem_num,int neighbor_id)
 	return elem_neighbor;
 }
 
-
 //-----------------------------------------------------------------------------
-// TODO: Make a,b,c user settings.
-// TODO: This function is only used by FEAngioMaterial. 
-//       Perhaps we should move this function there.
-double Grid::find_density_scale(double coll_den)
+// calculate intersection between a line and a (quadratic) face.
+// This is used by Grid::FindIntersection to determine the intersection between
+// a segment and an element's face.
+bool IntersectFace(vec3d p[4], const vec3d& r0, const vec3d& r1, double& lam)
 {
-	if (coll_den == 3.0) return 1.0;
+	double r = 0.0, s = 0.0;
+	double H[4], Hr[4], Hs[4];
+	vec3d R;
+	mat3d K;
 
-	// Determine the density scaling factor using the function defined by a, b, c
-	double den_scale;
-	double a = -0.016;
-	double b = 5.1605;
-	double c = 0.5112;
-	den_scale = a + b*exp( -c*coll_den );
+	vec3d dr = r1 - r0;
 
-	if (den_scale < 0.0) den_scale = 0.0;
+	const double tol = 1e-9;
+	double unorm = 0.0;
+	do
+	{
+		// evaluate shape functions
+		H[0] = 0.25*(1.0 - r)*(1.0 - s);
+		H[1] = 0.25*(1.0 + r)*(1.0 - s);
+		H[2] = 0.25*(1.0 + r)*(1.0 + s);
+		H[3] = 0.25*(1.0 - r)*(1.0 + s);
 
-	return den_scale;
+		// evaluate shape function derivatives
+		Hr[0] = -0.25*(1.0 - s); Hs[0] = -0.25*(1.0 - r);
+		Hr[1] =  0.25*(1.0 - s); Hs[1] = -0.25*(1.0 + r);
+		Hr[2] =  0.25*(1.0 + s); Hs[2] =  0.25*(1.0 + r);
+		Hr[3] = -0.25*(1.0 + s); Hs[3] =  0.25*(1.0 - r);
+
+		vec3d yr = p[0]*Hr[0] + p[1]*Hr[1] + p[2]*Hr[2] + p[3]*Hr[3];
+		vec3d ys = p[0]*Hs[0] + p[1]*Hs[1] + p[2]*Hs[2] + p[3]*Hs[3];
+
+		// setup residual
+		R = r0 + dr*lam - (p[0]*H[0] + p[1]*H[1] + p[2]*H[2] + p[3]*H[3]);
+
+		// setup stiffness matrix
+		K[0][0] = dr.x; K[0][1] = -yr.x; K[0][2] = -ys.x;
+		K[1][0] = dr.y; K[1][1] = -yr.y; K[1][2] = -ys.y;
+		K[2][0] = dr.z; K[2][1] = -yr.z; K[2][2] = -ys.z;
+
+		// make sure the determinant is positive
+		double D = K.det();
+		if (D == 0.0) return false;
+
+		// solve
+		vec3d du = -(K.inverse()*R);
+		unorm = du*du;
+
+		// If the norm grows too big, the line will most likely not intersect with the facet
+		if (unorm > 100.0) return false;
+
+		lam += du.x;
+		r += du.y;
+		s += du.z; 
+	}
+	while (unorm > tol);
+
+	// make sure the natural coordinates fall within range
+	const double one = 1.0 + 1e-5;
+	if ((r>=-one)&&(r<=one)&&(s>=-one)&&(s<=one)) return true;
+	return false;
 }
 
 //-----------------------------------------------------------------------------
 // This function tries to find the face of an element that intersects the segment.
-// It assumes that point1 of the segment is inside the element.
-// This also assumes that the facets are flat.
-// TODO: generalize this for curved surfaces
+// It assumes that point1 (r0) of the segment is inside the element, whereas point2 (r1) does not.
+// The intersection point is returned int q and the facet number in face.
+// The function returns false if the intersection search fails.
 bool Grid::FindIntersection(vec3d& r0, vec3d& r1, int elem, vec3d& q, int& face)
 {
 	vec3d d = r1 - r0;
@@ -772,25 +808,25 @@ bool Grid::FindIntersection(vec3d& r0, vec3d& r1, int elem, vec3d& q, int& face)
 
 	face = -1;
 	Elem& el = ebin[elem];
+
+	vec3d y[4];
 	for (int i=0; i<6; ++i)
 	{
 		// we only search open faces
 		if (el.m_nbr[i] == -1)
 		{
 			el.GetFace(i, nf);
-			vec3d a1 = nodes[nf[0]].rt;
-			vec3d a2 = nodes[nf[1]].rt;
-			vec3d a3 = nodes[nf[2]].rt;
+			y[0] = nodes[nf[0]].rt;
+			y[1] = nodes[nf[1]].rt;
+			y[2] = nodes[nf[2]].rt;
+			y[3] = nodes[nf[3]].rt;
 
-			vec3d n = (a2-a1)^(a3-a1);
-
-			double D = n*d;
-			if (D != 0.0)
+			double lam = 0.5;
+			if (IntersectFace(y, r0, r1, lam))
 			{
-				double lam = (n*(a1 - r0))/D;
 				if ((lam <= 1.0001) && (lam >= 0.0) && (lam < lam_min))
 				{
-					q = r0 + d*(0.9*lam);
+					q = r0 + d*(0.95*lam);
 					face = i;
 					lam_min = lam;
 				}
@@ -798,5 +834,192 @@ bool Grid::FindIntersection(vec3d& r0, vec3d& r1, int elem, vec3d& q, int& face)
 		}
 	}
 
+	assert(face!=-1);
+
 	return (face!=-1);
+}
+
+//-----------------------------------------------------------------------------
+// line equation P = LP[3] + u*V[3]
+// Plane equation N[3].(P[3]-P*[3]) = 0
+// solving for u, u={N[3].(P*[3]-LP[3])}/{N[3].V[3]}
+
+// box face numbering
+// Front = 0
+// Right = 1
+// Back = 2+
+// Left = 3
+// Top = 4
+// Bottom = 5
+bool Grid::intersectPlane(Segment &seg, int n, double intersectpt[3])
+{
+	double N0[3], N1[3], N2[3], N3[3], N4[3], N5[3]; //face normals
+	double P0[3], P1[3], P2[3], P3[3], P4[3], P5[3]; //point on faces
+
+	//front
+	N0[0] = 0;
+	N0[1] = -1;
+	N0[2] = 0;
+	P0[0] = 0;
+	P0[1] = 0;
+	P0[2] = 0;
+
+	//right
+	N1[0] = 1;
+	N1[1] = 0;
+	N1[2] = 0;
+	P1[0] = xrange[1];
+	P1[1] = 0;
+	P1[2] = 0;
+
+	//back
+	N2[0] = 0;
+	N2[1] = 1;
+	N2[2] = 0;
+	P2[0] = 0;
+	P2[1] = yrange[1];
+	P2[2] = 0;
+
+	//left
+	N3[0] = -1;
+	N3[1] = 0;
+	N3[2] = 0;
+	P3[0] = 0;
+	P3[1] = 0;
+	P3[2] = 0;
+
+	//top
+	N4[0] = 0;
+	N4[1] = 0;
+	N4[2] = 1;
+	P4[0] = 0;
+	P4[1] = 0;
+	P4[2] = zrange[1];
+
+	//bottom
+	N5[0] = 0;
+	N5[1] = 0;
+	N5[2] = -1;
+	P5[0] = 0;
+	P5[1] = 0;
+	P5[2] = 0;
+	double V[3]; //segment displacement vector
+	double V2[3]; //P*[3]-LP[3]
+	double LP[3]; //origin of segment
+	double u; //scalar weight to move along segment displacement vector
+
+
+	if (seg.tip(1).bactive)
+	{
+		V[0] = seg.tip(1).rt.x - seg.tip(0).rt.x;
+		V[1] = seg.tip(1).rt.y - seg.tip(0).rt.y;
+		V[2] = seg.tip(1).rt.z - seg.tip(0).rt.z;
+		LP[0] = seg.tip(0).rt.x;
+		LP[1] = seg.tip(0).rt.y;
+		LP[2] = seg.tip(0).rt.z;
+	}
+	else
+	{
+		V[0] = seg.tip(0).rt.x - seg.tip(1).rt.x;
+		V[1] = seg.tip(0).rt.y - seg.tip(1).rt.y;
+		V[2] = seg.tip(0).rt.z - seg.tip(1).rt.z;
+		LP[0] = seg.tip(1).rt.x;
+		LP[1] = seg.tip(1).rt.y;
+		LP[2] = seg.tip(1).rt.z;
+	}
+
+	switch (n)
+	{
+		case 0: //front
+			V2[0] = P0[0] - LP[0];
+			V2[1] = P0[1] - LP[1];
+			V2[2] = P0[2] - LP[2];
+			u = vec_dot(N0,V2)/vec_dot(N0,V);
+			if (u>0 && u<1)
+			{
+				intersectpt[0] = LP[0] + u*V[0];
+				intersectpt[1] = LP[1] + u*V[1];
+				intersectpt[2] = LP[2] + u*V[2];
+				if (intersectpt[0] > xrange[0] && intersectpt[0] < xrange[1] &&
+					intersectpt[2] > zrange[0] && intersectpt[2] < zrange[1])
+					return true;
+			}
+			break;
+		case 1: //right
+			V2[0] = P1[0] - LP[0];
+			V2[1] = P1[1] - LP[1];
+			V2[2] = P1[2] - LP[2];
+			u = vec_dot(N1,V2)/vec_dot(N1,V);
+			if (u>0 && u<1)
+			{
+				intersectpt[0] = LP[0] + u*V[0];
+				intersectpt[1] = LP[1] + u*V[1];
+				intersectpt[2] = LP[2] + u*V[2];
+				if (intersectpt[1] > yrange[0] && intersectpt[1] < yrange[1] &&
+					intersectpt[2] > zrange[0] && intersectpt[2] < zrange[1])
+					return true;
+			}
+			break;
+		case 2: //back
+			V2[0] = P2[0] - LP[0];
+			V2[1] = P2[1] - LP[1];
+			V2[2] = P2[2] - LP[2];
+			u = vec_dot(N2,V2)/vec_dot(N2,V);
+			if (u>0 && u<1)
+			{
+				intersectpt[0] = LP[0] + u*V[0];
+				intersectpt[1] = LP[1] + u*V[1];
+				intersectpt[2] = LP[2] + u*V[2];
+				if (intersectpt[0] > xrange[0] && intersectpt[0] < xrange[1] &&
+					intersectpt[2] > zrange[0] && intersectpt[2] < zrange[1])
+					return true;
+			}
+			break;
+		case 3: //left
+			V2[0] = P3[0] - LP[0];
+			V2[1] = P3[1] - LP[1];
+			V2[2] = P3[2] - LP[2];
+			u = vec_dot(N3,V2)/vec_dot(N3,V);
+			if (u>0 && u<1)
+			{
+				intersectpt[0] = LP[0] + u*V[0];
+				intersectpt[1] = LP[1] + u*V[1];
+				intersectpt[2] = LP[2] + u*V[2];
+				if (intersectpt[1] > yrange[0] && intersectpt[1] < yrange[1] &&
+					intersectpt[2] > zrange[0] && intersectpt[2] < zrange[1])
+					return true;
+			}
+			break;
+		case 4: //top
+			V2[0] = P4[0] - LP[0];
+			V2[1] = P4[1] - LP[1];
+			V2[2] = P4[2] - LP[2];
+			u = vec_dot(N4,V2)/vec_dot(N4,V);
+			if (u>0 && u<1)
+			{
+				intersectpt[0] = LP[0] + u*V[0];
+				intersectpt[1] = LP[1] + u*V[1];
+				intersectpt[2] = LP[2] + u*V[2];
+				if (intersectpt[0] > xrange[0] && intersectpt[0] < xrange[1] &&
+					intersectpt[1] > yrange[0] && intersectpt[1] < yrange[1])
+					return true;
+			}
+			break;
+		case 5: //bottom
+			V2[0] = P5[0] - LP[0];
+			V2[1] = P5[1] - LP[1];
+			V2[2] = P5[2] - LP[2];
+			u = vec_dot(N5,V2)/vec_dot(N5,V);
+			if (u>0 && u<1)
+			{
+				intersectpt[0] = LP[0] + u*V[0];
+				intersectpt[1] = LP[1] + u*V[1];
+				intersectpt[2] = LP[2] + u*V[2];
+				if (intersectpt[0] > xrange[0] && intersectpt[0] < xrange[1] &&
+					intersectpt[1] > yrange[0] && intersectpt[1] < yrange[1])
+					return true;
+			}
+			break;
+	}
+	return false;
 }

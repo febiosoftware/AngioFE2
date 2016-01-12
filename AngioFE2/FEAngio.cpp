@@ -194,7 +194,7 @@ bool FEAngio::InitFEM()
 	}
 
 	//// FEBIO - Initialize the FE model
-	m_pmat->SetGrid(&m_grid);
+	m_pmat->SetFEAngio(this);
 
 	// report if the stress or body force approach will be used
 	if (bmat)
@@ -428,11 +428,39 @@ bool FEAngio::Subgrowth(int sub_steps)
 	}
 	
 	// Remove bad segments
-	removeErrors();
+//	removeErrors();
 
 	return true;
 }
 
+//-----------------------------------------------------------------------------
+// Use the displacement field from the FE solution to update microvessels into the current configuration
+void FEAngio::DisplaceVessels()
+{
+	// loop over all fragments
+	for (SegIter it = m_pCult->SegmentBegin(); it != m_pCult->SegmentEnd(); ++it)             // Iterate through all segments in frag list container (it)                               
+	{
+		// Iterate through both segment tips
+		for (int k=0; k<2; ++k)
+		{
+			// get the tip
+			Segment::TIP& tip = it->tip(k);
+
+			// Update position
+			assert(tip.pt.nelem >= 0);
+			tip.rt = m_grid.Position(tip.pt);
+		}
+		
+		// Recalculate the segment's length and unit vector based on it's new position
+		it->Update();
+	}
+
+	// Update the total vascular length within the simulation   
+    UpdateTotalLength();
+}   
+
+
+/*
 //-----------------------------------------------------------------------------
 // Use the displacement field from the FE solution to update microvessels into the current configuration
 void FEAngio::DisplaceVessels()
@@ -492,6 +520,7 @@ void FEAngio::DisplaceVessels()
 	// Update the total vascular length within the simulation   
     UpdateTotalLength();
 }   
+*/
 
 //-----------------------------------------------------------------------------
 // Apply sprout forces to the mesh for each active vessel tip
@@ -934,7 +963,7 @@ void FEAngio::adjust_mesh_stiffness()
 			
 			mid = (subunit.tip(1).rt + subunit.tip(0).rt)*0.5;
 
-			elem_num = m_grid.findelem(mid.x, mid.y, mid.z);				// Find the element that the midpoint is within
+			elem_num = m_grid.findelem(mid);				// Find the element that the midpoint is within
 
 			// Calculate the orientation of the subdivision
 			if (seg.length() > 0.){										// If it's a +1 segment...

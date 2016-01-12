@@ -1,12 +1,12 @@
 #pragma once
 #include "Fileout.h"
-#include "FEAngioMaterial.h"
 #include "FESproutBodyForce.h"
 #include "Grid.h"
 
 //-----------------------------------------------------------------------------
 class FEModel;
 class Culture;
+class FEAngioMaterial;
 
 //-----------------------------------------------------------------------------
 // This class represents the time parameters

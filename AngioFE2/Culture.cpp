@@ -5,6 +5,7 @@
 #include "Elem.h"
 #include "FEAngio.h"
 #include "angio3d.h"
+#include "FEAngioMaterial.h"
 
 //-----------------------------------------------------------------------------
 Culture::Culture(FEAngio& angio) : bc(angio), m_angio(angio)
@@ -146,7 +147,7 @@ Segment Culture::createInitFrag()
 	if (frand() < m_init_branch_prob) seg.SetFlagOn(Segment::INIT_BRANCH);
 	
 	// Mark segment as an initial fragment
-	seg.m_sprout = Segment::SPROUT_INIT;
+	seg.SetFlagOn(Segment::INIT_SPROUT);
 
 	// all good
 	return seg;
@@ -260,8 +261,6 @@ Segment Culture::CreateNewSeg(Segment& it, int k, SimulationTime& time, bool bra
 
         seg.tip(1).bactive = true;		// Turn on end tip of new segment
 		seg.tip(0).bactive = false;		// Turn off origin tip of new segment
-		
-		seg.m_sprout = Segment::SPROUT_POS;		// Set sprout for the new segment as +1, indicating this segment originated from a +1 tip
 	}
 	else // grow from the start point
 	{
@@ -274,8 +273,6 @@ Segment Culture::CreateNewSeg(Segment& it, int k, SimulationTime& time, bool bra
 
 		seg.tip(0).bactive = true;		// Turn on end tip of new segment
 		seg.tip(1).bactive = false;		// Turn off origin tip of new segment
-		
-		seg.m_sprout = Segment::SPROUT_NEG; // Set sprout for the new segment as -1, indicating this segment originated from a -1 tip
 	}
 
 	// Turn off previous segment tip
@@ -426,7 +423,7 @@ void Culture::anastomose(double dist0, double dist1, int k, Segment& it1, Segmen
   
     if (kk == -1) return;
                                                 
-	Segment seg = connectSegment(it1,it2,k,kk, time);      // CULTURE.connectSegment(segment 1, segment 2, tip 1, tip 2, grid, data, frag list container)
+	Segment seg = ConnectSegment(it1,it2,k,kk, time);      // CULTURE.connectSegment(segment 1, segment 2, tip 1, tip 2, grid, data, frag list container)
 					                                            // This function will create a segment between to two segments to complete the anastomosis
 	AddSegment(seg);                                      // Append new segment at the top of the list 'frag'                  
 	it1.tip(k ).bactive = false;		// Deactivate tip of segment 1 after anastomosis
@@ -498,51 +495,8 @@ vec3d Culture::CollagenDirection(GridPoint& pt)
 }
 
 //-----------------------------------------------------------------------------
-double Culture::findDenScale(vec3d& pt)
-{
-	Grid& grid = m_angio.GetGrid();
-
-	double coll_den = 0.0;
-    double den_scale = 1.0;
-
-    double xix, xiy, xiz;
-    double shapeF[8];
-
-	int elem_num = grid.findelem(pt);
-    
-    if (elem_num < 0)
-		return den_scale;
-		
-	Elem elem;
-    elem = grid.ebin[elem_num];
-        
-    // Convert to natural coordinates -1 <= Xi <= +1
-    grid.natcoord(xix, xiy, xiz, pt.x, pt.y, pt.z, elem_num);        
-    
-    // Obtain shape function weights
-    grid.shapefunctions(shapeF, xix, xiy, xiz);
-    
-	coll_den = 
-		shapeF[0]*(*elem.n1).ecm_den + 
-		shapeF[1]*(*elem.n2).ecm_den + 
-		shapeF[2]*(*elem.n3).ecm_den + 
-		shapeF[3]*(*elem.n4).ecm_den + 
-		shapeF[4]*(*elem.n5).ecm_den + 
-		shapeF[5]*(*elem.n6).ecm_den + 
-		shapeF[6]*(*elem.n7).ecm_den + 
-		shapeF[7]*(*elem.n8).ecm_den;
-    
-	den_scale = grid.find_density_scale(coll_den);
-
-    if (den_scale < 0.)
-		den_scale = 0.;
-	
-	return den_scale;
-}
-
-//-----------------------------------------------------------------------------
 // Calculates the density scale factor at a grid point.
-double Culture::FindDensityScale(GridPoint& pt)
+double Culture::FindDensityScale(const GridPoint& pt)
 {
 	Grid& grid = m_angio.GetGrid();
 
@@ -565,15 +519,33 @@ double Culture::FindDensityScale(GridPoint& pt)
 		shapeF[7]*(*elem.n8).ecm_den;
     
 	// scale the density
-	double den_scale = grid.find_density_scale(coll_den);
+	double den_scale = ScaleDensity(coll_den);
 	
 	// all done
 	return den_scale;
 }
 
 //-----------------------------------------------------------------------------
+// TODO: Make a,b,c user settings.
+double Culture::ScaleDensity(double coll_den)
+{
+	if (coll_den == 3.0) return 1.0;
+
+	// Determine the density scaling factor using the function defined by a, b, c
+	double den_scale;
+	double a = -0.016;
+	double b = 5.1605;
+	double c = 0.5112;
+	den_scale = a + b*exp( -c*coll_den );
+
+	if (den_scale < 0.0) den_scale = 0.0;
+
+	return den_scale;
+}
+
+//-----------------------------------------------------------------------------
 // creates a new segment to connect close segments
-Segment Culture::connectSegment(Segment& it1, Segment& it2, int k, int kk, SimulationTime& time)
+Segment Culture::ConnectSegment(Segment& it1, Segment& it2, int k, int kk, SimulationTime& time)
 {
  	Segment seg;
  	seg.m_nseed   = it1.m_nseed;
@@ -597,84 +569,11 @@ Segment Culture::connectSegment(Segment& it1, Segment& it2, int k, int kk, Simul
  	
 	return seg;
  }
- 
-//-----------------------------------------------------------------------------
-// Description: checks for intersection between a passed segment and all other existing segments that are not members
-// of vessel containing the segment
-void Culture::CheckForIntersection(Segment &seg, list<Segment>::iterator it)
-{
-	double p1[3], p2[3], pp1[3], pp2[3]; //tip points for segment to check intersection
-	list<Segment>::iterator it2; //loop over segments in list
-	double intersectpt[3]; //the intersection pt of vectors
-	
-	intersectpt[0] = 0;
-	intersectpt[1] = 0;
-	
-	double lambda;
 
-	vec3d& r0 = seg.tip(0).rt;
-	vec3d& r1 = seg.tip(1).rt;
-	
-	if (seg.tip(1).bactive)
-	{
-		p1[0] = r0.x;
-		p2[0] = r1.x;
-		p1[1] = r0.y;
-		p2[1] = r1.y;
-		p1[2] = r0.z;
-		p2[2] = r1.z;
-	}
-	else if (seg.tip(0).bactive)
-	{
-		p1[0] = r1.x;
-		p2[0] = r0.x;
-		p1[1] = r1.y;
-		p2[1] = r0.y;
-		p1[2] = r1.z;
-		p2[2] = r0.z;
-	}
-
-	Culture& cult = m_angio.GetCulture();
-	for (it2 = cult.m_frag.begin(); it2 != cult.m_frag.end(); ++it2)
-	{
-		if (it->m_nseed!=it2->m_nseed)
-		{
-			pp1[0] = r0.x;
-			pp1[1] = r0.y;
-			pp1[2] = r0.z;
-			pp2[0] = r1.x;
-			pp2[1] = r1.y;
-			pp2[2] = r1.z;
-
-			lambda = findIntersect(p1,p2,pp1,pp2,intersectpt);
-			if (lambda >=0 && lambda <=1)
-			{
-				if (seg.tip(1).bactive)
-				{
-					seg.tip(1).rt.x = intersectpt[0];
-					seg.tip(1).rt.y = intersectpt[1];
-					seg.tip(1).rt.z = intersectpt[2];
-					seg.tip(1).bactive = false;
-				}
-				else if (seg.tip(0).bactive)
-				{
-					seg.tip(0).rt.x = intersectpt[0];
-					seg.tip(0).rt.y = intersectpt[1];
-					seg.tip(0).rt.z = intersectpt[2];
-					seg.tip(0).bactive = false;
-				}
-				cout << "3D intersection" << endl;
-				++m_num_anastom;
-			}
-		}
-	}
-
-
-	return;
-}
 
 
 //-----------------------------------------------------------------------------
+// Helper function for finding the intersection between two lines.
 // variables:
 // a : start x,y point on segment1
 // b : end x,y point on segment1
@@ -704,7 +603,7 @@ void Culture::CheckForIntersection(Segment &seg, list<Segment>::iterator it)
 // mu = (2*A*D + B*C)/(C^2 - 4*A*E) 
 
 
-double Culture::findIntersect(double a[3], double b[3], double c[3], double d[3], double intersectpt[3])
+double findIntersect(double a[3], double b[3], double c[3], double d[3], double intersectpt[3])
 {
 	double t1[3], t2[3];
 	double A, B, C, D, E, F, min_dist;
@@ -749,430 +648,79 @@ double Culture::findIntersect(double a[3], double b[3], double c[3], double d[3]
 	return lambda;
 }
 
-
 //-----------------------------------------------------------------------------
-// line equation P = LP[3] + u*V[3]
-// Plane equation N[3].(P[3]-P*[3]) = 0
-// solving for u, u={N[3].(P*[3]-LP[3])}/{N[3].V[3]}
-
-// box face numbering
-// Front = 0
-// Right = 1
-// Back = 2+
-// Left = 3
-// Top = 4
-// Bottom = 5
-
-bool Culture::intersectPlane(Segment &seg, int n, double intersectpt[3])
+// Description: checks for intersection between a passed segment and all other existing segments that are not members
+// of vessel containing the segment
+void Culture::CheckForIntersection(Segment &seg, Segment& it)
 {
-	double N0[3], N1[3], N2[3], N3[3], N4[3], N5[3]; //face normals
-	double P0[3], P1[3], P2[3], P3[3], P4[3], P5[3]; //point on faces
+	double p1[3], p2[3], pp1[3], pp2[3]; //tip points for segment to check intersection
+	list<Segment>::iterator it2; //loop over segments in list
+	double intersectpt[3]; //the intersection pt of vectors
+	
+	intersectpt[0] = 0;
+	intersectpt[1] = 0;
+	
+	double lambda;
 
-	Grid& grid = m_angio.GetGrid();
-
-	//front
-	N0[0] = 0;
-	N0[1] = -1;
-	N0[2] = 0;
-	P0[0] = 0;
-	P0[1] = 0;
-	P0[2] = 0;
-
-	//right
-	N1[0] = 1;
-	N1[1] = 0;
-	N1[2] = 0;
-	P1[0] = grid.xrange[1];
-	P1[1] = 0;
-	P1[2] = 0;
-
-	//back
-	N2[0] = 0;
-	N2[1] = 1;
-	N2[2] = 0;
-	P2[0] = 0;
-	P2[1] = grid.yrange[1];
-	P2[2] = 0;
-
-	//left
-	N3[0] = -1;
-	N3[1] = 0;
-	N3[2] = 0;
-	P3[0] = 0;
-	P3[1] = 0;
-	P3[2] = 0;
-
-	//top
-	N4[0] = 0;
-	N4[1] = 0;
-	N4[2] = 1;
-	P4[0] = 0;
-	P4[1] = 0;
-	P4[2] = grid.zrange[1];
-
-	//bottom
-	N5[0] = 0;
-	N5[1] = 0;
-	N5[2] = -1;
-	P5[0] = 0;
-	P5[1] = 0;
-	P5[2] = 0;
-	double V[3]; //segment displacement vector
-	double V2[3]; //P*[3]-LP[3]
-	double LP[3]; //origin of segment
-	double u; //scalar weight to move along segment displacement vector
-
-
-	if (seg.tip(1).bactive)
-	{
-		V[0] = seg.tip(1).rt.x - seg.tip(0).rt.x;
-		V[1] = seg.tip(1).rt.y - seg.tip(0).rt.y;
-		V[2] = seg.tip(1).rt.z - seg.tip(0).rt.z;
-		LP[0] = seg.tip(0).rt.x;
-		LP[1] = seg.tip(0).rt.y;
-		LP[2] = seg.tip(0).rt.z;
-	}
-	else
-	{
-		V[0] = seg.tip(0).rt.x - seg.tip(1).rt.x;
-		V[1] = seg.tip(0).rt.y - seg.tip(1).rt.y;
-		V[2] = seg.tip(0).rt.z - seg.tip(1).rt.z;
-		LP[0] = seg.tip(1).rt.x;
-		LP[1] = seg.tip(1).rt.y;
-		LP[2] = seg.tip(1).rt.z;
-	}
-
-	switch (n)
-	{
-		case 0: //front
-			V2[0] = P0[0] - LP[0];
-			V2[1] = P0[1] - LP[1];
-			V2[2] = P0[2] - LP[2];
-			u = vec_dot(N0,V2)/vec_dot(N0,V);
-			if (u>0 && u<1)
-			{
-				intersectpt[0] = LP[0] + u*V[0];
-				intersectpt[1] = LP[1] + u*V[1];
-				intersectpt[2] = LP[2] + u*V[2];
-				if (intersectpt[0] > grid.xrange[0] && intersectpt[0] < grid.xrange[1] &&
-					intersectpt[2] > grid.zrange[0] && intersectpt[2] < grid.zrange[1])
-					return true;
-			}
-			break;
-		case 1: //right
-			V2[0] = P1[0] - LP[0];
-			V2[1] = P1[1] - LP[1];
-			V2[2] = P1[2] - LP[2];
-			u = vec_dot(N1,V2)/vec_dot(N1,V);
-			if (u>0 && u<1)
-			{
-				intersectpt[0] = LP[0] + u*V[0];
-				intersectpt[1] = LP[1] + u*V[1];
-				intersectpt[2] = LP[2] + u*V[2];
-				if (intersectpt[1] > grid.yrange[0] && intersectpt[1] < grid.yrange[1] &&
-					intersectpt[2] > grid.zrange[0] && intersectpt[2] < grid.zrange[1])
-					return true;
-			}
-			break;
-		case 2: //back
-			V2[0] = P2[0] - LP[0];
-			V2[1] = P2[1] - LP[1];
-			V2[2] = P2[2] - LP[2];
-			u = vec_dot(N2,V2)/vec_dot(N2,V);
-			if (u>0 && u<1)
-			{
-				intersectpt[0] = LP[0] + u*V[0];
-				intersectpt[1] = LP[1] + u*V[1];
-				intersectpt[2] = LP[2] + u*V[2];
-				if (intersectpt[0] > grid.xrange[0] && intersectpt[0] < grid.xrange[1] &&
-					intersectpt[2] > grid.zrange[0] && intersectpt[2] < grid.zrange[1])
-					return true;
-			}
-			break;
-		case 3: //left
-			V2[0] = P3[0] - LP[0];
-			V2[1] = P3[1] - LP[1];
-			V2[2] = P3[2] - LP[2];
-			u = vec_dot(N3,V2)/vec_dot(N3,V);
-			if (u>0 && u<1)
-			{
-				intersectpt[0] = LP[0] + u*V[0];
-				intersectpt[1] = LP[1] + u*V[1];
-				intersectpt[2] = LP[2] + u*V[2];
-				if (intersectpt[1] > grid.yrange[0] && intersectpt[1] < grid.yrange[1] &&
-					intersectpt[2] > grid.zrange[0] && intersectpt[2] < grid.zrange[1])
-					return true;
-			}
-			break;
-		case 4: //top
-			V2[0] = P4[0] - LP[0];
-			V2[1] = P4[1] - LP[1];
-			V2[2] = P4[2] - LP[2];
-			u = vec_dot(N4,V2)/vec_dot(N4,V);
-			if (u>0 && u<1)
-			{
-				intersectpt[0] = LP[0] + u*V[0];
-				intersectpt[1] = LP[1] + u*V[1];
-				intersectpt[2] = LP[2] + u*V[2];
-				if (intersectpt[0] > grid.xrange[0] && intersectpt[0] < grid.xrange[1] &&
-					intersectpt[1] > grid.yrange[0] && intersectpt[1] < grid.yrange[1])
-					return true;
-			}
-			break;
-		case 5: //bottom
-			V2[0] = P5[0] - LP[0];
-			V2[1] = P5[1] - LP[1];
-			V2[2] = P5[2] - LP[2];
-			u = vec_dot(N5,V2)/vec_dot(N5,V);
-			if (u>0 && u<1)
-			{
-				intersectpt[0] = LP[0] + u*V[0];
-				intersectpt[1] = LP[1] + u*V[1];
-				intersectpt[2] = LP[2] + u*V[2];
-				if (intersectpt[0] > grid.xrange[0] && intersectpt[0] < grid.xrange[1] &&
-					intersectpt[1] > grid.yrange[0] && intersectpt[1] < grid.yrange[1])
-					return true;
-			}
-			break;
-	}
-	return false;
-}
-
-///////////////////////////////////////////////////////////////////////
-// PeriodicBC
-///////////////////////////////////////////////////////////////////////
-
-//table of faces opposite to 0,1,..6
-double oppface[6];
-// TODO: vessel lenghts are always positive. Fix the logic here.
-Segment Culture::PeriodicBC(Segment &seg)
-{
-	Grid& grid = m_angio.GetGrid();
-
-	oppface[0] = grid.yrange[1];
-	oppface[1] = grid.xrange[0];
-	oppface[2] = grid.yrange[0];
-	oppface[3] = grid.xrange[1];
-	oppface[4] = grid.zrange[0];
-	oppface[5] = grid.zrange[1];
-	double unit_vec[3] = {0};
-	double length = 0.0;
-	double rem_length = 0.0;
-	int n = 0;
-	double intersectpt[3] = {0};
+	vec3d& r0 = seg.tip(0).rt;
+	vec3d& r1 = seg.tip(1).rt;
 	
 	if (seg.tip(1).bactive)
 	{
-		unit_vec[0] = (seg.tip(1).rt.x-seg.tip(0).rt.x);
-		unit_vec[1] = (seg.tip(1).rt.y-seg.tip(0).rt.y);
-		unit_vec[2] = (seg.tip(1).rt.z-seg.tip(0).rt.z);
-		length = vec_norm(unit_vec);
-		unit_vec[0] /= length;
-		unit_vec[1] /= length;
-		unit_vec[2] /= length;
-		
-		for (n=0;n<6;++n)
-		{
-			if (intersectPlane(seg,n,intersectpt))
-			{
-				//cout << endl << "Vessel " << seg.m_nseed << " Crossed Face " << n << endl;
-				seg.tip(1).rt.x = intersectpt[0];
-				seg.tip(1).rt.y = intersectpt[1];
-				seg.tip(1).rt.z = intersectpt[2];
-				seg.Update();
-/*				if (seg.length() < 0)
-				{
-					seg.m_length = -(seg.tip(1).rt - seg.tip(0).rt).norm();
-				}
-				else
-				{
-					seg.m_length = (seg.tip(1).rt - seg.tip(0).rt).norm();
-				}
-*/
-				seg.tip(1).bactive = false;
-				seg.SetFlagOn(Segment::BC_DEAD);
-				
-				if (n > 3)
-				    m_num_zdead += 1;
-				return seg;
-				
-				AddSegment(seg);
-				Segment seg2;
-				m_num_vessel = m_num_vessel + 1;
-				
-				switch (n)
-				{
-				case 0:
-					seg2.tip(0).rt.x = seg.tip(1).rt.x;
-					seg2.tip(0).rt.y = oppface[n];
-					seg2.tip(0).rt.z = seg.tip(1).rt.z;
-					break;
-					
-				case 1:
-					seg2.tip(0).rt.x = oppface[n];
-					seg2.tip(0).rt.y = seg.tip(1).rt.y;
-					seg2.tip(0).rt.z = seg.tip(1).rt.z;
-					break;
-				case 2:
-					seg2.tip(0).rt.x = seg.tip(1).rt.x;
-					seg2.tip(0).rt.y = oppface[n];
-					seg2.tip(0).rt.z = seg.tip(1).rt.z;
-					break;
-				case 3:
-					seg2.tip(0).rt.x = oppface[n];
-					seg2.tip(0).rt.y = seg.tip(1).rt.y;
-					seg2.tip(0).rt.z = seg.tip(1).rt.z;
-					break;
-				case 4:
-					seg2.tip(0).rt.x = seg.tip(1).rt.x;
-					seg2.tip(0).rt.y = seg.tip(1).rt.y;
-					seg2.tip(0).rt.z = oppface[n];
-					break;
-				case 5:
-					seg2.tip(0).rt.x = seg.tip(1).rt.x;
-					seg2.tip(0).rt.y = seg.tip(1).rt.y;
-					seg2.tip(0).rt.z = oppface[n];
-					break;
-				}
-
-				if (seg.length() > 0) 
-				{
-					rem_length = length - (seg.tip(1).rt - seg.tip(0).rt).norm();
-					seg2.tip(1).rt.x = seg2.tip(0).rt.x + rem_length*unit_vec[0];
-					seg2.tip(1).rt.y = seg2.tip(0).rt.y + rem_length*unit_vec[1];
-					seg2.tip(1).rt.z = seg2.tip(0).rt.z + rem_length*unit_vec[2];
-				}
-				else 
-				{
-					rem_length = -length + (seg.tip(1).rt- seg.tip(0).rt).norm();
-					seg2.tip(1).rt.x = seg2.tip(0).rt.x - rem_length*unit_vec[0];
-					seg2.tip(1).rt.y = seg2.tip(0).rt.y - rem_length*unit_vec[1];
-					seg2.tip(1).rt.z = seg2.tip(0).rt.z - rem_length*unit_vec[2];
-				}
-				
-				seg2.tip(1).bactive = true;
-				seg2.tip(0).bactive = false;
-				seg2.m_nseed = seg.m_nseed;
-				seg2.m_nvessel = m_num_vessel;
-				seg2.m_sprout = seg.m_sprout;
-//				seg2.m_length = rem_length;
-//				seg2.phi1 = seg.phi1;
-//				seg2.phi2 = seg.phi2;
-				seg2.SetTimeOfBirth(seg.GetTimeOfBirth());
-				if (grid.IsOutsideBox(seg2))
-					seg = PeriodicBC(seg2);
-				else
-					return seg2;
-			}
-			
-		}
+		p1[0] = r0.x;
+		p2[0] = r1.x;
+		p1[1] = r0.y;
+		p2[1] = r1.y;
+		p1[2] = r0.z;
+		p2[2] = r1.z;
 	}
-	
-	else
+	else if (seg.tip(0).bactive)
 	{
-		unit_vec[0] = (seg.tip(0).rt.x-seg.tip(1).rt.x);
-		unit_vec[1] = (seg.tip(0).rt.y-seg.tip(1).rt.y);
-		unit_vec[2] = (seg.tip(0).rt.z-seg.tip(1).rt.z);
-		length = vec_norm(unit_vec);
-		unit_vec[0] /= length;
-		unit_vec[1] /= length;
-		unit_vec[2] /= length;
-		for (n=0;n<6;++n)
-		{
-			if (intersectPlane(seg,n,intersectpt))
-			{
-				//cout << endl << "Vessel " << seg.m_nseed << " Crossed Face " << n << endl;
-				seg.tip(0).rt.x = intersectpt[0];
-				seg.tip(0).rt.y = intersectpt[1];
-				seg.tip(0).rt.z = intersectpt[2];
-				if (seg.length() < 0)
-				{
-//					seg.m_length = -(seg.tip(1).rt - seg.tip(0).rt).norm();
-				}
-				else
-				{
-//					seg.m_length = (seg.tip(1).rt - seg.tip(0).rt).norm();
-				}
-				
-				seg.tip(0).bactive = false;
-                
-				if (n > 3)
-				    m_num_zdead += 1;
-				return seg;
-				
-				AddSegment(seg);
-				Segment seg2;
-				m_num_vessel = m_num_vessel + 1;
-				
-				switch (n)
-				{
-				case 0:
-					seg2.tip(1).rt.x = seg.tip(0).rt.x;
-					seg2.tip(1).rt.y = oppface[n];
-					seg2.tip(1).rt.z = seg.tip(0).rt.z;
-					break;
-					
-				case 1:
-					seg2.tip(1).rt.x = oppface[n];
-					seg2.tip(1).rt.y = seg.tip(0).rt.y;
-					seg2.tip(1).rt.z = seg.tip(0).rt.z;
-					break;
-				case 2:
-					seg2.tip(1).rt.x = seg.tip(0).rt.x;
-					seg2.tip(1).rt.y = oppface[n];
-					seg2.tip(1).rt.z = seg.tip(0).rt.z;
-					break;
-				case 3:
-					seg2.tip(1).rt.x = oppface[n];
-					seg2.tip(1).rt.y = seg.tip(0).rt.y;
-					seg2.tip(1).rt.z = seg.tip(0).rt.z;
-					break;
-				case 4:
-					seg2.tip(1).rt.x = seg.tip(0).rt.x;
-					seg2.tip(1).rt.y = seg.tip(0).rt.y;
-					seg2.tip(1).rt.z = oppface[n];
-					break;
-				case 5:
-					seg2.tip(1).rt.x = seg.tip(0).rt.x;
-					seg2.tip(1).rt.y = seg.tip(0).rt.y;
-					seg2.tip(1).rt.z = oppface[n];
-					break;
-				}
+		p1[0] = r1.x;
+		p2[0] = r0.x;
+		p1[1] = r1.y;
+		p2[1] = r0.y;
+		p1[2] = r1.z;
+		p2[2] = r0.z;
+	}
 
-				if (seg.length() < 0) 
+	Culture& cult = m_angio.GetCulture();
+	for (it2 = cult.m_frag.begin(); it2 != cult.m_frag.end(); ++it2)
+	{
+		if (it.m_nseed!=it2->m_nseed)
+		{
+			pp1[0] = r0.x;
+			pp1[1] = r0.y;
+			pp1[2] = r0.z;
+			pp2[0] = r1.x;
+			pp2[1] = r1.y;
+			pp2[2] = r1.z;
+
+			lambda = findIntersect(p1,p2,pp1,pp2,intersectpt);
+			if (lambda >=0 && lambda <=1)
+			{
+				if (seg.tip(1).bactive)
 				{
-					rem_length = -length + (seg.tip(1).rt - seg.tip(0).rt).norm();
-					seg2.tip(0).rt.x = seg2.tip(1).rt.x - rem_length*unit_vec[0];
-					seg2.tip(0).rt.y = seg2.tip(1).rt.y - rem_length*unit_vec[1];
-					seg2.tip(0).rt.z = seg2.tip(1).rt.z - rem_length*unit_vec[2];
-					
+					seg.tip(1).rt.x = intersectpt[0];
+					seg.tip(1).rt.y = intersectpt[1];
+					seg.tip(1).rt.z = intersectpt[2];
+					seg.tip(1).bactive = false;
 				}
-				else 
+				else if (seg.tip(0).bactive)
 				{
-					rem_length = length - (seg.tip(1).rt - seg.tip(0).rt).norm();
-					seg2.tip(0).rt.x = seg2.tip(1).rt.x + rem_length*unit_vec[0];
-					seg2.tip(0).rt.y = seg2.tip(1).rt.y + rem_length*unit_vec[1];
-					seg2.tip(0).rt.z = seg2.tip(1).rt.z + rem_length*unit_vec[2];
+					seg.tip(0).rt.x = intersectpt[0];
+					seg.tip(0).rt.y = intersectpt[1];
+					seg.tip(0).rt.z = intersectpt[2];
+					seg.tip(0).bactive = false;
 				}
-				
-				seg2.tip(1).bactive = false;
-				seg2.tip(0).bactive = true;
-				seg2.m_nseed = seg.m_nseed;
-				seg2.m_nvessel = m_num_vessel;
-				seg2.m_sprout = seg.m_sprout;
-//				seg2.m_length = rem_length;
-//				seg2.phi1 = seg.phi1;
-//				seg2.phi2 = seg.phi2;
-				seg2.SetTimeOfBirth(seg.GetTimeOfBirth());
-				
-				if (grid.IsOutsideBox(seg2))
-					seg = PeriodicBC(seg2);
-				else
-					return seg2;
+				cout << "3D intersection" << endl;
+				++m_num_anastom;
 			}
 		}
 	}
-	return seg;
+
+
+	return;
 }
 
 //-----------------------------------------------------------------------------

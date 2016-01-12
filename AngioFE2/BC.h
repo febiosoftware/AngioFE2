@@ -32,6 +32,9 @@ class BC
 	Segment inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k);
 	Segment symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k);
 
+	// If a segment encounters one of the boundary planes, enforce the periodic boundary conditions
+	Segment PeriodicBC(Segment &seg);
+
 public:
 	bool BC_violated;
 	bool BC_bouncy;

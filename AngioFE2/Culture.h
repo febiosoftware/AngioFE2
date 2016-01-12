@@ -38,34 +38,24 @@ public:
 	void SubGrowth(double scale);
 
 public:
-	// Add a segment to the culture
-	void AddSegment(Segment& seg);
-
-	// Determine the orientation angle of a newly created segment based on the information stored in GRID
+	// Determine the orientation vector of a newly created segment
 	vec3d FindDirection(Segment& it, GridPoint& pt);
 	
 	// find the unit direction vector of the collagen
 	vec3d CollagenDirection(GridPoint& pt);
 	
-	// Find the density scale factor at a point of the grid
-	// TODO: Move to Grid class
-	double findDenScale(vec3d& pt);
-	double FindDensityScale(GridPoint& pt);
-	
-	// Create a new segment connecting two existing segments that are fusing through anastomosis
-	Segment connectSegment(Segment& it, Segment& it2, int k, int kk, SimulationTime& time);
+	// Find the density-based length scale factor at a point of the grid
+	double FindDensityScale(const GridPoint& pt);
+
+	// scales the density
+	double ScaleDensity(double coll_den);
 	
 	// Check a newly created segment to see if it physically intersections with any existing segments
-	void CheckForIntersection(Segment &seg, list<Segment>::iterator it);
+	void CheckForIntersection(Segment &seg, Segment& it);
 	
-	// Find the coordinates at which two segments intersect
-	double findIntersect(double a[3], double b[3], double c[3], double d[3], double intersectpt[3]);
-	
-	// Determine if a segment encounters one of the boundary planes, find the coordinates of the intersection point
-	bool intersectPlane(Segment &Seg, int n, double intersectpt[3]);
-	
-	// If a segment encounters one of the boundary planes, enforce the periodic boundary conditions
-	Segment PeriodicBC(Segment &seg);
+public:
+	// Add a segment to the culture
+	void AddSegment(Segment& seg);
 
 	// return the number of segments
 	int Segments() { return m_nsegs; }
@@ -89,6 +79,9 @@ private:
 	// Create a new segment at the tip of an existing segment
 	Segment CreateNewSeg(Segment& it, int k, SimulationTime& time, bool branch = false);
 
+	// Create a new segment connecting two existing segments that are fusing through anastomosis
+	Segment ConnectSegment(Segment& it, Segment& it2, int k, int kk, SimulationTime& time);
+
 	// Update the new vessel length 
 	void UpdateNewVesselLength(SimulationTime& time);
 
@@ -98,6 +91,7 @@ private:
 	void CreateBranchingForce(Segment& seg);
     void check4anast(Segment& it, int k, SimulationTime& time);
     void anastomose(double dist0, double dist1, int k, Segment& it, Segment& it2, SimulationTime& time);
+
 
 	void kill_dead_segs();
 

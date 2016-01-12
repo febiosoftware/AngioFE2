@@ -2,6 +2,7 @@
 #include "AngioPlot.h"
 #include "FEAngio.h"
 #include <FECore/FESolidDomain.h>
+#include "FEAngioMaterial.h"
 
 //-----------------------------------------------------------------------------
 bool FEPlotAngioStress::Save(FEDomain& d, FEDataStream& str)
@@ -18,8 +19,8 @@ bool FEPlotAngioStress::Save(FEDomain& d, FEDataStream& str)
 		mat3ds s(0.0);
 		for (int j=0; j<nint; ++j)
 		{
-			FEElasticMaterialPoint& pt = *(el.GetMaterialPoint(j)->ExtractData<FEElasticMaterialPoint>());
-			mat3ds sj = pmat->SproutStress(pt.m_rt);
+			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
+			mat3ds sj = pmat->Stress(mp);
 			s += sj;
 		}
 		s /= (double) nint;
@@ -44,8 +45,9 @@ bool FEPlotAngioEffectiveStress::Save(FEDomain& d, FEDataStream& str)
 		mat3ds s(0.0);
 		for (int j=0; j<nint; ++j)
 		{
-			FEElasticMaterialPoint& pt = *(el.GetMaterialPoint(j)->ExtractData<FEElasticMaterialPoint>());
-			mat3ds sj = pmat->SproutStress(pt.m_rt);
+			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
+			FEElasticMaterialPoint& pt = *(mp.ExtractData<FEElasticMaterialPoint>());
+			mat3ds sj = pmat->Stress(mp);
 			s += pt.m_s - sj;
 		}
 		s /= (double) nint;

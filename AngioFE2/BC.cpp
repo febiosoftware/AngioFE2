@@ -54,11 +54,15 @@ void BC::checkBC(Segment &seg, int k)
 		assert(elem.m_nbr[face] == -1);
 		assert(elem.GetFace(face)->BC == true);
 
-		seg.tip(k).pt.nelem = elem_num;
+		Segment::TIP& tip = seg.tip(k);
+
+		// update position and grid point structure
+		tip.pt.nelem = elem_num;
+		grid.natcoord(tip.pt.q.x, tip.pt.q.y, tip.pt.q.z, i_point.x, i_point.y, i_point.z, elem_num);
+		seg.tip(k).rt = i_point;
 
 		// For now, just turn off the tip
 		seg.tip(k).bactive = false;
-		seg.tip(k).rt = i_point;
 
 /*		if (face == 0) { enforceBC(i_point, face+1, elem.f1.bc_type, seg, elem_num, k); return;}
 		if (face == 1) { enforceBC(i_point, face+1, elem.f2.bc_type, seg, elem_num, k); return;}
@@ -333,15 +337,14 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, in
 	seg2.SetFlagOn(Segment::BC_DEAD);
     seg2.SetTimeOfBirth(m_angio.m_time.t);
     
-	if (seg.m_sprout != Segment::SPROUT_INIT)
-		seg2.m_sprout = seg.m_sprout;
+	if (seg.GetFlag(Segment::INIT_SPROUT) == false)
+		seg2.SetFlagOn(seg.GetFlags());
     
     //seg2.findphi();
     seg2.tip(k).bdyf_id = seg.tip(k).bdyf_id; 
 
 	return seg2;
 }
-
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -1646,8 +1649,9 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
     /*data.num_vessel++; 
 	seg2.line_num = seg.line_num;*/
 
-	if (seg.m_sprout != Segment::SPROUT_INIT)
-		seg2.m_sprout = seg.m_sprout;
+	// TODO: I don't think I want to copy all the flags. Maybe I don't need to copy anything.
+	if (seg.GetFlag(Segment::INIT_SPROUT) == false)
+		seg2.SetFlagOn(seg.GetFlags());
     
 	seg2.Update();
 	//seg2.findphi();
@@ -1771,11 +1775,251 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	seg2.SetFlagOn(Segment::BC_DEAD);
     seg2.SetTimeOfBirth(m_angio.m_time.t);
 
-	if (seg.m_sprout != Segment::SPROUT_INIT)
-		seg2.m_sprout = seg.m_sprout;
+	// TODO: I don't think I want to copy all the flags. Maybe I don't need to copy anything.
+	if (seg.GetFlag(Segment::INIT_SPROUT) == false)
+		seg2.SetFlagOn(seg.GetFlags());
     
 	seg2.Update();
     seg2.tip(k).bdyf_id = seg.tip(k).bdyf_id; 
 
 	return seg2;
+}
+
+
+///////////////////////////////////////////////////////////////////////
+// PeriodicBC
+///////////////////////////////////////////////////////////////////////
+
+//table of faces opposite to 0,1,..6
+double oppface[6];
+// TODO: vessel lenghts are always positive. Fix the logic here.
+Segment BC::PeriodicBC(Segment &seg)
+{
+	Grid& grid = m_angio.GetGrid();
+	Culture& cult = m_angio.GetCulture();
+
+	oppface[0] = grid.yrange[1];
+	oppface[1] = grid.xrange[0];
+	oppface[2] = grid.yrange[0];
+	oppface[3] = grid.xrange[1];
+	oppface[4] = grid.zrange[0];
+	oppface[5] = grid.zrange[1];
+	double unit_vec[3] = {0};
+	double length = 0.0;
+	double rem_length = 0.0;
+	int n = 0;
+	double intersectpt[3] = {0};
+	
+	if (seg.tip(1).bactive)
+	{
+		unit_vec[0] = (seg.tip(1).rt.x-seg.tip(0).rt.x);
+		unit_vec[1] = (seg.tip(1).rt.y-seg.tip(0).rt.y);
+		unit_vec[2] = (seg.tip(1).rt.z-seg.tip(0).rt.z);
+		length = vec_norm(unit_vec);
+		unit_vec[0] /= length;
+		unit_vec[1] /= length;
+		unit_vec[2] /= length;
+		
+		for (n=0;n<6;++n)
+		{
+			if (grid.intersectPlane(seg,n,intersectpt))
+			{
+				//cout << endl << "Vessel " << seg.m_nseed << " Crossed Face " << n << endl;
+				seg.tip(1).rt.x = intersectpt[0];
+				seg.tip(1).rt.y = intersectpt[1];
+				seg.tip(1).rt.z = intersectpt[2];
+				seg.Update();
+/*				if (seg.length() < 0)
+				{
+					seg.m_length = -(seg.tip(1).rt - seg.tip(0).rt).norm();
+				}
+				else
+				{
+					seg.m_length = (seg.tip(1).rt - seg.tip(0).rt).norm();
+				}
+*/
+				seg.tip(1).bactive = false;
+				seg.SetFlagOn(Segment::BC_DEAD);
+				
+				if (n > 3)
+				    cult.m_num_zdead += 1;
+				return seg;
+				
+				cult.AddSegment(seg);
+				Segment seg2;
+				cult.m_num_vessel += 1;
+				
+				switch (n)
+				{
+				case 0:
+					seg2.tip(0).rt.x = seg.tip(1).rt.x;
+					seg2.tip(0).rt.y = oppface[n];
+					seg2.tip(0).rt.z = seg.tip(1).rt.z;
+					break;
+					
+				case 1:
+					seg2.tip(0).rt.x = oppface[n];
+					seg2.tip(0).rt.y = seg.tip(1).rt.y;
+					seg2.tip(0).rt.z = seg.tip(1).rt.z;
+					break;
+				case 2:
+					seg2.tip(0).rt.x = seg.tip(1).rt.x;
+					seg2.tip(0).rt.y = oppface[n];
+					seg2.tip(0).rt.z = seg.tip(1).rt.z;
+					break;
+				case 3:
+					seg2.tip(0).rt.x = oppface[n];
+					seg2.tip(0).rt.y = seg.tip(1).rt.y;
+					seg2.tip(0).rt.z = seg.tip(1).rt.z;
+					break;
+				case 4:
+					seg2.tip(0).rt.x = seg.tip(1).rt.x;
+					seg2.tip(0).rt.y = seg.tip(1).rt.y;
+					seg2.tip(0).rt.z = oppface[n];
+					break;
+				case 5:
+					seg2.tip(0).rt.x = seg.tip(1).rt.x;
+					seg2.tip(0).rt.y = seg.tip(1).rt.y;
+					seg2.tip(0).rt.z = oppface[n];
+					break;
+				}
+
+				if (seg.length() > 0) 
+				{
+					rem_length = length - (seg.tip(1).rt - seg.tip(0).rt).norm();
+					seg2.tip(1).rt.x = seg2.tip(0).rt.x + rem_length*unit_vec[0];
+					seg2.tip(1).rt.y = seg2.tip(0).rt.y + rem_length*unit_vec[1];
+					seg2.tip(1).rt.z = seg2.tip(0).rt.z + rem_length*unit_vec[2];
+				}
+				else 
+				{
+					rem_length = -length + (seg.tip(1).rt- seg.tip(0).rt).norm();
+					seg2.tip(1).rt.x = seg2.tip(0).rt.x - rem_length*unit_vec[0];
+					seg2.tip(1).rt.y = seg2.tip(0).rt.y - rem_length*unit_vec[1];
+					seg2.tip(1).rt.z = seg2.tip(0).rt.z - rem_length*unit_vec[2];
+				}
+				
+				seg2.tip(1).bactive = true;
+				seg2.tip(0).bactive = false;
+				seg2.m_nseed = seg.m_nseed;
+				seg2.m_nvessel = cult.m_num_vessel;
+				seg2.SetFlagOn(seg.GetFlags());
+//				seg2.m_length = rem_length;
+//				seg2.phi1 = seg.phi1;
+//				seg2.phi2 = seg.phi2;
+				seg2.SetTimeOfBirth(seg.GetTimeOfBirth());
+				if (grid.IsOutsideBox(seg2))
+					seg = PeriodicBC(seg2);
+				else
+					return seg2;
+			}
+			
+		}
+	}
+	
+	else
+	{
+		unit_vec[0] = (seg.tip(0).rt.x-seg.tip(1).rt.x);
+		unit_vec[1] = (seg.tip(0).rt.y-seg.tip(1).rt.y);
+		unit_vec[2] = (seg.tip(0).rt.z-seg.tip(1).rt.z);
+		length = vec_norm(unit_vec);
+		unit_vec[0] /= length;
+		unit_vec[1] /= length;
+		unit_vec[2] /= length;
+		for (n=0;n<6;++n)
+		{
+			if (grid.intersectPlane(seg,n,intersectpt))
+			{
+				//cout << endl << "Vessel " << seg.m_nseed << " Crossed Face " << n << endl;
+				seg.tip(0).rt.x = intersectpt[0];
+				seg.tip(0).rt.y = intersectpt[1];
+				seg.tip(0).rt.z = intersectpt[2];
+				if (seg.length() < 0)
+				{
+//					seg.m_length = -(seg.tip(1).rt - seg.tip(0).rt).norm();
+				}
+				else
+				{
+//					seg.m_length = (seg.tip(1).rt - seg.tip(0).rt).norm();
+				}
+				
+				seg.tip(0).bactive = false;
+                
+				if (n > 3)
+				    cult.m_num_zdead += 1;
+				return seg;
+				
+				cult.AddSegment(seg);
+				Segment seg2;
+				cult.m_num_vessel += 1;
+				
+				switch (n)
+				{
+				case 0:
+					seg2.tip(1).rt.x = seg.tip(0).rt.x;
+					seg2.tip(1).rt.y = oppface[n];
+					seg2.tip(1).rt.z = seg.tip(0).rt.z;
+					break;
+					
+				case 1:
+					seg2.tip(1).rt.x = oppface[n];
+					seg2.tip(1).rt.y = seg.tip(0).rt.y;
+					seg2.tip(1).rt.z = seg.tip(0).rt.z;
+					break;
+				case 2:
+					seg2.tip(1).rt.x = seg.tip(0).rt.x;
+					seg2.tip(1).rt.y = oppface[n];
+					seg2.tip(1).rt.z = seg.tip(0).rt.z;
+					break;
+				case 3:
+					seg2.tip(1).rt.x = oppface[n];
+					seg2.tip(1).rt.y = seg.tip(0).rt.y;
+					seg2.tip(1).rt.z = seg.tip(0).rt.z;
+					break;
+				case 4:
+					seg2.tip(1).rt.x = seg.tip(0).rt.x;
+					seg2.tip(1).rt.y = seg.tip(0).rt.y;
+					seg2.tip(1).rt.z = oppface[n];
+					break;
+				case 5:
+					seg2.tip(1).rt.x = seg.tip(0).rt.x;
+					seg2.tip(1).rt.y = seg.tip(0).rt.y;
+					seg2.tip(1).rt.z = oppface[n];
+					break;
+				}
+
+				if (seg.length() < 0) 
+				{
+					rem_length = -length + (seg.tip(1).rt - seg.tip(0).rt).norm();
+					seg2.tip(0).rt.x = seg2.tip(1).rt.x - rem_length*unit_vec[0];
+					seg2.tip(0).rt.y = seg2.tip(1).rt.y - rem_length*unit_vec[1];
+					seg2.tip(0).rt.z = seg2.tip(1).rt.z - rem_length*unit_vec[2];
+					
+				}
+				else 
+				{
+					rem_length = length - (seg.tip(1).rt - seg.tip(0).rt).norm();
+					seg2.tip(0).rt.x = seg2.tip(1).rt.x + rem_length*unit_vec[0];
+					seg2.tip(0).rt.y = seg2.tip(1).rt.y + rem_length*unit_vec[1];
+					seg2.tip(0).rt.z = seg2.tip(1).rt.z + rem_length*unit_vec[2];
+				}
+				
+				seg2.tip(1).bactive = false;
+				seg2.tip(0).bactive = true;
+				seg2.m_nseed = seg.m_nseed;
+				seg2.m_nvessel = cult.m_num_vessel;
+				seg2.SetFlagOn(seg.GetFlags());
+//				seg2.m_length = rem_length;
+//				seg2.phi1 = seg.phi1;
+//				seg2.phi2 = seg.phi2;
+				seg2.SetTimeOfBirth(seg.GetTimeOfBirth());
+				
+				if (grid.IsOutsideBox(seg2))
+					seg = PeriodicBC(seg2);
+				else
+					return seg2;
+			}
+		}
+	}
+	return seg;
 }

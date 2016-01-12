@@ -40,10 +40,7 @@ public:
     void natcoord(double &xix, double &xiy, double &xiz, double xpt, double ypt, double zpt, int elem_num);
     
 	// find the element in which this point lies
-    int findelem(double xpt, double ypt, double zpt);
-
-	// find the element in which this point lies
-	int findelem(vec3d& pt) { return findelem(pt.x, pt.y, pt.z); }
+	int findelem(const vec3d& pt);
 
 	// return a GridPoint variable from a global point
 	// If the point lies outside the grid, GridPoint::nelem = -1.
@@ -70,11 +67,11 @@ public:
 	// find the neighbor of an element
 	int elem_find_neighbor(int elem_num,int neighbor_id);
 	
-	// scales the density
-	double find_density_scale(double coll_den);
-
 	// update the grid volume
 	void update_grid_volume();
+
+	// Determine if a segment encounters one of the boundary planes, find the coordinates of the intersection point
+	bool intersectPlane(Segment &Seg, int n, double intersectpt[3]);
 
 private:
 	// Find the neighbors of all elements
