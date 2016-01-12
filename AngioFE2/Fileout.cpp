@@ -63,14 +63,14 @@ void Fileout::printStatus(FEAngio& angio)
 	Culture& cult = angio.GetCulture();
     cout << endl << "Time: " << angio.m_time.t << endl;                             // Print out current time to user
 	//cout << "dt: " << data.dt << endl;
-    cout << "Segments: " << cult.m_nsegs << endl;                             // Print out current number of segments to user
+    cout << "Segments: " << cult.Segments() << endl;                             // Print out current number of segments to user
 	cout << "Total Length: " << angio.m_total_length << endl;                  // Print out the current total length to user
 	cout << "Branch Points: " << cult.m_num_branches << endl;                 // Print out the current number of branches to user
 	cout << "Anastomoses: " << cult.m_num_anastom << endl << endl;            // Print out the current number of anastomoses to user
     
     logstream << endl << "Time: " << angio.m_time.t << endl;                        // Print out current time to log file
 	//logstream << "dt: " << data.dt << endl;
-    logstream << "Segments: " << cult.m_nsegs << endl;                        // Print out current number of segments to log file
+    logstream << "Segments: " << cult.Segments() << endl;                        // Print out current number of segments to log file
 	logstream << "Total Length: " << angio.m_total_length << endl;             // Print out the current total length to log file
 	logstream << "Branch Points: " << cult.m_num_branches << endl;            // Print out the current number of branches to log file
 	logstream << "Anastomoses: " << cult.m_num_anastom << endl << endl;       // Print out the current number of anastomoses to log file
@@ -103,16 +103,15 @@ void Fileout::dataout(FEAngio &feangio)
 //-----------------------------------------------------------------------------
 void Fileout::writeData(FEAngio &angio)
 {
-	list<Segment>::iterator it;
-	
 	fprintf(m_stream,"%-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-5s %-5s\n","Time","X1","Y1","Z1","X2","Y2","Z2","Length","Vess","Label");  // Write column labels to data.ang
 	
 	Culture& cult = angio.GetCulture();
-	for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it)                         // Iterate through all segments in frag list container (it)
+	SegIter it;
+	for (it = cult.SegmentBegin(); it != cult.SegmentEnd(); ++it)
 	{
-		vec3d& r0 = it->m_tip[0].rt;
-		vec3d& r1 = it->m_tip[1].rt;
-		fprintf(m_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i %-5.2i\n",it->TofBirth,r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length,it->seg_num,it->label);
+		vec3d& r0 = it->tip(0).rt;
+		vec3d& r1 = it->tip(1).rt;
+		fprintf(m_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i %-5.2i\n",it->GetTimeOfBirth(),r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length(),it->m_nid,it->m_nseed);
 	}
 	fclose(m_stream);                                                         // Close stream to 'data.ang' (stream)
 	
@@ -325,40 +324,17 @@ void Fileout::printrandseed(int randseed)
 }
 
 //-----------------------------------------------------------------------------
-void Fileout::writeSegConn(list<Segment> &frag)
-{
-	list<Segment>::iterator it;
-	
-	///// File output: 'out_seg_conn.ang' /////
-	
-	FILE *stream;                                                           // Open stream to 'out_seg_conn.ang' (stream)
-	stream = fopen("out_seg_conn.ang","wt");                                        
-	
-	fprintf(stream,"%-5s %-5s %-5s %-5s %-5s\n","SNum","Node1","     ","Node2","     ");  // Write column labels to data.ang
-
-	for (it = frag.begin(); it != frag.end(); ++it)                         // Iterate through all segments in frag list container (it)
-	{
-		fprintf(stream,"%-5.2i %-5.2i %-5.2i %-5.2i %-5.2i\n",it->seg_num,it->seg_conn[0][0],it->seg_conn[0][1],it->seg_conn[1][0],it->seg_conn[1][1]);  // Write to seg_conn.ang
-	
-	}
-	
-	fclose(stream);                                                         // Close stream to 'data.ang' (stream)
-}
-
-//-----------------------------------------------------------------------------
 // Save microvessel position at the current time point
 void Fileout::save_vessel_state(FEAngio& angio)
 {
-	list<Segment>::iterator it;													// Iterator for the segment container FRAG
-		
 	fprintf(m_stream2,"%-5s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n","State","Time","X1","Y1","Z1","X2","Y2","Z2","Length");  // Write column labels to out_vess_state.ang
 	
 	Culture& cult = angio.GetCulture();
-	for (it = cult.m_frag.begin(); it != cult.m_frag.end(); ++it)								// Iterate through all segments in frag list container (it)
+	for (SegIter it = cult.SegmentBegin(); it != cult.SegmentEnd(); ++it)	// Iterate through all segments in frag list container (it)
 	{
-		vec3d& r0 = it->m_tip[0].rt;
-		vec3d& r1 = it->m_tip[1].rt;
-		fprintf(m_stream2,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n",angio.FE_state,it->TofBirth,r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length);  // Write to out_vess_state.ang
+		vec3d& r0 = it->tip(0).rt;
+		vec3d& r1 = it->tip(1).rt;
+		fprintf(m_stream2,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n",angio.FE_state,it->GetTimeOfBirth(),r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length());  // Write to out_vess_state.ang
 	}
 	
 	return;

@@ -26,22 +26,22 @@ void BC::checkBC(Segment &seg, int k)
 	Grid& grid = m_angio.GetGrid();
 
 	// get the tip point
-	vec3d pt = seg.m_tip[k].rt;
+	vec3d pt = seg.tip(k).rt;
 	
 	// See if this point lies inside an element
 	int elem_num = grid.findelem(pt);
 	if (elem_num != -1) return;
 
-	if (((seg.m_tip[0].active == 0) && (seg.m_tip[1].active == 0)) || (seg.length == 0.0)){
+	if (((seg.tip(0).bactive == false) && (seg.tip(1).bactive == false)) || (seg.length() == 0.0)){
 		assert(false);
 		seg.mark_of_death = true;
 		seg.death_label = 3;
 		return;}
 
 	// get the end-points and reference element
-	vec3d r0 = (k==0? seg.m_tip[1].rt : seg.m_tip[0].rt);
-	vec3d r1 = (k==0? seg.m_tip[0].rt : seg.m_tip[1].rt);
-	elem_num = (k==0?seg.m_tip[1].pt.nelem : seg.m_tip[0].pt.nelem);
+	vec3d r0 = (k==0? seg.tip(1).rt : seg.tip(0).rt);
+	vec3d r1 = (k==0? seg.tip(0).rt : seg.tip(1).rt);
+	elem_num = (k==0? seg.tip(1).pt.nelem : seg.tip(0).pt.nelem);
 	assert(elem_num >= 0);
 
 	// find the intersection with the element's boundary
@@ -54,11 +54,11 @@ void BC::checkBC(Segment &seg, int k)
 		assert(elem.m_nbr[face] == -1);
 		assert(elem.GetFace(face)->BC == true);
 
-		seg.m_tip[k].pt.nelem = elem_num;
+		seg.tip(k).pt.nelem = elem_num;
 
 		// For now, just turn off the tip
-		seg.m_tip[k].active = 0;
-		seg.m_tip[k].rt = i_point;
+		seg.tip(k).bactive = false;
+		seg.tip(k).rt = i_point;
 
 /*		if (face == 0) { enforceBC(i_point, face+1, elem.f1.bc_type, seg, elem_num, k); return;}
 		if (face == 1) { enforceBC(i_point, face+1, elem.f2.bc_type, seg, elem_num, k); return;}
@@ -95,26 +95,24 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
         Segment seg2;
 		
 		seg2 = bouncywallBC(i_point, face, seg, elem_num, k);
-        ++cult.m_nsegs;
-		seg2.seg_num = cult.m_nsegs;
 
-		elem_num = grid.findelem(seg2.m_tip[k].rt);
+		elem_num = grid.findelem(seg2.tip(k).rt);
         
 		if (elem_num != -1){
-			seg2.m_tip[k].pt.nelem = elem_num;
-			cult.m_frag.push_front(seg2);}
+			seg2.tip(k).pt.nelem = elem_num;
+			cult.AddSegment(seg2);}
 		else{
 			checkBC(seg2, k);
-			elem_num = grid.findelem(seg2.m_tip[k].rt);
+			elem_num = grid.findelem(seg2.tip(k).rt);
 			if (elem_num != -1){
-				seg2.m_tip[k].pt.nelem = elem_num;
-				cult.m_frag.push_front(seg2);}}
+				seg2.tip(k).pt.nelem = elem_num;
+				cult.AddSegment(seg2);}}
 
 		BC_bouncy = false;
 		BC_violated = false;
 		
 		if (seg2.mark_of_death == true)
-			seg.m_tip[k].BC = 1;
+			seg.tip(k).BC = 1;
 
 		return;}
     
@@ -124,23 +122,23 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
 				
 		seg2 = inplanewallBC(i_point, face, seg, elem_num, k);
 
-		elem_num = grid.findelem(seg2.m_tip[k].rt);
+		elem_num = grid.findelem(seg2.tip(k).rt);
         
 		if (elem_num != -1){
-			seg2.m_tip[k].pt.nelem = elem_num;
-			cult.m_frag.push_front(seg2);}
+			seg2.tip(k).pt.nelem = elem_num;
+			cult.AddSegment(seg2);}
 		else{
 			checkBC(seg2, k);
-			elem_num = grid.findelem(seg2.m_tip[k].rt);
+			elem_num = grid.findelem(seg2.tip(k).rt);
 			if (elem_num != -1){
-				seg2.m_tip[k].pt.nelem = elem_num;
-				cult.m_frag.push_front(seg2);}}
+				seg2.tip(k).pt.nelem = elem_num;
+				cult.AddSegment(seg2);}}
 
 		BC_bouncy = false;
 		BC_violated = false;
 		
 		if (seg2.mark_of_death == true)
-			seg.m_tip[k].BC = 1;
+			seg.tip(k).BC = 1;
 
 		return;} 
 
@@ -156,23 +154,23 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
 				
 		seg2 = symplaneperiodicwallBC(i_point, face, seg, elem_num, k);
 
-		elem_num = grid.findelem(seg2.m_tip[1].rt);
+		elem_num = grid.findelem(seg2.tip(1).rt);
         
 		if (elem_num != -1){
-			seg2.m_tip[k].pt.nelem = elem_num;
-			cult.m_frag.push_front(seg2);}
+			seg2.tip(k).pt.nelem = elem_num;
+			cult.AddSegment(seg2);}
 		else{
 			checkBC(seg2, k);
-			elem_num = grid.findelem(seg2.m_tip[k].rt);
+			elem_num = grid.findelem(seg2.tip(k).rt);
 			if (elem_num != -1){
-				seg2.m_tip[k].pt.nelem = elem_num;
-				cult.m_frag.push_front(seg2);}}
+				seg2.tip(k).pt.nelem = elem_num;
+				cult.AddSegment(seg2);}}
 
 		BC_bouncy = false;
 		BC_violated = false;
 		
 		if (seg2.mark_of_death == true)
-			seg.m_tip[k].BC = 1;
+			seg.tip(k).BC = 1;
 
 		return;} 
 
@@ -188,17 +186,19 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
 void BC::flatwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k)
 {
 	if (k == 1){
-        seg.m_tip[1].rt = i_point;
-        seg.findlength();
-        seg.m_tip[1].active = 0;}
+        seg.tip(1).rt = i_point;
+        seg.Update();
+        seg.tip(1).bactive = false;
+	}
     else if (k == 0){
-        seg.m_tip[0].rt = i_point;
-        seg.findlength();
-        seg.m_tip[0].active = 0;}
+        seg.tip(0).rt = i_point;
+        seg.Update();
+        seg.tip(0).bactive = false;
+	}
     
-    seg.BCdead = 1;
+	seg.SetFlagOn(Segment::BC_DEAD);
 
-	seg.m_tip[k].BC = 1;
+	seg.tip(k).BC = 1;
 
     return;
 }
@@ -220,21 +220,19 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, in
 	double old_length = 0.;
 	double remain_length = 0.;
 
-    xpt_0 = seg.m_tip[0].rt.x;
-    ypt_0 = seg.m_tip[0].rt.y;
-    zpt_0 = seg.m_tip[0].rt.z;
-    xpt_1 = seg.m_tip[1].rt.x;
-    ypt_1 = seg.m_tip[1].rt.y;
-    zpt_1 = seg.m_tip[1].rt.z;
+    xpt_0 = seg.tip(0).rt.x;
+    ypt_0 = seg.tip(0).rt.y;
+    zpt_0 = seg.tip(0).rt.z;
+    xpt_1 = seg.tip(1).rt.x;
+    ypt_1 = seg.tip(1).rt.y;
+    zpt_1 = seg.tip(1).rt.z;
  
 	xpt_i = i_point.x;
 	ypt_i = i_point.y;
 	zpt_i = i_point.z;
 
-	old_length = seg.length;
+	old_length = seg.length();
 	
-	Segment seg2;
-            
     double eps = 1e-3;
 
 	if (face == 1){
@@ -249,29 +247,32 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, in
 		zpt_i = (1.0 - eps)*i_point.z;}
 	if (face == 6){
 		zpt_i = (1.0 + eps)*i_point.z;}
-	
+
+	Segment seg2;
+    seg2.m_nseed = seg.m_nseed;
+            
 	if (k == 1){
-        seg.m_tip[1].rt.x = xpt_i;
-        seg.m_tip[1].rt.y = ypt_i;
-        seg.m_tip[1].rt.z = zpt_i;
-        seg.findlength();
-        seg.m_tip[1].active = 0;
-        seg2.m_tip[1].active = 1;
-		seg2.m_tip[0].pt = seg.m_tip[1].pt;
+        seg.tip(1).rt.x = xpt_i;
+        seg.tip(1).rt.y = ypt_i;
+        seg.tip(1).rt.z = zpt_i;
+        seg.Update();
+        seg.tip(1).bactive = false;
+        seg2.tip(1).bactive = true;
+		seg2.tip(0).pt = seg.tip(1).pt;
 	}
     else if (k == 0){
-        seg.m_tip[0].rt.x = xpt_i;
-        seg.m_tip[0].rt.y = ypt_i;
-        seg.m_tip[0].rt.z = zpt_i;
-        seg.findlength();
-        seg.m_tip[0].active = 0;
-        seg2.m_tip[0].active = -1;
-		seg2.m_tip[1].pt = seg.m_tip[0].pt;
+        seg.tip(0).rt.x = xpt_i;
+        seg.tip(0).rt.y = ypt_i;
+        seg.tip(0).rt.z = zpt_i;
+        seg.Update();
+        seg.tip(0).bactive = false;
+        seg2.tip(0).bactive = true;
+		seg2.tip(1).pt = seg.tip(0).pt;
 	}
 
-    seg.BCdead = 1;
+    seg.SetFlagOn(Segment::BC_DEAD);
        
-    remain_length = fabs(old_length) - fabs(seg.length);
+    remain_length = fabs(old_length) - seg.length();
 
 	if (k == 0)
 		remain_length = -1.0*remain_length;
@@ -305,8 +306,8 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, in
         break;
     
 	case -1:
-		seg2.m_tip[0].active = 0;
-		seg2.m_tip[1].active = 0;
+		seg2.tip(0).bactive = false;
+		seg2.tip(1).bactive = false;
 		seg2.mark_of_death = true;
 		seg2.death_label = 1;
 		return seg2;
@@ -314,30 +315,29 @@ Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, in
 	}
     
 	if (k == 1){
-        seg2.m_tip[0].rt.x = xpt_i;
-        seg2.m_tip[0].rt.y = ypt_i;
-        seg2.m_tip[0].rt.z = zpt_i;
-		seg2.m_tip[1].rt.x = xpt_i + remain_length*seg_unit.x;
-        seg2.m_tip[1].rt.y = ypt_i + remain_length*seg_unit.y;
-        seg2.m_tip[1].rt.z = zpt_i + remain_length*seg_unit.z;}
+        seg2.tip(0).rt.x = xpt_i;
+        seg2.tip(0).rt.y = ypt_i;
+        seg2.tip(0).rt.z = zpt_i;
+		seg2.tip(1).rt.x = xpt_i + remain_length*seg_unit.x;
+        seg2.tip(1).rt.y = ypt_i + remain_length*seg_unit.y;
+        seg2.tip(1).rt.z = zpt_i + remain_length*seg_unit.z;}
     else if (k == 0){
-        seg2.m_tip[1].rt.x = xpt_i;
-        seg2.m_tip[1].rt.y = ypt_i;
-        seg2.m_tip[1].rt.z = zpt_i;
-        seg2.m_tip[0].rt.x = xpt_i + remain_length*seg_unit.x;
-        seg2.m_tip[0].rt.y = ypt_i + remain_length*seg_unit.y;
-        seg2.m_tip[0].rt.z = zpt_i + remain_length*seg_unit.z;}
+        seg2.tip(1).rt.x = xpt_i;
+        seg2.tip(1).rt.y = ypt_i;
+        seg2.tip(1).rt.z = zpt_i;
+        seg2.tip(0).rt.x = xpt_i + remain_length*seg_unit.x;
+        seg2.tip(0).rt.y = ypt_i + remain_length*seg_unit.y;
+        seg2.tip(0).rt.z = zpt_i + remain_length*seg_unit.z;}
 
-	seg2.length = remain_length;
-	seg2.BCdead = 1;
-    seg2.label = seg.label;
-    seg2.TofBirth = m_angio.m_time.t;
+//	seg2.m_length = remain_length;
+	seg2.SetFlagOn(Segment::BC_DEAD);
+    seg2.SetTimeOfBirth(m_angio.m_time.t);
     
 	if (seg.m_sprout != Segment::SPROUT_INIT)
 		seg2.m_sprout = seg.m_sprout;
     
     //seg2.findphi();
-    seg2.m_tip[k].bdyf_id = seg.m_tip[k].bdyf_id; 
+    seg2.tip(k).bdyf_id = seg.tip(k).bdyf_id; 
 
 	return seg2;
 }
@@ -404,14 +404,14 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 		X3 = (*elem.n3);
 		X4 = (*elem.n4);}
 
-	if (seg.m_tip[0].active == -1){
-		A = seg.m_tip[1].rt;
-		B = seg.m_tip[0].rt;
+	if (seg.tip(0).bactive){
+		A = seg.tip(1).rt;
+		B = seg.tip(0).rt;
 	}
 
-	if (seg.m_tip[1].active == 1){
-		A = seg.m_tip[0].rt;
-		B = seg.m_tip[1].rt;
+	if (seg.tip(1).bactive){
+		A = seg.tip(0).rt;
+		B = seg.tip(1).rt;
 	}
 
 	newton_find_intersect(lam, e1, e2, A, B, X1, X2, X3, X4);
@@ -426,10 +426,10 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 		int elem_num = elem.elem_num;
 		double xix = 0.; double xiy = 0.; double xiz = 0.;
 
-		if (seg.m_tip[1].active == 1)
-			seg.m_tip[1].pt.nelem = elem_num;
-		else if (seg.m_tip[0].active == -1)
-			seg.m_tip[0].pt.nelem = elem_num;
+		if (seg.tip(1).bactive)
+			seg.tip(1).pt.nelem = elem_num;
+		else if (seg.tip(0).bactive)
+			seg.tip(0).pt.nelem = elem_num;
 		
 		grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
 
@@ -516,14 +516,14 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 				X3 = (*elem.n3);
 				X4 = (*elem.n4);}
 
-			if (seg.m_tip[0].active == -1){
-				A = seg.m_tip[1].rt;
-				B = seg.m_tip[0].rt;
+			if (seg.tip(0).bactive){
+				A = seg.tip(1).rt;
+				B = seg.tip(0).rt;
 			}
 
-			if (seg.m_tip[1].active == 1){
-				A = seg.m_tip[0].rt;
-				B = seg.m_tip[1].rt;
+			if (seg.tip(1).bactive){
+				A = seg.tip(0).rt;
+				B = seg.tip(1).rt;
 			}
 
 			newton_find_intersect(lam, e1, e2, A, B, X1, X2, X3, X4);
@@ -536,10 +536,10 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 				int elem_num = elem.elem_num;
 				double xix = 0.; double xiy = 0.; double xiz = 0.;
 
-				if (seg.m_tip[1].active == 1)
-					seg.m_tip[1].pt.nelem = elem_num;
-				else if (seg.m_tip[0].active == -1)
-					seg.m_tip[0].pt.nelem = elem_num;
+				if (seg.tip(1).bactive)
+					seg.tip(1).pt.nelem = elem_num;
+				else if (seg.tip(0).bactive)
+					seg.tip(0).pt.nelem = elem_num;
 
 				grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
 
@@ -564,10 +564,10 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 				intersect_neighbor = search_neighbors_4_intersect(elem, face, lam, e1, e2, A, B, inter);
 
 				if (intersect_neighbor == true){
-					if (seg.m_tip[1].active == 1)
-						seg.m_tip[1].pt.nelem = elem.elem_num;
-					else if (seg.m_tip[0].active == -1)
-						seg.m_tip[0].pt.nelem = elem.elem_num;
+					if (seg.tip(1).bactive)
+						seg.tip(1).pt.nelem = elem.elem_num;
+					else if (seg.tip(0).bactive)
+						seg.tip(0).pt.nelem = elem.elem_num;
 					
 					return inter;}}		
 		}
@@ -1286,9 +1286,9 @@ vec3d BC::intersceptface(int face, double &xix_0, double &xiy_0, double &xiz_0, 
     
 	if (u == 0){
 	    u = 0.01;
-	    seg.m_tip[0].active = 0;
-	    seg.m_tip[1].active = 0;}
-	    
+	    seg.tip(0).bactive = false;
+	    seg.tip(1).bactive = false;
+	}
 	
 	xix_i = lp.x + u*v.x;
 	xiy_i = lp.y + u*v.y;
@@ -1429,7 +1429,7 @@ void BC::collfibwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int 
 	//}
  //              
  //   seg2.BCdead = 1;
- //   seg2.label = seg.label;
+ //   seg2.m_nseed = seg.m_nseed;
  //   seg2.TofBirth = data.t;
  //   data.num_vessel++; 
  //   seg2.sprout = seg.sprout;
@@ -1489,12 +1489,12 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
 	double old_length = 0.;
 	double remain_length = 0.;
 
-    xpt_0 = seg.m_tip[0].rt.x;
-    ypt_0 = seg.m_tip[0].rt.y;
-    zpt_0 = seg.m_tip[0].rt.z;
-    xpt_1 = seg.m_tip[1].rt.x;
-    ypt_1 = seg.m_tip[1].rt.y;
-    zpt_1 = seg.m_tip[1].rt.z;
+    xpt_0 = seg.tip(0).rt.x;
+    ypt_0 = seg.tip(0).rt.y;
+    zpt_0 = seg.tip(0).rt.z;
+    xpt_1 = seg.tip(1).rt.x;
+    ypt_1 = seg.tip(1).rt.y;
+    zpt_1 = seg.tip(1).rt.z;
  
 	xpt_i = i_point.x;
 	ypt_i = i_point.y;
@@ -1515,36 +1515,33 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
 	if (face == 6){
 		zpt_i = (1.0 + eps)*i_point.z;}
 		
-	old_length = seg.length;
+	old_length = seg.length();
 	
 	Segment seg2;
-    ++cult.m_nsegs;
-	seg2.seg_num = cult.m_nsegs;
+    seg2.m_nseed = seg.m_nseed;
 
     if (k == 1){
-        seg.m_tip[1].rt.x = xpt_i;
-        seg.m_tip[1].rt.y = ypt_i;
-        seg.m_tip[1].rt.z = zpt_i;
-        seg.findlength();
-        seg.m_tip[1].active = 0;
-		seg.seg_conn[1][0] = seg2.seg_num;
-        seg2.m_tip[1].active = 1;
-		seg2.m_tip[0].pt = seg.m_tip[1].pt;
-		seg2.seg_conn[0][0] = seg.seg_num;}
+        seg.tip(1).rt.x = xpt_i;
+        seg.tip(1).rt.y = ypt_i;
+        seg.tip(1).rt.z = zpt_i;
+        seg.Update();
+        seg.tip(1).bactive = false;
+        seg2.tip(1).bactive = true;
+		seg2.tip(0).pt = seg.tip(1).pt;
+	}
     else if (k == 0){
-        seg.m_tip[0].rt.x = xpt_i;
-        seg.m_tip[0].rt.y = ypt_i;
-        seg.m_tip[0].rt.z = zpt_i;
-        seg.findlength();
-        seg.m_tip[0].active = 0;
-		seg.seg_conn[0][0] = seg2.seg_num;
-        seg2.m_tip[0].active = -1;
-		seg2.m_tip[1].pt = seg.m_tip[0].pt;
-		seg2.seg_conn[1][0] = seg.seg_num;}
+        seg.tip(0).rt.x = xpt_i;
+        seg.tip(0).rt.y = ypt_i;
+        seg.tip(0).rt.z = zpt_i;
+        seg.Update();
+        seg.tip(0).bactive = false;
+        seg2.tip(0).bactive = true;
+		seg2.tip(1).pt = seg.tip(0).pt;
+	}
 
-    seg.BCdead = 1;
+    seg.SetFlagOn(Segment::BC_DEAD);
        
-    remain_length = fabs(old_length) - fabs(seg.length);
+    remain_length = fabs(old_length) - fabs(seg.length());
 
 	if (k == 0)
 		remain_length = -1.0*remain_length;
@@ -1602,10 +1599,11 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
         break;
     
 	case -1:
-		seg2.m_tip[0].active = 0;
-		seg2.m_tip[1].active = 0;
+		seg2.tip(0).bactive = false;
+		seg2.tip(1).bactive = false;
 		seg2.mark_of_death = true;
 		seg2.death_label = 1;
+		assert(false);
 		return seg2;
 		break;
 	}
@@ -1624,37 +1622,36 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
 
 	vec3d seg_unit_perp; vec3d seg_unit_inplane;
 
-	seg_unit_perp = face_normal*(seg.uvect*face_normal);
-	seg_unit_inplane = seg.uvect - seg_unit_perp;
+	seg_unit_perp = face_normal*(seg.uvect()*face_normal);
+	seg_unit_inplane = seg.uvect() - seg_unit_perp;
 	
 	if (k == 1){
-        seg2.m_tip[0].rt.x = xpt_i;
-        seg2.m_tip[0].rt.y = ypt_i;
-        seg2.m_tip[0].rt.z = zpt_i;
-		seg2.m_tip[1].rt.x = xpt_i + remain_length*seg_unit_inplane.x;
-        seg2.m_tip[1].rt.y = ypt_i + remain_length*seg_unit_inplane.y;
-        seg2.m_tip[1].rt.z = zpt_i + remain_length*seg_unit_inplane.z;}
+        seg2.tip(0).rt.x = xpt_i;
+        seg2.tip(0).rt.y = ypt_i;
+        seg2.tip(0).rt.z = zpt_i;
+		seg2.tip(1).rt.x = xpt_i + remain_length*seg_unit_inplane.x;
+        seg2.tip(1).rt.y = ypt_i + remain_length*seg_unit_inplane.y;
+        seg2.tip(1).rt.z = zpt_i + remain_length*seg_unit_inplane.z;}
     else if (k == 0){
-        seg2.m_tip[1].rt.x = xpt_i;
-        seg2.m_tip[1].rt.y = ypt_i;
-        seg2.m_tip[1].rt.z = zpt_i;
-        seg2.m_tip[0].rt.x = xpt_i + remain_length*seg_unit_inplane.x;
-        seg2.m_tip[0].rt.y = ypt_i + remain_length*seg_unit_inplane.y;
-        seg2.m_tip[0].rt.z = zpt_i + remain_length*seg_unit_inplane.z;}
+        seg2.tip(1).rt.x = xpt_i;
+        seg2.tip(1).rt.y = ypt_i;
+        seg2.tip(1).rt.z = zpt_i;
+        seg2.tip(0).rt.x = xpt_i + remain_length*seg_unit_inplane.x;
+        seg2.tip(0).rt.y = ypt_i + remain_length*seg_unit_inplane.y;
+        seg2.tip(0).rt.z = zpt_i + remain_length*seg_unit_inplane.z;}
 
-	seg2.length = remain_length;
-	seg2.BCdead = 1;
-    seg2.label = seg.label;
-    seg2.TofBirth = m_angio.m_time.t;
+//	seg2.m_length = remain_length;
+	seg2.SetFlagOn(Segment::BC_DEAD);
+	seg2.SetTimeOfBirth(m_angio.m_time.t);
     /*data.num_vessel++; 
 	seg2.line_num = seg.line_num;*/
 
 	if (seg.m_sprout != Segment::SPROUT_INIT)
 		seg2.m_sprout = seg.m_sprout;
     
-	seg2.findlength();
+	seg2.Update();
 	//seg2.findphi();
-    seg2.m_tip[k].bdyf_id = seg.m_tip[k].bdyf_id; 
+    seg2.tip(k).bdyf_id = seg.tip(k).bdyf_id; 
 
 	return seg2;
 }
@@ -1677,12 +1674,12 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	double old_length = 0.;
 	double remain_length = 0.;
 
-    xpt_0 = seg.m_tip[0].rt.x;
-    ypt_0 = seg.m_tip[0].rt.y;
-    zpt_0 = seg.m_tip[0].rt.z;
-    xpt_1 = seg.m_tip[1].rt.x;
-    ypt_1 = seg.m_tip[1].rt.y;
-    zpt_1 = seg.m_tip[1].rt.z;
+    xpt_0 = seg.tip(0).rt.x;
+    ypt_0 = seg.tip(0).rt.y;
+    zpt_0 = seg.tip(0).rt.z;
+    xpt_1 = seg.tip(1).rt.x;
+    ypt_1 = seg.tip(1).rt.y;
+    zpt_1 = seg.tip(1).rt.z;
  
 	xpt_i = i_point.x;
 	ypt_i = i_point.y;
@@ -1703,40 +1700,35 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	if (face == 6){
 		zpt_i = (1.0 + eps)*i_point.z;}
 		
-	old_length = seg.length;
+	old_length = seg.length();
 	
 	Segment seg2;
-    ++cult.m_nsegs;
-	seg2.seg_num = cult.m_nsegs;
+    seg2.m_nseed = seg.m_nseed;
 
     if (k == 1){
-        seg.m_tip[1].rt.x = xpt_i;
-        seg.m_tip[1].rt.y = ypt_i;
-        seg.m_tip[1].rt.z = zpt_i;
-        seg.findlength();
-        seg.m_tip[1].active = 0;
-		seg.seg_conn[1][0] = seg2.seg_num;
-		seg2.m_tip[0].pt = seg.m_tip[1].pt;
-		seg2.seg_conn[0][0] = seg.seg_num;}
+        seg.tip(1).rt.x = xpt_i;
+        seg.tip(1).rt.y = ypt_i;
+        seg.tip(1).rt.z = zpt_i;
+        seg.Update();
+        seg.tip(1).bactive = false;
+		seg2.tip(0).pt = seg.tip(1).pt;
+	}
     else if (k == 0){
-        seg.m_tip[0].rt.x = xpt_i;
-        seg.m_tip[0].rt.y = ypt_i;
-        seg.m_tip[0].rt.z = zpt_i;
-        seg.findlength();
-		seg.seg_conn[0][0] = seg2.seg_num;
-        seg2.m_tip[0].active = -1;
-		seg2.m_tip[1].pt = seg.m_tip[0].pt;
-		seg2.seg_conn[1][0] = seg.seg_num;}
+        seg.tip(0).rt.x = xpt_i;
+        seg.tip(0).rt.y = ypt_i;
+        seg.tip(0).rt.z = zpt_i;
+        seg.Update();
+        seg2.tip(0).bactive = true;
+		seg2.tip(1).pt = seg.tip(0).pt;
+	}
 
-    seg.BCdead = 1;
+    seg.SetFlagOn(Segment::BC_DEAD);
        
-    remain_length = fabs(old_length) - fabs(seg.length);
+    remain_length = fabs(old_length) - seg.length();
 
 	vec3d new_uvect;
 
-	new_uvect.x = seg.uvect.x;
-	new_uvect.y = seg.uvect.y;
-	new_uvect.z = seg.uvect.z;
+	new_uvect = seg.uvect();
 	
 	double new_xpt; double new_ypt; double new_zpt;
 	vec3d rand_disp;
@@ -1767,25 +1759,23 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	new_ypt = ypt_i + rand_disp.y; 
 	new_zpt = zpt_i + rand_disp.z;
 
-    seg2.m_tip[0].rt.x = new_xpt;
-    seg2.m_tip[0].rt.y = new_ypt;
-    seg2.m_tip[0].rt.z = new_zpt;
-	seg2.m_tip[1].rt.x = new_xpt + remain_length*new_uvect.x;
-    seg2.m_tip[1].rt.y = new_ypt + remain_length*new_uvect.y;
-    seg2.m_tip[1].rt.z = new_zpt + remain_length*new_uvect.z;
+    seg2.tip(0).rt.x = new_xpt;
+    seg2.tip(0).rt.y = new_ypt;
+    seg2.tip(0).rt.z = new_zpt;
+	seg2.tip(1).rt.x = new_xpt + remain_length*new_uvect.x;
+    seg2.tip(1).rt.y = new_ypt + remain_length*new_uvect.y;
+    seg2.tip(1).rt.z = new_zpt + remain_length*new_uvect.z;
 
-	seg2.m_tip[1].active = 1;
-	seg2.length = remain_length;
-	seg2.BCdead = 1;
-    seg2.label = seg.label;
-    seg2.TofBirth = m_angio.m_time.t;
+	seg2.tip(1).bactive = true;
+//	seg2.m_length = remain_length;
+	seg2.SetFlagOn(Segment::BC_DEAD);
+    seg2.SetTimeOfBirth(m_angio.m_time.t);
 
 	if (seg.m_sprout != Segment::SPROUT_INIT)
 		seg2.m_sprout = seg.m_sprout;
     
-	seg2.findlength();
-    seg2.m_tip[k].bdyf_id = seg.m_tip[k].bdyf_id; 
+	seg2.Update();
+    seg2.tip(k).bdyf_id = seg.tip(k).bdyf_id; 
 
 	return seg2;
 }
-

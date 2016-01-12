@@ -753,6 +753,8 @@ double Grid::find_density_scale(double coll_den)
 	double c = 0.5112;
 	den_scale = a + b*exp( -c*coll_den );
 
+	if (den_scale < 0.0) den_scale = 0.0;
+
 	return den_scale;
 }
 

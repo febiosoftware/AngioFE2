@@ -70,7 +70,7 @@ public:
 	// find the neighbor of an element
 	int elem_find_neighbor(int elem_num,int neighbor_id);
 	
-	// find the density scale
+	// scales the density
 	double find_density_scale(double coll_den);
 
 	// update the grid volume
@@ -128,8 +128,8 @@ private:
 
 inline bool Grid::IsOutsideBox(const Segment& seg) //determine if segment is outside box
 {
-	const vec3d& r0 = seg.m_tip[0].rt;
-	const vec3d& r1 = seg.m_tip[1].rt;
+	const vec3d& r0 = seg.tip(0).rt;
+	const vec3d& r1 = seg.tip(1).rt;
 
 	if (r0.x < xrange[0] || r0.x > xrange[1] ||
 		r1.x < xrange[0] || r1.x > xrange[1] ||

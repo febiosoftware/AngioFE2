@@ -7,7 +7,7 @@
 Segment::TIP::TIP()
 {
 	rt = vec3d(0,0,0);
-	active = 0;
+	bactive = false;
 	bdyf_id = -1;
 	BC = 0;
 }
@@ -15,29 +15,22 @@ Segment::TIP::TIP()
 //-----------------------------------------------------------------------------
 Segment::Segment()
 {
-	// initialize length
-	length = 0;                                        
+	// initialize data
+	m_length = 0;                                        
+	m_TofBirth = 0;
 	
-	label = 0;              // Initialize label to 0
-    vessel = 0;             // Initialize vessel to 0
+	// initialize IDs
+	m_nid = 0;
+	m_nseed = 0;
+    m_nvessel = 0;
     
-    BCdead = 0;             // Set boundary condition indicator to 'false'
-	TofBirth = 0;           // Initialize time of birth to 0
-	init_branch = false;	// Set initial branching flag to 'false'
-	
+	// initialize status flags
+	m_nflag = 0;
 	m_sprout = SPROUT_UNKNOWN;
 
-    anast = 0;
-
+	// TODO: remove this
 	mark_of_death = false;
 	death_label = 0;
-	
-	seg_num = 0;
-
-	seg_conn[0][0] = 0;
-	seg_conn[0][1] = 0;
-	seg_conn[1][0] = 0;
-	seg_conn[1][1] = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -47,28 +40,12 @@ Segment::~Segment()
 }
 
 //-----------------------------------------------------------------------------
-// Calculates the length of the segment
-// TODO: This is also calculates the unit vector. Remove this.
-void Segment::findlength()
+// Update the segment data (i.e. length and unit vector).
+// Call this each time the position of one of the nodes has changed.
+void Segment::Update()
 {	
-	double new_length = (m_tip[1].rt - m_tip[0].rt).norm();
+	m_length = (m_tip[1].rt - m_tip[0].rt).norm();
     
-    if (length < 0.0)
-        length = -new_length;
-	else
-		length = new_length;
-        
-	uvect = m_tip[1].rt - m_tip[0].rt;
-	if (length != 0)
-		uvect = uvect/uvect.norm();
-}
-
-
-//-----------------------------------------------------------------------------
-// Updates the unit vector
-void Segment::findunit()
-{	
-	uvect = m_tip[1].rt - m_tip[0].rt;
-	double l = uvect.norm();
-	if (l != 0) uvect /= l;
+	m_uvect = m_tip[1].rt - m_tip[0].rt;
+	m_uvect.unit();
 }

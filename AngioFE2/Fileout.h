@@ -40,7 +40,6 @@ public:
 	void writeBC(Grid &grid);
 	void printtime(FEAngio& angio);
 	void printrandseed(int randseed);
-	void writeSegConn(list<Segment> &frag);
 	void writeECMDenStore(Grid &grid);
 	void writeECMFibrilStore(Grid &grid);
 	void save_vessel_state(FEAngio& angio);

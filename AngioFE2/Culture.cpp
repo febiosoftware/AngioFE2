@@ -41,7 +41,6 @@ Culture::Culture(FEAngio& angio) : bc(angio), m_angio(angio)
 
 	// branch probability
 	m_branch_chance = 0.1;
-	m_branch = false;
 
 	// Initialize counters
 	m_num_anastom = 0;
@@ -74,20 +73,16 @@ void Culture::SeedFragments(SimulationTime& time)
 		Segment seg = createInitFrag();
 
 		// Give the segment the appropriate label
-		seg.label = i;
+		seg.m_nseed = i;
 
 		// Set the segment vessel as the segment label
-		seg.vessel = seg.label;
+		seg.m_nvessel = seg.m_nseed;
 
 		// Store the segment's time of birth
-		seg.TofBirth = time.t;
-
-		// increment the number of segments
-		m_nsegs += 1;
-		seg.seg_num = m_nsegs;
+		seg.SetTimeOfBirth(time.t);
 
 		// add it to the list
-		m_frag.push_back(seg);
+		AddSegment(seg);
 	}
 
 	// Update the active tip container
@@ -104,7 +99,7 @@ Segment Culture::createInitFrag()
     Segment seg;
 
 	// Set seg length to value of growth function at t = 0
-	seg.length = m_vess_length;
+	double seg_length = m_vess_length;
     
 	// We create only segments that lie inside the grid.
 	// Since the creation of such a segment may fail (i.e. too close to boundary)
@@ -122,14 +117,14 @@ Segment Culture::createInitFrag()
 		vec3d q = vrand();
 
 		// set the position of the first tip
-		seg.m_tip[0].pt = GridPoint(elem_num, q);
-		seg.m_tip[0].rt = grid.Position(seg.m_tip[0].pt);
+		seg.tip(0).pt = GridPoint(elem_num, q);
+		seg.tip(0).rt = grid.Position(seg.tip(0).pt);
     
 		// Determine vessel orientation based off of collagen fiber orientation
-		seg.uvect = CollagenDirection(seg.m_tip[0].pt);
+		vec3d seg_vec = CollagenDirection(seg.tip(0).pt);
 
 		// End of new segment is origin plus length component in each direction	
-		vec3d r1 = seg.m_tip[0].rt + seg.uvect*seg.length;
+		vec3d r1 = seg.tip(0).rt + seg_vec*seg_length;
 
 		// find the element where the second tip is
 		grid.FindGridPoint(r1, p1);
@@ -137,15 +132,18 @@ Segment Culture::createInitFrag()
 	while (p1.nelem == -1);
 
 	// assign the grid point to the end tip
-	seg.m_tip[1].pt = p1;
-	seg.m_tip[1].rt = grid.Position(p1);
+	seg.tip(1).pt = p1;
+	seg.tip(1).rt = grid.Position(p1);
+	
+	// update length and unit vector
+	seg.Update();
 
 	// make both tips active
-	seg.m_tip[0].active = -1;		// Set the tip at the start point of the segment as -1 
-	seg.m_tip[1].active =  1;       // Set the tip at the end point of the segment as +1
+	seg.tip(0).bactive = true;
+	seg.tip(1).bactive = true;
 
 	// decide if this initial segment is allowed to branch
-	seg.init_branch = (frand() < m_init_branch_prob);
+	if (frand() < m_init_branch_prob) seg.SetFlagOn(Segment::INIT_BRANCH);
 	
 	// Mark segment as an initial fragment
 	seg.m_sprout = Segment::SPROUT_INIT;
@@ -167,19 +165,16 @@ void Culture::Grow(SimulationTime& time)
 	{
 		for (int k=0; k<2; ++k)
 		{
-			if (it->m_tip[k].active != 0)			// If tip is active (i.e. not 0)...
+			// only grow active tips
+			if (it->tip(k).bactive)
 			{
-		        Segment seg;
-				seg = createNewSeg(it,k, time);		// Create new vessel segment at the current tip existing segment 
-
-				m_frag.push_front (seg);			// Append new segment at the top of the list 'frag'
-				
-				++m_nsegs;							// Iterate the total segment counter
+				Segment seg = CreateNewSeg(*it, k, time);	// Create new vessel segment at the current tip existing segment 
+				AddSegment(seg);							// Add new segment at the top of the list 'frag'
 			}
 	    }
 		    
 		// If branching is turned on determine if the segment forms a new branch
-		if (yes_branching == true) Branch(it, time);												
+		if (yes_branching == true) Branch(*it, time);												
     }
 
 	// If anatomosis is turned on determine which segments form anatomoses
@@ -190,6 +185,21 @@ void Culture::Grow(SimulationTime& time)
 
 	// Locate all active growth tips
 	FindActiveTips();
+}
+
+//-----------------------------------------------------------------------------
+void Culture::SubGrowth(double scale)
+{
+	// Iterator through the list of active segment tips
+	for (list<SegIter>::iterator tip_it = m_active_tips.begin(); tip_it != m_active_tips.end(); ++tip_it)
+	{
+		// Dereference the tip iterator to obtain the active segment
+		Segment& seg = (*(*tip_it));
+
+		// Step growth for the active segments
+		if (seg.tip(0).bactive) seg.tip(0).rt = seg.tip(1).rt - seg.uvect()*(scale*seg.length());
+		if (seg.tip(1).bactive) seg.tip(1).rt = seg.tip(0).rt + seg.uvect()*(scale*seg.length());
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -206,206 +216,158 @@ void Culture::UpdateNewVesselLength(SimulationTime& time)
 
 //-----------------------------------------------------------------------------
 // Create a new segment at the tip of an existing segment
-//      Input:  - Iterator for Segment container 'frag', points to the parent segment (it)
-//              - Index indicating which tip of the parent segment is forming the new segment (k)
-//
-//      Output: - Newly created segment (seg)
-//
-Segment Culture::createNewSeg(list<Segment>::iterator it, int k, SimulationTime& time)
+Segment Culture::CreateNewSeg(Segment& it, int k, SimulationTime& time, bool branch)
 {
-	Grid& grid = m_angio.GetGrid();
+	// Make sure the tip is active
+	assert(it.tip(k).bactive);
 
-	// Declare SEGMENT seg
+	// calculate the length scale factor based on collagen density
+	double den_scale = FindDensityScale(it.tip(k).pt);
+
+	// this is the new segment length
+	double seg_length = den_scale*m_vess_length;
+
+	// determine the growth direction
+	vec3d seg_vec = FindDirection(it, it.tip(k).pt);
+
+	// If new segment is a branch...
+	if (branch)
+	{
+		vec3d coll_fib = CollagenDirection(it.tip(k).pt);
+		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
+		seg_vec.unit();
+	}
+
+	// Create a new segment
 	Segment seg;
 
 	// transer label and vessel number
-	seg.label = it->label;
-	seg.vessel = it->vessel;
-    
-	++m_nsegs;                                               // Iterate the total segment counter +1 
-	seg.seg_num = m_nsegs;				
-	
-	if (it->m_tip[k].active == 1)                                          // If the parent vessel active tip is set as +1...
+	seg.m_nseed  = it.m_nseed;
+	seg.m_nvessel = it.m_nvessel;
+
+	// Stamp segment with time of birth
+	seg.SetTimeOfBirth(time.t);
+
+	// grow from the end point
+	if (k == 1)
 	{
-		assert(k==1);
-		seg.length = m_vess_length;
+		// the first point is a copy of the last point of the source segment
+		seg.tip(0).rt = it.tip(1).rt;
+		seg.tip(0).pt = it.tip(1).pt;
 
-		double den_scale = 1.0;
-		den_scale = findDenScale(it->m_tip[1].rt);
-			
-		seg.uvect = findAngle(it,it->m_tip[1].rt); 
+		// position the end point
+		seg.tip(1).rt = seg.tip(0).rt + seg_vec*seg_length;
+
+        seg.tip(1).bactive = true;		// Turn on end tip of new segment
+		seg.tip(0).bactive = false;		// Turn off origin tip of new segment
 		
-		seg.length = den_scale*m_vess_length;
-
-		if (m_branch)                                                   // If new segment is a branch...
-		{
-			vec3d coll_fib = findCollAngle(it->m_tip[1].rt);
-			vec3d newseg;
-			newseg = coll_fib - seg.uvect*(seg.uvect*coll_fib)*0.5;
-			newseg = newseg/newseg.norm();
-			seg.uvect = newseg;
-		}
-
+		seg.m_sprout = Segment::SPROUT_POS;		// Set sprout for the new segment as +1, indicating this segment originated from a +1 tip
+	}
+	else // grow from the start point
+	{
+		// the first point is a copy of the last point of the source segment
+		seg.tip(1).rt = it.tip(0).rt;
+		seg.tip(1).pt = it.tip(0).pt;
 		
-		seg.m_tip[0].rt = it->m_tip[1].rt;                                    // Set the origin of new segment as the active tip of the previous segment
-		seg.m_tip[0].pt = it->m_tip[1].pt;
-		seg.seg_conn[0][0] = it->seg_num;
+		// position the end point (notice negative sign)
+		seg.tip(0).rt = seg.tip(1).rt - seg_vec*seg_length;
 
-		seg.m_tip[1].rt = seg.m_tip[0].rt + seg.uvect*seg.length;					  // Determine the x-coordinate of the end point using the length vector and orientation angles
-		seg.findlength();
-
-        seg.m_tip[1].active = 1;                                         // Turn on end tip of new segment
-		seg.m_tip[0].active = 0;                                         // Turn off origin tip of new segment
+		seg.tip(0).bactive = true;		// Turn on end tip of new segment
+		seg.tip(1).bactive = false;		// Turn off origin tip of new segment
 		
-		seg.TofBirth = time.t;                                  // Stamp segment with time of birth
-		it->m_tip[k].active = 0;                                         // Turn off previous segment tip
-		seg.m_tip[k].bdyf_id = it->m_tip[k].bdyf_id;
-        
-		seg.m_sprout = Segment::SPROUT_POS;                                         // Set sprout for the new segment as +1, indicating this segment originated from a +1 tip
-					    
-		if (it->seg_conn[1][0] == 0)
-			it->seg_conn[1][0] = seg.seg_num;
-		else
-			it->seg_conn[1][1] = seg.seg_num;
-				
-		int elem_num = grid.findelem(seg.m_tip[1].rt);
-		
-		if (elem_num == -1)
-		{
-			bc.checkBC(seg, 1);
-		}
-		else
-			seg.m_tip[1].pt.nelem = elem_num;
+		seg.m_sprout = Segment::SPROUT_NEG; // Set sprout for the new segment as -1, indicating this segment originated from a -1 tip
+	}
 
+	// Turn off previous segment tip
+	it.tip(k).bactive = false;
+
+	// move the body force to the new tip
+	seg.tip(k).bdyf_id = it.tip(k).bdyf_id;
+
+	// update length and unit vector
+	seg.Update();
+
+	// Find the position of the new end point
+	Grid& grid = m_angio.GetGrid();
+	if (grid.FindGridPoint(seg.tip(k).rt, seg.tip(k).pt) == false)
+	{
+		// If we get here, the new end point lies outside the grid
+		// In that case, we apply boundary conditions
+		// (Note that this may create additional segments)
+		bc.checkBC(seg, k);
 	}
 	
-	
-	else if (it->m_tip[k].active == -1)                                    // If the parent vessel active tip is set as -1...
-	{
-		assert(k==0);
-
-		seg.length = -m_vess_length;
-		
-		double den_scale = 1.0;
-		den_scale = findDenScale(it->m_tip[0].rt);
-			
-		seg.uvect = findAngle(it,it->m_tip[0].rt);
-
-		seg.length = -den_scale*m_vess_length;
-				
-		if (m_branch)                                                   // If new segment is a branch...
-		{
-			vec3d coll_fib = findCollAngle(it->m_tip[1].rt);
-			vec3d newseg;
-			newseg = coll_fib - seg.uvect*(seg.uvect*coll_fib)*0.5;
-			newseg = newseg/newseg.norm();
-
-			seg.uvect = newseg;
-		}
-
-		seg.m_tip[1].rt = it->m_tip[0].rt;                                    // Set the origin of new segment as the active tip of the previous segment
-		seg.m_tip[1].pt = it->m_tip[0].pt;
-		seg.seg_conn[1][0] = it->seg_num;
-		
-		seg.m_tip[0].rt = seg.m_tip[1].rt + seg.uvect*seg.length;					  // Determine the x-coordinate of the end point using the length vector and orientation angles
-		seg.findlength();
-
-		seg.m_tip[0].active = -1;                                        // Turn on end tip of new segment
-		seg.m_tip[1].active = 0;                                         // Turn off origin tip of new segment
-		
-		seg.TofBirth = time.t;                                  // Stamp segment with time of birth
-		it->m_tip[k].active = 0;                                         // Turn off previous segment tip
-		seg.m_tip[k].bdyf_id = it->m_tip[k].bdyf_id;
-
-		seg.m_sprout = Segment::SPROUT_NEG;                                        // Set sprout for the new segment as -1, indicating this segment originated from a -1 tip
-
-		if (it->seg_conn[0][0] == 0)
-			it->seg_conn[0][0] = seg.seg_num;
-		else
-			it->seg_conn[0][1] = seg.seg_num;
-		
-		
-		int elem_num = grid.findelem(seg.m_tip[0].rt);
-		
-		if (elem_num == -1)
-			bc.checkBC(seg, 0);
-		else
-			seg.m_tip[0].pt.nelem = elem_num;
-	}
-	
-	return seg;                                                 // Return the new segment 
+	// Return the new segment
+	return seg;
 }
 
 //-----------------------------------------------------------------------------
 // Branching is modeled as a random process, determine is the segment passed to this function forms a branch
-void Culture::Branch(list<Segment>::iterator it, SimulationTime& time)
+void Culture::Branch(Segment& it, SimulationTime& time)
 {
-    double den_scale = 1.0;												// Declare the density scaling factor
+	// Segments that have encountered a boundary condition or formed an anastomoses may not form a branch
+	if (it.GetFlag(Segment::BC_DEAD | Segment::ANAST)) return;
 
-	// Set the branch point to be half-way along the length of the segment
-	vec3d pt = (it->m_tip[1].rt + it->m_tip[0].rt)/2;
-	
-	den_scale = findDenScale(pt);					// Set the density scaling factor
+	// pick an end randomly
+	int k = ( frand() < 0.5 ? k = 0 : k = 1);
+
+	// find the density scale factor
+	double den_scale = FindDensityScale(it.tip(k).pt);
 
 	double t = time.t;
 	double dt = time.dt;
 
-	if ( frand() < den_scale*dt*m_branch_chance/t || (it->init_branch == true) )	// The segment generates a random number, if this number is less than the branching probability, or if the segment has an initial branch, the form a branch
+	// The segment generates a random number, if this number is less than the branching probability, or if the segment has an initial branch, then form a branch
+	if ( frand() < den_scale*dt*m_branch_chance/t || (it.GetFlag(Segment::INIT_BRANCH) == true) )
     {
-	    if ((it->BCdead == 0) && (it->anast == 0))                  // Segments that have encountered a boundary condition or formed an anastomoses may not form a branch
-		{                                                           
-			m_num_branches = m_num_branches + 1;              // Iterate the total number of branches +1
-			m_branch = true;                                     // Branching flag set to 'true.' This tells the program that the
-			                                                        // new vessel segment being created is arising from a branch      
-    		it->init_branch = false;								// Turn off the initial branch flag
+		m_num_branches = m_num_branches + 1;            // Iterate the total number of branches +1
+			                                            // new vessel segment being created is arising from a branch      
+		// Turn off the initial branch flag
+		it.SetFlagOff(Segment::INIT_BRANCH);
     			
-			// Randomly determine which node of the parent segment forms the branch
-			double f = frand();
-			int k = ( f< 0.5 ? k = 0 : k = 1);
-    							
-			it->m_tip[k].active = sign(0.5 - frand());        // Randomly assign the branch to grow as +1 or -1
-    				
-			Segment seg = createNewSeg(it,k, time);           // Create the new vessel segment
+		// we must reactive the tip
+		// (it will be deactivated by CreateNewSeg)
+		it.tip(k).bactive = true;
 
-            m_num_vessel = m_num_vessel + 1;					// Iterate the vessel counter
-		    seg.vessel = m_num_vessel;							// Set the segments ID number
+		// Create the new vessel segment (with branch flag true)
+		Segment seg = CreateNewSeg(it,k, time, true);
+
+		m_num_vessel = m_num_vessel + 1;				// Iterate the vessel counter
+		seg.m_nvessel = m_num_vessel;						// Set the segments ID number
     				                    
-			create_branching_force(seg);						// Create a new sprout force for the branch
+		// Create a new sprout force for the branch
+		CreateBranchingForce(seg);
 
-			m_frag.push_front(seg);                                  // Append new segment at the top of the list 'frag'
-			m_branch = false;                                    // Turn off branching flag once branching algorithm is complete
-        }
+		// Append new segment at the top of the list 'frag'
+		AddSegment(seg);
 	}                                                              
 }
 
 //-----------------------------------------------------------------------------
-// Create a new sprout force component for a newly formed branch		
-void Culture::create_branching_force(Segment& seg)
+// Create a new sprout force component for a newly formed branch
+// TODO: What if both tips are active?
+void Culture::CreateBranchingForce(Segment& seg)
 {
-	vec3d sprout_vect;															// Sprout for directional vector
-
 	m_angio.total_bdyf = 0;																// Obtain the total number of sprouts
 	if (m_angio.m_pmat) m_angio.total_bdyf = m_angio.m_pmat->Sprouts();
 	else m_angio.total_bdyf = m_angio.m_pbf->Sprouts();
-	
-	vec3d tip(0,0,0);
-	if (seg.m_tip[0].active == -1){														// If the new branch is a -1 segment... 														
-		tip = seg.m_tip[0].rt;															// Obtain the position of the new tip
-		
-		sprout_vect = seg.m_tip[0].rt - seg.m_tip[1].rt;										// Calculate the sprout directional unit vector									
-		sprout_vect = sprout_vect/sprout_vect.norm();
-		
-		seg.m_tip[0].bdyf_id = m_angio.total_bdyf - 1;}											// Assign the body force ID
-		
-	if (seg.m_tip[1].active == 1){														// If the new branch is a +1 segment...
-		tip = seg.m_tip[1].rt;															// Obtain the position of the new tip
-		
-		sprout_vect = seg.m_tip[1].rt - seg.m_tip[0].rt;										// Calculate the sprout directional unit vector									
-		sprout_vect = sprout_vect/sprout_vect.norm();
-		
-		seg.m_tip[1].bdyf_id = m_angio.total_bdyf - 1;}											// Assign the body force ID
 
-//--> SAM
+	vec3d tip, sprout_vect;
+	
+	if (seg.tip(0).bactive)
+	{
+		tip = seg.tip(0).rt;															// Obtain the position of the new tip
+		sprout_vect = -seg.uvect();	// notice negative sign
+		seg.tip(0).bdyf_id = m_angio.total_bdyf - 1;											// Assign the body force ID
+	}
+		
+	if (seg.tip(1).bactive)
+	{
+		vec3d tip = seg.tip(1).rt;
+		sprout_vect = seg.uvect();
+		seg.tip(1).bdyf_id = m_angio.total_bdyf - 1;
+	}
+
 	if (m_angio.m_pmat)
 	{
 		m_angio.m_pmat->AddSprout(tip, sprout_vect);
@@ -413,95 +375,81 @@ void Culture::create_branching_force(Segment& seg)
 	}
 	else
 	{
-//!<-- SAM
 		m_angio.m_pbf->AddSprout(tip, sprout_vect);						// Add the new sprout component to the sprout force field
 		m_angio.total_bdyf = m_angio.m_pbf->Sprouts();												// Update the total number of sprouts
 	}
-	
-	return;
 }
 
 //-----------------------------------------------------------------------------
 // Fuse
 void Culture::Fuse(SimulationTime& time)
 {
-    list<Segment>::iterator it;
-    for (it = m_frag.begin(); it != m_frag.end(); ++it)
+    for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
 	{
-		check4anast(it, 0, time);
-        check4anast(it, 1, time);
+		check4anast(*it, 0, time);
+        check4anast(*it, 1, time);
 	} 
-			
-	return;
 }
 
 //-----------------------------------------------------------------------------
 // check4anast
-void Culture::check4anast(list<Segment>::iterator it, int k, SimulationTime& time)
+void Culture::check4anast(Segment& it, int k, SimulationTime& time)
 {
-    if (it->m_tip[k].active == 0)
-        return;
+    if (it.tip(k).bactive == false) return;
 	
-	if (it->anast == 1)
-		return;
-
-	int kk = 0;
-    double dist0 = 0.;
-    double dist1 = 0.;
-    list<Segment>::iterator it2;
+	if (it.GetFlag(Segment::ANAST)) return;
 	
-    for (it2 = m_frag.begin(); it2 != m_frag.end(); ++it2)
+    for (SegIter it2 = m_frag.begin(); it2 != m_frag.end(); ++it2)
 	{                                                           
-	    dist0 = (it->m_tip[k].rt - it2->m_tip[0].rt).norm(); dist0 *= dist0;
-		dist1 = (it->m_tip[k].rt - it2->m_tip[1].rt).norm(); dist1 *= dist1;
-
-        anastomose(dist0, dist1, k, it, it2, time);
+	    double dist0 = (it.tip(k).rt - it2->tip(0).rt).norm(); dist0 *= dist0;
+		double dist1 = (it.tip(k).rt - it2->tip(1).rt).norm(); dist1 *= dist1;
+        anastomose(dist0, dist1, k, it, *it2, time);
     } 
 }
 
 //-----------------------------------------------------------------------------
 // anastomose
-void Culture::anastomose(double dist0, double dist1, int k, list<Segment>::iterator it, list<Segment>::iterator it2, SimulationTime& time)
+void Culture::anastomose(double dist0, double dist1, int k, Segment& it1, Segment& it2, SimulationTime& time)
 {
-	if ((it->anast == 1) || (it2->anast == 1))
-        return;
+	// make sure neither segments are anastomosed.
+	if ((it1.GetFlag(Segment::ANAST)) || (it2.GetFlag(Segment::ANAST))) return;
     
-    if (it->label == it2->label)
-        return;
+	// make sure neither segments sprout from the same initial fragment
+	// TODO: why is this not allowed?
+    if (it1.m_nseed == it2.m_nseed) return;
 
-    int kk = 9;
-    
+    int kk = -1;
     if (dist0 <= m_anast_dist)
         kk = 0;
     else if (dist1 <= m_anast_dist)
         kk = 1;
   
-    if (kk == 9)
-        return;
+    if (kk == -1) return;
                                                 
-    Segment seg;                                                // Declare SEGMENT object 'seg'
-								
-	seg = connectSegment(it,it2,k,kk, time);      // CULTURE.connectSegment(segment 1, segment 2, tip 1, tip 2, grid, data, frag list container)
+	Segment seg = connectSegment(it1,it2,k,kk, time);      // CULTURE.connectSegment(segment 1, segment 2, tip 1, tip 2, grid, data, frag list container)
 					                                            // This function will create a segment between to two segments to complete the anastomosis
-	m_frag.push_front (seg);                                      // Append new segment at the top of the list 'frag'                  
-	it->m_tip[k].active=0;                                               // Deactivate tip of segment 1 after anastomosis
-	it2->m_tip[kk].active=0;                                             // Deactivate tip of segment 2 after anastomosis (tip-tip anastomosis only)
+	AddSegment(seg);                                      // Append new segment at the top of the list 'frag'                  
+	it1.tip(k ).bactive = false;		// Deactivate tip of segment 1 after anastomosis
+	it2.tip(kk).bactive = false;		// Deactivate tip of segment 2 after anastomosis (tip-tip anastomosis only)
 }
 
 //-----------------------------------------------------------------------------
-// Determine the orientation angle of a newly created segment
-//      Input:  - Iterator for segment container which points to the parent segment (it)
-//              - Coordinates of the active tip that is sprouting the new segment (xpt, ypt, zpt)
-//              - GRID object
-//              - DATA object
-//              - Integer describing the angle type: 1 for phi1, 2 for phi2 (ang_type)
-//
-//      Output: - Segment orientation angle phi1 or phi1 (in radians)
-//
-vec3d Culture::findAngle(list<Segment>::iterator it, vec3d& pt)
+// This function adds a segment to the list.
+// It also updates the segment counter and assigns Segment::m_nid.
+// Note that we also push to the front of the list so that we don't corrupt
+// any active iterators.
+void Culture::AddSegment(Segment& seg)
 {
-	double den_scale = findDenScale(pt);
+	seg.m_nid = m_nsegs;
+	m_nsegs++;
+	m_frag.push_front(seg);
+	assert(m_nsegs == (int)m_frag.size());
+}
 
+//-----------------------------------------------------------------------------
+// Determine the orientation of a newly created segment
+vec3d Culture::FindDirection(Segment& it, GridPoint& pt)
+{
 	//double W[4] = {10*(1/grid.den_scale), 0, 0, 100};
 	//double W[4] = {10, 0, 0, 100};                       // W[0] = Weight for collagen orientation
 	//double W[4] = {10, 0, 0, 50};                                                                        // W[1] = Weight for vessel density
@@ -509,44 +457,15 @@ vec3d Culture::findAngle(list<Segment>::iterator it, vec3d& pt)
 	                                                                        // W[3] = Weight for previous vessel direction
    
     // Find the component of the new vessel direction determined by collagen fiber orientation    
-    vec3d coll_angle = findCollAngle(pt);
+    vec3d coll_dir = CollagenDirection(pt);
 
 	// Component of new vessel orientation resulting from previous vessel direction        
-	vec3d per_angle = it->uvect;
+	vec3d per_dir = it.uvect();
 
-	vec3d angle = (coll_angle*W[0] + per_angle*W[3])/(W[0]+W[3]);
+	vec3d new_dir = (coll_dir*W[0] + per_dir*W[3])/(W[0]+W[3]);
+	new_dir.unit();
 
-	angle = angle/angle.norm();
-
-	return angle;
-}
-
-//-----------------------------------------------------------------------------
-vec3d Culture::findCollAngle(vec3d& pt)
-{   
-	Grid& grid = m_angio.GetGrid();
-    
-    double xix, xiy, xiz;
-    double shapeF[8];
-    
-    int elem_num = grid.findelem(pt);
-	assert(elem_num >= 0);
-    
-	Elem elem;
-    elem = grid.ebin[elem_num];
-        
-    // Convert to natural coordinates -1 <= Xi <= +1
-    grid.natcoord(xix, xiy, xiz, pt.x, pt.y, pt.z, elem_num);        
-    
-    // Obtain shape function weights
-    grid.shapefunctions(shapeF, xix, xiy, xiz);
-    
-    // Determine component of new vessel direction due to nodal collagen fiber orientation
-	vec3d coll_angle = ((*elem.n1).collfib)*shapeF[0] + ((*elem.n2).collfib)*shapeF[1] + ((*elem.n3).collfib)*shapeF[2] + ((*elem.n4).collfib)*shapeF[3] + ((*elem.n5).collfib)*shapeF[4] + ((*elem.n6).collfib)*shapeF[5] + ((*elem.n7).collfib)*shapeF[6] + ((*elem.n8).collfib)*shapeF[7];
-	
-	coll_angle = coll_angle/coll_angle.norm();
-
-    return coll_angle;
+	return new_dir;
 }
 
 //-----------------------------------------------------------------------------
@@ -577,7 +496,6 @@ vec3d Culture::CollagenDirection(GridPoint& pt)
 
     return coll_angle;
 }
-
 
 //-----------------------------------------------------------------------------
 double Culture::findDenScale(vec3d& pt)
@@ -622,50 +540,61 @@ double Culture::findDenScale(vec3d& pt)
 	return den_scale;
 }
 
+//-----------------------------------------------------------------------------
+// Calculates the density scale factor at a grid point.
+double Culture::FindDensityScale(GridPoint& pt)
+{
+	Grid& grid = m_angio.GetGrid();
+
+	// get the element
+	Elem& elem = grid.ebin[pt.nelem];
+        
+    // Obtain shape function weights
+    double shapeF[8];
+    grid.shapefunctions(shapeF, pt.q.x, pt.q.y, pt.q.z);
+
+	// evaluate the collagen density
+	double coll_den = 
+		shapeF[0]*(*elem.n1).ecm_den + 
+		shapeF[1]*(*elem.n2).ecm_den + 
+		shapeF[2]*(*elem.n3).ecm_den + 
+		shapeF[3]*(*elem.n4).ecm_den + 
+		shapeF[4]*(*elem.n5).ecm_den + 
+		shapeF[5]*(*elem.n6).ecm_den + 
+		shapeF[6]*(*elem.n7).ecm_den + 
+		shapeF[7]*(*elem.n8).ecm_den;
+    
+	// scale the density
+	double den_scale = grid.find_density_scale(coll_den);
+	
+	// all done
+	return den_scale;
+}
 
 //-----------------------------------------------------------------------------
 // creates a new segment to connect close segments
-Segment Culture::connectSegment(list<Segment>::iterator it,list<Segment>::iterator it2, int k, int kk, SimulationTime& time)
- {
+Segment Culture::connectSegment(Segment& it1, Segment& it2, int k, int kk, SimulationTime& time)
+{
  	Segment seg;
+ 	seg.m_nseed   = it1.m_nseed;
+ 	seg.m_nvessel = it1.m_nvessel;
  	
-	seg.length = (it->m_tip[k].rt - it2->m_tip[kk].rt).norm();
-	
- 	seg.m_tip[0].rt = it->m_tip[k].rt;
-	seg.m_tip[0].pt = it->m_tip[k].pt;
-	seg.m_tip[1].rt = it2->m_tip[kk].rt;
-	seg.m_tip[1].pt = it2->m_tip[kk].pt;
+ 	seg.tip(0).rt = it1.tip(k).rt;
+	seg.tip(0).pt = it1.tip(k).pt;
+	seg.tip(1).rt = it2.tip(kk).rt;
+	seg.tip(1).pt = it2.tip(kk).pt;
+	seg.Update();
  	
-	seg.TofBirth = time.t;
- 	seg.label = it->label;
- 	seg.vessel = it->vessel;
+	seg.SetTimeOfBirth(time.t);
  	
- 	seg.m_tip[0].active = 0;
- 	seg.m_tip[1].active = 0;
- 	seg.anast = 1;
- 	it->anast = 1;
- 	it2->anast = 1;
-	seg.findlength();
+ 	seg.tip(0).bactive = false;
+ 	seg.tip(1).bactive = false;
+	seg.SetFlagOn(Segment::ANAST);
+	it1.SetFlagOn(Segment::ANAST);
+	it2.SetFlagOn(Segment::ANAST);
 
  	++m_num_anastom;
  	
-	++m_nsegs;
-	seg.seg_num = m_nsegs;
-
-	seg.seg_conn[0][0] = it->seg_num;
-	
-	if (k == 0)
-		it->seg_conn[0][0] = seg.seg_num;
-	else
-		it->seg_conn[1][0] = seg.seg_num;
-
-	seg.seg_conn[1][0] = it2->seg_num;
-
-	if (kk == 0)
-		it2->seg_conn[0][1] = seg.seg_num;
-	else
-		it2->seg_conn[1][1] = seg.seg_num;
-	
 	return seg;
  }
  
@@ -683,10 +612,10 @@ void Culture::CheckForIntersection(Segment &seg, list<Segment>::iterator it)
 	
 	double lambda;
 
-	vec3d& r0 = seg.m_tip[0].rt;
-	vec3d& r1 = seg.m_tip[1].rt;
+	vec3d& r0 = seg.tip(0).rt;
+	vec3d& r1 = seg.tip(1).rt;
 	
-	if (seg.m_tip[1].active == 1)
+	if (seg.tip(1).bactive)
 	{
 		p1[0] = r0.x;
 		p2[0] = r1.x;
@@ -695,7 +624,7 @@ void Culture::CheckForIntersection(Segment &seg, list<Segment>::iterator it)
 		p1[2] = r0.z;
 		p2[2] = r1.z;
 	}
-	else if (seg.m_tip[0].active == -1)
+	else if (seg.tip(0).bactive)
 	{
 		p1[0] = r1.x;
 		p2[0] = r0.x;
@@ -708,7 +637,7 @@ void Culture::CheckForIntersection(Segment &seg, list<Segment>::iterator it)
 	Culture& cult = m_angio.GetCulture();
 	for (it2 = cult.m_frag.begin(); it2 != cult.m_frag.end(); ++it2)
 	{
-		if (it->label!=it2->label)
+		if (it->m_nseed!=it2->m_nseed)
 		{
 			pp1[0] = r0.x;
 			pp1[1] = r0.y;
@@ -720,19 +649,19 @@ void Culture::CheckForIntersection(Segment &seg, list<Segment>::iterator it)
 			lambda = findIntersect(p1,p2,pp1,pp2,intersectpt);
 			if (lambda >=0 && lambda <=1)
 			{
-				if (seg.m_tip[1].active == 1)
+				if (seg.tip(1).bactive)
 				{
-					seg.m_tip[1].rt.x = intersectpt[0];
-					seg.m_tip[1].rt.y = intersectpt[1];
-					seg.m_tip[1].rt.z = intersectpt[2];
-					seg.m_tip[1].active = 0;
+					seg.tip(1).rt.x = intersectpt[0];
+					seg.tip(1).rt.y = intersectpt[1];
+					seg.tip(1).rt.z = intersectpt[2];
+					seg.tip(1).bactive = false;
 				}
-				else if (seg.m_tip[0].active == -1)
+				else if (seg.tip(0).bactive)
 				{
-					seg.m_tip[0].rt.x = intersectpt[0];
-					seg.m_tip[0].rt.y = intersectpt[1];
-					seg.m_tip[0].rt.z = intersectpt[2];
-					seg.m_tip[0].active = 0;
+					seg.tip(0).rt.x = intersectpt[0];
+					seg.tip(0).rt.y = intersectpt[1];
+					seg.tip(0).rt.z = intersectpt[2];
+					seg.tip(0).bactive = false;
 				}
 				cout << "3D intersection" << endl;
 				++m_num_anastom;
@@ -894,23 +823,23 @@ bool Culture::intersectPlane(Segment &seg, int n, double intersectpt[3])
 	double u; //scalar weight to move along segment displacement vector
 
 
-	if (seg.m_tip[1].active == 1)
+	if (seg.tip(1).bactive)
 	{
-		V[0] = seg.m_tip[1].rt.x - seg.m_tip[0].rt.x;
-		V[1] = seg.m_tip[1].rt.y - seg.m_tip[0].rt.y;
-		V[2] = seg.m_tip[1].rt.z - seg.m_tip[0].rt.z;
-		LP[0] = seg.m_tip[0].rt.x;
-		LP[1] = seg.m_tip[0].rt.y;
-		LP[2] = seg.m_tip[0].rt.z;
+		V[0] = seg.tip(1).rt.x - seg.tip(0).rt.x;
+		V[1] = seg.tip(1).rt.y - seg.tip(0).rt.y;
+		V[2] = seg.tip(1).rt.z - seg.tip(0).rt.z;
+		LP[0] = seg.tip(0).rt.x;
+		LP[1] = seg.tip(0).rt.y;
+		LP[2] = seg.tip(0).rt.z;
 	}
 	else
 	{
-		V[0] = seg.m_tip[0].rt.x - seg.m_tip[1].rt.x;
-		V[1] = seg.m_tip[0].rt.y - seg.m_tip[1].rt.y;
-		V[2] = seg.m_tip[0].rt.z - seg.m_tip[1].rt.z;
-		LP[0] = seg.m_tip[1].rt.x;
-		LP[1] = seg.m_tip[1].rt.y;
-		LP[2] = seg.m_tip[1].rt.z;
+		V[0] = seg.tip(0).rt.x - seg.tip(1).rt.x;
+		V[1] = seg.tip(0).rt.y - seg.tip(1).rt.y;
+		V[2] = seg.tip(0).rt.z - seg.tip(1).rt.z;
+		LP[0] = seg.tip(1).rt.x;
+		LP[1] = seg.tip(1).rt.y;
+		LP[2] = seg.tip(1).rt.z;
 	}
 
 	switch (n)
@@ -1009,20 +938,13 @@ bool Culture::intersectPlane(Segment &seg, int n, double intersectpt[3])
 	return false;
 }
 
-
-
-
-
-
-
-
 ///////////////////////////////////////////////////////////////////////
 // PeriodicBC
 ///////////////////////////////////////////////////////////////////////
 
 //table of faces opposite to 0,1,..6
 double oppface[6];
-
+// TODO: vessel lenghts are always positive. Fix the logic here.
 Segment Culture::PeriodicBC(Segment &seg)
 {
 	Grid& grid = m_angio.GetGrid();
@@ -1039,11 +961,11 @@ Segment Culture::PeriodicBC(Segment &seg)
 	int n = 0;
 	double intersectpt[3] = {0};
 	
-	if (seg.m_tip[1].active == 1)
+	if (seg.tip(1).bactive)
 	{
-		unit_vec[0] = (seg.m_tip[1].rt.x-seg.m_tip[0].rt.x);
-		unit_vec[1] = (seg.m_tip[1].rt.y-seg.m_tip[0].rt.y);
-		unit_vec[2] = (seg.m_tip[1].rt.z-seg.m_tip[0].rt.z);
+		unit_vec[0] = (seg.tip(1).rt.x-seg.tip(0).rt.x);
+		unit_vec[1] = (seg.tip(1).rt.y-seg.tip(0).rt.y);
+		unit_vec[2] = (seg.tip(1).rt.z-seg.tip(0).rt.z);
 		length = vec_norm(unit_vec);
 		unit_vec[0] /= length;
 		unit_vec[1] /= length;
@@ -1053,89 +975,90 @@ Segment Culture::PeriodicBC(Segment &seg)
 		{
 			if (intersectPlane(seg,n,intersectpt))
 			{
-				//cout << endl << "Vessel " << seg.label << " Crossed Face " << n << endl;
-				seg.m_tip[1].rt.x = intersectpt[0];
-				seg.m_tip[1].rt.y = intersectpt[1];
-				seg.m_tip[1].rt.z = intersectpt[2];
-				if (seg.length < 0)
+				//cout << endl << "Vessel " << seg.m_nseed << " Crossed Face " << n << endl;
+				seg.tip(1).rt.x = intersectpt[0];
+				seg.tip(1).rt.y = intersectpt[1];
+				seg.tip(1).rt.z = intersectpt[2];
+				seg.Update();
+/*				if (seg.length() < 0)
 				{
-					seg.length = -(seg.m_tip[1].rt - seg.m_tip[0].rt).norm();
+					seg.m_length = -(seg.tip(1).rt - seg.tip(0).rt).norm();
 				}
 				else
 				{
-					seg.length = (seg.m_tip[1].rt - seg.m_tip[0].rt).norm();
+					seg.m_length = (seg.tip(1).rt - seg.tip(0).rt).norm();
 				}
-
-				seg.m_tip[1].active = 0;
-				seg.BCdead = 1;
+*/
+				seg.tip(1).bactive = false;
+				seg.SetFlagOn(Segment::BC_DEAD);
 				
 				if (n > 3)
 				    m_num_zdead += 1;
 				return seg;
 				
-				m_frag.push_front (seg);
+				AddSegment(seg);
 				Segment seg2;
 				m_num_vessel = m_num_vessel + 1;
 				
 				switch (n)
 				{
 				case 0:
-					seg2.m_tip[0].rt.x = seg.m_tip[1].rt.x;
-					seg2.m_tip[0].rt.y = oppface[n];
-					seg2.m_tip[0].rt.z = seg.m_tip[1].rt.z;
+					seg2.tip(0).rt.x = seg.tip(1).rt.x;
+					seg2.tip(0).rt.y = oppface[n];
+					seg2.tip(0).rt.z = seg.tip(1).rt.z;
 					break;
 					
 				case 1:
-					seg2.m_tip[0].rt.x = oppface[n];
-					seg2.m_tip[0].rt.y = seg.m_tip[1].rt.y;
-					seg2.m_tip[0].rt.z = seg.m_tip[1].rt.z;
+					seg2.tip(0).rt.x = oppface[n];
+					seg2.tip(0).rt.y = seg.tip(1).rt.y;
+					seg2.tip(0).rt.z = seg.tip(1).rt.z;
 					break;
 				case 2:
-					seg2.m_tip[0].rt.x = seg.m_tip[1].rt.x;
-					seg2.m_tip[0].rt.y = oppface[n];
-					seg2.m_tip[0].rt.z = seg.m_tip[1].rt.z;
+					seg2.tip(0).rt.x = seg.tip(1).rt.x;
+					seg2.tip(0).rt.y = oppface[n];
+					seg2.tip(0).rt.z = seg.tip(1).rt.z;
 					break;
 				case 3:
-					seg2.m_tip[0].rt.x = oppface[n];
-					seg2.m_tip[0].rt.y = seg.m_tip[1].rt.y;
-					seg2.m_tip[0].rt.z = seg.m_tip[1].rt.z;
+					seg2.tip(0).rt.x = oppface[n];
+					seg2.tip(0).rt.y = seg.tip(1).rt.y;
+					seg2.tip(0).rt.z = seg.tip(1).rt.z;
 					break;
 				case 4:
-					seg2.m_tip[0].rt.x = seg.m_tip[1].rt.x;
-					seg2.m_tip[0].rt.y = seg.m_tip[1].rt.y;
-					seg2.m_tip[0].rt.z = oppface[n];
+					seg2.tip(0).rt.x = seg.tip(1).rt.x;
+					seg2.tip(0).rt.y = seg.tip(1).rt.y;
+					seg2.tip(0).rt.z = oppface[n];
 					break;
 				case 5:
-					seg2.m_tip[0].rt.x = seg.m_tip[1].rt.x;
-					seg2.m_tip[0].rt.y = seg.m_tip[1].rt.y;
-					seg2.m_tip[0].rt.z = oppface[n];
+					seg2.tip(0).rt.x = seg.tip(1).rt.x;
+					seg2.tip(0).rt.y = seg.tip(1).rt.y;
+					seg2.tip(0).rt.z = oppface[n];
 					break;
 				}
 
-				if (seg.length > 0) 
+				if (seg.length() > 0) 
 				{
-					rem_length = length - (seg.m_tip[1].rt - seg.m_tip[0].rt).norm();
-					seg2.m_tip[1].rt.x = seg2.m_tip[0].rt.x + rem_length*unit_vec[0];
-					seg2.m_tip[1].rt.y = seg2.m_tip[0].rt.y + rem_length*unit_vec[1];
-					seg2.m_tip[1].rt.z = seg2.m_tip[0].rt.z + rem_length*unit_vec[2];
+					rem_length = length - (seg.tip(1).rt - seg.tip(0).rt).norm();
+					seg2.tip(1).rt.x = seg2.tip(0).rt.x + rem_length*unit_vec[0];
+					seg2.tip(1).rt.y = seg2.tip(0).rt.y + rem_length*unit_vec[1];
+					seg2.tip(1).rt.z = seg2.tip(0).rt.z + rem_length*unit_vec[2];
 				}
 				else 
 				{
-					rem_length = -length + (seg.m_tip[1].rt- seg.m_tip[0].rt).norm();
-					seg2.m_tip[1].rt.x = seg2.m_tip[0].rt.x - rem_length*unit_vec[0];
-					seg2.m_tip[1].rt.y = seg2.m_tip[0].rt.y - rem_length*unit_vec[1];
-					seg2.m_tip[1].rt.z = seg2.m_tip[0].rt.z - rem_length*unit_vec[2];
+					rem_length = -length + (seg.tip(1).rt- seg.tip(0).rt).norm();
+					seg2.tip(1).rt.x = seg2.tip(0).rt.x - rem_length*unit_vec[0];
+					seg2.tip(1).rt.y = seg2.tip(0).rt.y - rem_length*unit_vec[1];
+					seg2.tip(1).rt.z = seg2.tip(0).rt.z - rem_length*unit_vec[2];
 				}
 				
-				seg2.m_tip[1].active = 1;
-				seg2.m_tip[0].active = 0;
-				seg2.label = seg.label;
-				seg2.vessel = m_num_vessel;
+				seg2.tip(1).bactive = true;
+				seg2.tip(0).bactive = false;
+				seg2.m_nseed = seg.m_nseed;
+				seg2.m_nvessel = m_num_vessel;
 				seg2.m_sprout = seg.m_sprout;
-				seg2.length = rem_length;
+//				seg2.m_length = rem_length;
 //				seg2.phi1 = seg.phi1;
 //				seg2.phi2 = seg.phi2;
-				seg2.TofBirth = seg.TofBirth;
+				seg2.SetTimeOfBirth(seg.GetTimeOfBirth());
 				if (grid.IsOutsideBox(seg2))
 					seg = PeriodicBC(seg2);
 				else
@@ -1147,9 +1070,9 @@ Segment Culture::PeriodicBC(Segment &seg)
 	
 	else
 	{
-		unit_vec[0] = (seg.m_tip[0].rt.x-seg.m_tip[1].rt.x);
-		unit_vec[1] = (seg.m_tip[0].rt.y-seg.m_tip[1].rt.y);
-		unit_vec[2] = (seg.m_tip[0].rt.z-seg.m_tip[1].rt.z);
+		unit_vec[0] = (seg.tip(0).rt.x-seg.tip(1).rt.x);
+		unit_vec[1] = (seg.tip(0).rt.y-seg.tip(1).rt.y);
+		unit_vec[2] = (seg.tip(0).rt.z-seg.tip(1).rt.z);
 		length = vec_norm(unit_vec);
 		unit_vec[0] /= length;
 		unit_vec[1] /= length;
@@ -1158,89 +1081,89 @@ Segment Culture::PeriodicBC(Segment &seg)
 		{
 			if (intersectPlane(seg,n,intersectpt))
 			{
-				//cout << endl << "Vessel " << seg.label << " Crossed Face " << n << endl;
-				seg.m_tip[0].rt.x = intersectpt[0];
-				seg.m_tip[0].rt.y = intersectpt[1];
-				seg.m_tip[0].rt.z = intersectpt[2];
-				if (seg.length < 0)
+				//cout << endl << "Vessel " << seg.m_nseed << " Crossed Face " << n << endl;
+				seg.tip(0).rt.x = intersectpt[0];
+				seg.tip(0).rt.y = intersectpt[1];
+				seg.tip(0).rt.z = intersectpt[2];
+				if (seg.length() < 0)
 				{
-					seg.length = -(seg.m_tip[1].rt - seg.m_tip[0].rt).norm();
+//					seg.m_length = -(seg.tip(1).rt - seg.tip(0).rt).norm();
 				}
 				else
 				{
-					seg.length = (seg.m_tip[1].rt - seg.m_tip[0].rt).norm();
+//					seg.m_length = (seg.tip(1).rt - seg.tip(0).rt).norm();
 				}
 				
-				seg.m_tip[0].active = 0;
+				seg.tip(0).bactive = false;
                 
 				if (n > 3)
 				    m_num_zdead += 1;
 				return seg;
 				
-				m_frag.push_front (seg);
+				AddSegment(seg);
 				Segment seg2;
 				m_num_vessel = m_num_vessel + 1;
 				
 				switch (n)
 				{
 				case 0:
-					seg2.m_tip[1].rt.x = seg.m_tip[0].rt.x;
-					seg2.m_tip[1].rt.y = oppface[n];
-					seg2.m_tip[1].rt.z = seg.m_tip[0].rt.z;
+					seg2.tip(1).rt.x = seg.tip(0).rt.x;
+					seg2.tip(1).rt.y = oppface[n];
+					seg2.tip(1).rt.z = seg.tip(0).rt.z;
 					break;
 					
 				case 1:
-					seg2.m_tip[1].rt.x = oppface[n];
-					seg2.m_tip[1].rt.y = seg.m_tip[0].rt.y;
-					seg2.m_tip[1].rt.z = seg.m_tip[0].rt.z;
+					seg2.tip(1).rt.x = oppface[n];
+					seg2.tip(1).rt.y = seg.tip(0).rt.y;
+					seg2.tip(1).rt.z = seg.tip(0).rt.z;
 					break;
 				case 2:
-					seg2.m_tip[1].rt.x = seg.m_tip[0].rt.x;
-					seg2.m_tip[1].rt.y = oppface[n];
-					seg2.m_tip[1].rt.z = seg.m_tip[0].rt.z;
+					seg2.tip(1).rt.x = seg.tip(0).rt.x;
+					seg2.tip(1).rt.y = oppface[n];
+					seg2.tip(1).rt.z = seg.tip(0).rt.z;
 					break;
 				case 3:
-					seg2.m_tip[1].rt.x = oppface[n];
-					seg2.m_tip[1].rt.y = seg.m_tip[0].rt.y;
-					seg2.m_tip[1].rt.z = seg.m_tip[0].rt.z;
+					seg2.tip(1).rt.x = oppface[n];
+					seg2.tip(1).rt.y = seg.tip(0).rt.y;
+					seg2.tip(1).rt.z = seg.tip(0).rt.z;
 					break;
 				case 4:
-					seg2.m_tip[1].rt.x = seg.m_tip[0].rt.x;
-					seg2.m_tip[1].rt.y = seg.m_tip[0].rt.y;
-					seg2.m_tip[1].rt.z = oppface[n];
+					seg2.tip(1).rt.x = seg.tip(0).rt.x;
+					seg2.tip(1).rt.y = seg.tip(0).rt.y;
+					seg2.tip(1).rt.z = oppface[n];
 					break;
 				case 5:
-					seg2.m_tip[1].rt.x = seg.m_tip[0].rt.x;
-					seg2.m_tip[1].rt.y = seg.m_tip[0].rt.y;
-					seg2.m_tip[1].rt.z = oppface[n];
+					seg2.tip(1).rt.x = seg.tip(0).rt.x;
+					seg2.tip(1).rt.y = seg.tip(0).rt.y;
+					seg2.tip(1).rt.z = oppface[n];
 					break;
 				}
 
-				if (seg.length < 0) 
+				if (seg.length() < 0) 
 				{
-					rem_length = -length + (seg.m_tip[1].rt - seg.m_tip[0].rt).norm();
-					seg2.m_tip[0].rt.x = seg2.m_tip[1].rt.x - rem_length*unit_vec[0];
-					seg2.m_tip[0].rt.y = seg2.m_tip[1].rt.y - rem_length*unit_vec[1];
-					seg2.m_tip[0].rt.z = seg2.m_tip[1].rt.z - rem_length*unit_vec[2];
+					rem_length = -length + (seg.tip(1).rt - seg.tip(0).rt).norm();
+					seg2.tip(0).rt.x = seg2.tip(1).rt.x - rem_length*unit_vec[0];
+					seg2.tip(0).rt.y = seg2.tip(1).rt.y - rem_length*unit_vec[1];
+					seg2.tip(0).rt.z = seg2.tip(1).rt.z - rem_length*unit_vec[2];
 					
 				}
 				else 
 				{
-					rem_length = length - (seg.m_tip[1].rt - seg.m_tip[0].rt).norm();
-					seg2.m_tip[0].rt.x = seg2.m_tip[1].rt.x + rem_length*unit_vec[0];
-					seg2.m_tip[0].rt.y = seg2.m_tip[1].rt.y + rem_length*unit_vec[1];
-					seg2.m_tip[0].rt.z = seg2.m_tip[1].rt.z + rem_length*unit_vec[2];
+					rem_length = length - (seg.tip(1).rt - seg.tip(0).rt).norm();
+					seg2.tip(0).rt.x = seg2.tip(1).rt.x + rem_length*unit_vec[0];
+					seg2.tip(0).rt.y = seg2.tip(1).rt.y + rem_length*unit_vec[1];
+					seg2.tip(0).rt.z = seg2.tip(1).rt.z + rem_length*unit_vec[2];
 				}
 				
-				seg2.m_tip[1].active = 0;
-				seg2.m_tip[0].active = -1;
-				seg2.label = seg.label;
-				seg2.vessel = m_num_vessel;
+				seg2.tip(1).bactive = false;
+				seg2.tip(0).bactive = true;
+				seg2.m_nseed = seg.m_nseed;
+				seg2.m_nvessel = m_num_vessel;
 				seg2.m_sprout = seg.m_sprout;
-				seg2.length = rem_length;
+//				seg2.m_length = rem_length;
 //				seg2.phi1 = seg.phi1;
 //				seg2.phi2 = seg.phi2;
-				seg2.TofBirth = seg.TofBirth;
+				seg2.SetTimeOfBirth(seg.GetTimeOfBirth());
 				
 				if (grid.IsOutsideBox(seg2))
 					seg = PeriodicBC(seg2);
@@ -1254,7 +1177,7 @@ Segment Culture::PeriodicBC(Segment &seg)
 
 //-----------------------------------------------------------------------------
 // Remove dead segments.
-// TODO: It think this is a sloppy way of swiping bugs under the rug. Remove this.
+// TODO: It think this is a sloppy way of sweeping bugs under the carpet. Remove this.
 void Culture::kill_dead_segs()
 {  
 	if (m_angio.kill_off == false){
@@ -1262,8 +1185,8 @@ void Culture::kill_dead_segs()
     
 		for (it = m_frag.begin(); it != m_frag.end(); ++it){
 			if (it->mark_of_death == true){
-				vec3d& r0 = it->m_tip[0].rt;
-				vec3d& r1 = it->m_tip[1].rt;
+				vec3d& r0 = it->tip(0).rt;
+				vec3d& r1 = it->tip(1).rt;
 				it = m_frag.erase(it);
 				assert(false);
 			}
@@ -1284,10 +1207,10 @@ void Culture::FindActiveTips()
 	
 	for (it = m_frag.begin(); it != m_frag.end(); ++it)             // Iterate through all segments in frag list container (it)                               
 	{
-		if (it->m_tip[0].active != 0){
-			m_active_tips.push_back(it);}
-		else if (it->m_tip[1].active != 0){
-			m_active_tips.push_back(it);}
+		if (it->tip(0).bactive)
+			m_active_tips.push_back(it);
+		else if (it->tip(1).bactive)
+			m_active_tips.push_back(it);
 	} 
 			
     return;

@@ -368,8 +368,6 @@ void FEAngio::Output()
 
 	fileout.writeECMDen(GetGrid());						// Output final matrix density
 
-	fileout.writeSegConn(GetCulture().m_frag);						// Output the segment connectivity data
-	
 	fileout.writeECMDenStore(GetGrid());
 
 	fileout.writeECMFibrilStore(GetGrid());
@@ -418,18 +416,9 @@ bool FEAngio::Subgrowth(int sub_steps)
 	{
 		// Update the value of the subgrowth scaling factor
 		double subgrowth_scale = ((double)k/(double)sub_steps);
-		
-		// Iterator through the list of active segment tips
-		list<list<Segment>::iterator >::iterator tip_it;
-		for (tip_it = m_pCult->m_active_tips.begin(); tip_it != m_pCult->m_active_tips.end(); ++tip_it)
-		{
-			// Dereference the tip iterator to obtain the active segment
-			Segment& seg = (*(*tip_it));
 
-			// Step growth for the active segment
-			if (seg.m_tip[0].active == -1) seg.m_tip[0].rt = seg.m_tip[1].rt + seg.uvect*(subgrowth_scale*seg.length);
-			if (seg.m_tip[1].active ==  1) seg.m_tip[1].rt = seg.m_tip[0].rt + seg.uvect*(subgrowth_scale*seg.length);
-		}
+		// do the sub-growht step
+		m_pCult->SubGrowth(subgrowth_scale);
 
 		// Update the positions of the body forces
 		update_body_forces(1.0);
@@ -452,14 +441,13 @@ void FEAngio::DisplaceVessels()
 	double shapeF[8] = {0.};									// Array containing the shape function values at the segment's position
 
 	// loop over all fragments
-	list<Segment>::iterator it;
-	for (it = m_pCult->m_frag.begin(); it != m_pCult->m_frag.end(); ++it)             // Iterate through all segments in frag list container (it)                               
+	for (SegIter it = m_pCult->SegmentBegin(); it != m_pCult->SegmentEnd(); ++it)             // Iterate through all segments in frag list container (it)                               
 	{
 		// Iterate through both segment tips
 		for (int k=0; k<2; ++k)
 		{
 			// get the tip
-			Segment::TIP tip = it->m_tip[k];
+			Segment::TIP& tip = it->tip(k);
 
 			// get the element number
 			int elem_num = tip.pt.nelem;								// Find the element that contains the segment tip
@@ -498,7 +486,7 @@ void FEAngio::DisplaceVessels()
 		}
 		
 		// Recalculate the segment's length and unit vector based on it's new position
-		it->findlength();
+		it->Update();
 	}
 
 	// Update the total vascular length within the simulation   
@@ -509,11 +497,6 @@ void FEAngio::DisplaceVessels()
 // Apply sprout forces to the mesh for each active vessel tip
 void FEAngio::apply_sprout_forces(int load_curve, double scale)
 {
-	list<list<Segment>::iterator >::iterator tip_it;				// Iterator for the container that stores active growth tips
-	Segment seg;													// Segment placeholder
-	vec3d sprout_vect;												// Sprout vector
-
-	vec3d tip(0,0,0);
 	double magnitude = scale*m_sproutf;								// Scale the sprout magnitude
 
 	// Ramp up the sprout force magnitude up to time t = 4.0 days
@@ -523,33 +506,33 @@ void FEAngio::apply_sprout_forces(int load_curve, double scale)
 		magnitude = (1.0/4.0)*m_time.t*scale;
 
 	//#pragma omp parallel for
-	for (tip_it = m_pCult->m_active_tips.begin(); tip_it != m_pCult->m_active_tips.end(); ++tip_it)		// For each active growth tip...
+	for (list<SegIter>::iterator tip_it = m_pCult->m_active_tips.begin(); tip_it != m_pCult->m_active_tips.end(); ++tip_it)		// For each active growth tip...
 	{
-		seg = (*(*tip_it));												// Obtain the growth tip
+		Segment& seg = (*(*tip_it));												// Obtain the growth tip
 
-		if (seg.m_tip[0].active == -1){											// If it's a -1 tip...
-			tip = seg.m_tip[0].rt;												// Obtain the position of the active tip
+		if (seg.tip(0).bactive)
+		{
+			vec3d tip = seg.tip(0).rt;												// Obtain the position of the active tip
 			
-			// TODO: Why is this calculated? This is already stored in Segment
-			sprout_vect = seg.m_tip[0].rt - seg.m_tip[1].rt;							// Calculate the directional unit vector of the sprout
-			sprout_vect = sprout_vect/sprout_vect.norm();
+			// Calculate the directional unit vector of the sprout (notice negative sign)
+			vec3d sprout_vect = -seg.uvect();
 
-			(*tip_it)->m_tip[0].bdyf_id = create_body_force(sprout_vect, tip.x, tip.y, tip.z, magnitude, 1.0/m_tip_range, load_curve);}				// Create a new body force, set the tips body force ID
+			(*tip_it)->tip(0).bdyf_id = create_body_force(sprout_vect, tip.x, tip.y, tip.z, magnitude, 1.0/m_tip_range, load_curve);				// Create a new body force, set the tips body force ID
+		}
 		
-		if (seg.m_tip[1].active == 1){											// If it's a +1 tip...
-			tip = seg.m_tip[1].rt;												// Obtain the position of the active tip
+		if (seg.tip(1).bactive)
+		{	
+			vec3d tip = seg.tip(1).rt;												// Obtain the position of the active tip
 			
-			sprout_vect.x = seg.m_tip[1].rt.x - seg.m_tip[0].rt.x;							// Calculate the directional unit vector of the sprout
-			sprout_vect.y = seg.m_tip[1].rt.y - seg.m_tip[0].rt.y;
-			sprout_vect.z = seg.m_tip[1].rt.z - seg.m_tip[0].rt.z;
-			sprout_vect = sprout_vect/sprout_vect.norm();
+			// Calculate the directional unit vector of the sprout
+			vec3d sprout_vect = seg.uvect();
 
-			(*tip_it)->m_tip[1].bdyf_id = create_body_force(sprout_vect, tip.x, tip.y, tip.z, magnitude, 1.0/m_tip_range, load_curve);}				// Create a new body force, set the tips body force ID
+			(*tip_it)->tip(1).bdyf_id = create_body_force(sprout_vect, tip.x, tip.y, tip.z, magnitude, 1.0/m_tip_range, load_curve);				// Create a new body force, set the tips body force ID
+		}
 	}
 
 	return;
 }
-
 
 //-----------------------------------------------------------------------------
 // Add a new body force entry into the body force field applyied to the mesh
@@ -575,7 +558,6 @@ int FEAngio::create_body_force(vec3d sprout_vect, double xpt, double ypt, double
 // Update the sprout forces after a deformation
 void FEAngio::update_body_forces(double scale)
 {
-	list<Segment>::iterator frag_it;								// Iterator for the segment container FRAG
 	vec3d sprout_vect;												// Sprout direction vector
 
 	vec3d tip(0,0,0);
@@ -614,32 +596,27 @@ void FEAngio::update_body_forces(double scale)
 	FEMesh& mesh = m_fem.GetMesh();									// Obtain the FE mesh
 
 	//#pragma omp parallel for
-	for (frag_it = m_pCult->m_frag.begin(); frag_it != m_pCult->m_frag.end(); ++frag_it)		// Iterate through each segment in the model...
+	for (SegIter frag_it = m_pCult->SegmentBegin(); frag_it != m_pCult->SegmentEnd(); ++frag_it)		// Iterate through each segment in the model...
 	{
 		const Segment& seg = (*frag_it);								// Obtain the segment, keep it constant to prevent changes
 
-		if (((seg.m_tip[0].active == -1) || (seg.m_tip[0].BC == 1)) && (seg.m_tip[0].bdyf_id >= 0)){		  // Turn on the body force for any active -1 segment OR -1 segment that has encountered a boundary and stopped growing...
+		if (((seg.tip(0).bactive) || (seg.tip(0).BC == 1)) && (seg.tip(0).bdyf_id >= 0)){		  // Turn on the body force for any active -1 segment OR -1 segment that has encountered a boundary and stopped growing...
 		//if ((seg.tip[0] == -1) && (seg.bdyf_id[0] >= 0)){									// Turn on the body force for any active -1 segment
-			tip = seg.m_tip[0].rt;																	// Obtain the tip position
+			tip = seg.tip(0).rt;																	// Obtain the tip position
 
-			sprout_vect = seg.m_tip[0].rt - seg.m_tip[1].rt;												// Calculate the sprout directional vector
+			sprout_vect = seg.tip(0).rt - seg.tip(1).rt;												// Calculate the sprout directional vector
 			sprout_vect = sprout_vect/sprout_vect.norm();			
 
-//--> SAM
-			update_angio_sprout(seg.m_tip[0].bdyf_id, true, tip, sprout_vect);
-//<-- SAM
+			update_angio_sprout(seg.tip(0).bdyf_id, true, tip, sprout_vect);
 			}
 		
-		if (((seg.m_tip[1].active == 1) || (seg.m_tip[1].BC == 1)) && (seg.m_tip[1].bdyf_id >= 0)){		  // Turn on the body force for any active +1 segment OR +1 segment that has encountered a boundary and stopped growing...
+		if (((seg.tip(1).bactive) || (seg.tip(1).BC == 1)) && (seg.tip(1).bdyf_id >= 0)){		  // Turn on the body force for any active +1 segment OR +1 segment that has encountered a boundary and stopped growing...
 		//if ((seg.tip[1] == 1) && (seg.bdyf_id[1] >= 0)){									// Turn on the body force for any active +1 segment
-			tip = seg.m_tip[1].rt;																	// Obtain the tip position
+			tip = seg.tip(1).rt;																	// Obtain the tip position
 			
-			sprout_vect = seg.m_tip[1].rt - seg.m_tip[0].rt;												// Calculate the sprout directional vector
-			sprout_vect = sprout_vect/sprout_vect.norm();
-
-//--> SAM
-			update_angio_sprout(seg.m_tip[1].bdyf_id, true, tip, sprout_vect);
-//<-- SAM
+			sprout_vect = seg.tip(1).rt - seg.tip(0).rt;												// Calculate the sprout directional vector
+			sprout_vect.unit();
+			update_angio_sprout(seg.tip(1).bdyf_id, true, tip, sprout_vect);
 			}
 	}
 	
@@ -900,7 +877,7 @@ void FEAngio::update_ECM()
 // FEAngio - adjust_mesh_stiffness
 //		Adjust the stiffness of the mesh based on the microvessel population
 ///////////////////////////////////////////////////////////////////////
-
+// TODO: vessel lengths are always positive now, so we need to fix the logic here.
 void FEAngio::adjust_mesh_stiffness()
 {
 	if (comp_mat == 0)													// If a composite consitutive model isn't being used, exit
@@ -909,7 +886,6 @@ void FEAngio::adjust_mesh_stiffness()
 	Grid& grid = m_grid;
 		
 	int elem_num = 0;													// Element number
-	list<Segment>::iterator frag_it;									// Iterator for the segment container FRAG
 	vec3d vess_vect;													// Vessel vector
 
 	int NE = m_grid.Elems();
@@ -928,45 +904,44 @@ void FEAngio::adjust_mesh_stiffness()
 	double subunit_volume = 0.;											// Subdivision volume
 	double volume_fraction = 0.;										// Volume fraction
 
-	for (frag_it = m_pCult->m_frag.begin(); frag_it != m_pCult->m_frag.end(); ++frag_it)		// For each segment...
+	for (SegIter frag_it = m_pCult->SegmentBegin(); frag_it != m_pCult->SegmentEnd(); ++frag_it)		// For each segment...
 	{
-		Segment seg;													// Segment placeholder
 		Segment subunit;												// Segment subdivision placeholder
 	
-		seg = (*frag_it);												// Obtain the segment
+		Segment& seg = (*frag_it);												// Obtain the segment
 		
 		for (int k = 1; k <= Nsub; k++)									// For each subdivision...
 		{
 			if (k == 1){													// If this is the first subdivision, find the origin of the segment
-				if (seg.length > 0.){											// If it's a +1 segment...
-					subunit.m_tip[0].rt = seg.m_tip[0].rt;
+				if (seg.length() > 0.){											// If it's a +1 segment...
+					subunit.tip(0).rt = seg.tip(0).rt;
 				}
 				else{															// If it's a -1 segment...
-					subunit.m_tip[1].rt = seg.m_tip[1].rt;
-					subunit.length = -1.;
+					subunit.tip(1).rt = seg.tip(1).rt;
+//					subunit.m_length = -1.;
 				}
 		}
 			
 			// Calculate the subdivision
-			if (seg.length > 0.){										// If it's a +1 segment...			
-				subunit.m_tip[1].rt = subunit.m_tip[0].rt + seg.uvect*(sub_scale*seg.length);     
+			if (seg.length() > 0.){										// If it's a +1 segment...			
+				subunit.tip(1).rt = subunit.tip(0).rt + seg.uvect()*(sub_scale*seg.length());     
 			}
 			else{														// If it's a -1 segment...
-				subunit.m_tip[0].rt = subunit.m_tip[1].rt + seg.uvect*(sub_scale*seg.length);     
+				subunit.tip(0).rt = subunit.tip(1).rt + seg.uvect()*(sub_scale*seg.length());     
 			}
 
-			subunit.findlength();										// Find the length of the subdivision
+			subunit.Update();										// Find the length of the subdivision
 			
-			mid = (subunit.m_tip[1].rt + subunit.m_tip[0].rt)*0.5;
+			mid = (subunit.tip(1).rt + subunit.tip(0).rt)*0.5;
 
 			elem_num = m_grid.findelem(mid.x, mid.y, mid.z);				// Find the element that the midpoint is within
 
 			// Calculate the orientation of the subdivision
-			if (seg.length > 0.){										// If it's a +1 segment...
-				vess_vect = subunit.m_tip[1].rt - subunit.m_tip[0].rt;
+			if (seg.length() > 0.){										// If it's a +1 segment...
+				vess_vect = subunit.tip(1).rt - subunit.tip(0).rt;
 			}
 			else{														// If it's a -1 segment...
-				vess_vect = subunit.m_tip[0].rt - subunit.m_tip[1].rt;
+				vess_vect = subunit.tip(0).rt - subunit.tip(1).rt;
 			}
 
 			if (vess_vect.norm() != 0.)									// Normalize to find the unit vector
@@ -975,7 +950,7 @@ void FEAngio::adjust_mesh_stiffness()
 			if (elem_num != -1)											// If the midpoint has a real element number...
 			{
 				elem_volume = m_grid.ebin[elem_num].volume;					// Calculate the volume of the element
-				subunit_volume = pi*(m_vessel_width/2.)*(m_vessel_width/2.)*fabs(subunit.length);		// Find the volume of the subdivision
+				subunit_volume = pi*(m_vessel_width/2.)*(m_vessel_width/2.)*fabs(subunit.length());		// Find the volume of the subdivision
 				volume_fraction = subunit_volume/elem_volume;				// Calculate the volume fraction
 
 				m_grid.ebin[elem_num].alpha = m_grid.ebin[elem_num].alpha + volume_fraction;	// Add the volume fraction for each subdivision to alpha
@@ -992,11 +967,11 @@ void FEAngio::adjust_mesh_stiffness()
 			}
 			
 			// Set the origin of the next subdivision to the end of the current one
-			if (seg.length > 0.){
-				subunit.m_tip[0].rt = subunit.m_tip[1].rt;
+			if (seg.length() > 0.){
+				subunit.tip(0).rt = subunit.tip(1).rt;
 			}
 			else{
-				subunit.m_tip[1].rt = subunit.m_tip[0].rt;
+				subunit.tip(1).rt = subunit.tip(0).rt;
 			}
 		}
 	}
@@ -1096,8 +1071,6 @@ void FEAngio::save_cropped_vessels()
 	FILE *seg_conn_stream;                                                           // Open stream to 'out_seg_conn.ang' (stream)
 	seg_conn_stream = fopen("out_cropped_seg_conn.ang","wt");
 
-	list<Segment>::iterator it;
-		
 	double xmin = 0.; double xmax = 0.; double ymin = 0.; double ymax = 0.; double zmin = 0.; double zmax = 0.;
 	
 	Grid& grid = m_grid;
@@ -1108,15 +1081,15 @@ void FEAngio::save_cropped_vessels()
 	zmin = ((grid.zrange[1] + grid.zrange[0])/2) - 1500/2;
 	zmax = ((grid.zrange[1] + grid.zrange[0])/2) + 1500/2;
 
-	for (it = m_pCult->m_frag.begin(); it != m_pCult->m_frag.end(); ++it)                         // Iterate through all segments in frag list container (it)
+	for (SegIter it = m_pCult->SegmentBegin(); it != m_pCult->SegmentEnd(); ++it)                         // Iterate through all segments in frag list container (it)
 	{
-		vec3d& r0 = it->m_tip[0].rt;
-		vec3d& r1 = it->m_tip[1].rt;
+		vec3d& r0 = it->tip(0).rt;
+		vec3d& r1 = it->tip(1).rt;
 		if (((r0.x <= xmax) && (r0.x >= xmin)) && ((r1.x <= xmax) && (r1.x >= xmin))){
 			if (((r0.y <= ymax) && (r0.y >= ymin)) && ((r1.y <= ymax) && (r1.y >= ymin))){
 				if (((r0.z <= zmax) && (r0.z >= zmin)) && ((r1.z <= zmax) && (r1.z >= zmin))){
-					fprintf(data_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i %-5.2i\n",it->TofBirth,r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length,it->seg_num,it->label);  // Write to data.ang		
-					fprintf(seg_conn_stream,"%-5.2i %-5.2i %-5.2i %-5.2i %-5.2i\n",it->seg_num,it->seg_conn[0][0],it->seg_conn[0][1],it->seg_conn[1][0],it->seg_conn[1][1]);  // Write to seg_conn.ang
+					fprintf(data_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i %-5.2i\n",it->GetTimeOfBirth(),r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length(),it->m_nid,it->m_nseed);  // Write to data.ang		
+//					fprintf(seg_conn_stream,"%-5.2i %-5.2i %-5.2i %-5.2i %-5.2i\n",it->seg_num,it->seg_conn[0][0],it->seg_conn[0][1],it->seg_conn[1][0],it->seg_conn[1][1]);  // Write to seg_conn.ang
 				}
 			}
 		}
@@ -1556,10 +1529,9 @@ void FEAngio::updateTime()
 void FEAngio::UpdateTotalLength()
 {
     m_total_length = 0.;
-    list<Segment>::iterator it;
-    for (it = m_pCult->m_frag.begin(); it != m_pCult->m_frag.end(); ++it)
+    for (SegIter it = m_pCult->SegmentBegin(); it != m_pCult->SegmentEnd(); ++it)
     {
-        m_total_length += fabs(it->length);    
+        m_total_length += it->length();
     }
 }
 
@@ -1572,18 +1544,16 @@ void FEAngio::removeErrors()
 	if (kill_off == false){
 		double length_limit = m_pCult->m_d;
     
-		list<Segment>::iterator it;
-    
-		for (it = m_pCult->m_frag.begin(); it != m_pCult->m_frag.end(); ++it){
-			if (fabs(it->length) >= 2.0*length_limit){
+		for (SegIter it = m_pCult->SegmentBegin(); it != m_pCult->SegmentEnd(); ++it){
+			if (fabs(it->length()) >= 2.0*length_limit){
 				it->death_label = -7;
-				vec3d& r0 = it->m_tip[0].rt;
-				vec3d& r1 = it->m_tip[1].rt;
+				vec3d& r0 = it->tip(0).rt;
+				vec3d& r1 = it->tip(1).rt;
 //				fprintf(killed_segs_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i\n",it->TofBirth,r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length,it->death_label);
-				it = m_pCult->m_frag.erase(it);
+//				it = m_pCult->m_frag.erase(it);
 				assert(false);
 			}
-			if (it == m_pCult->m_frag.end())
+			if (it == m_pCult->SegmentEnd())
 				return;
 		}
                 
