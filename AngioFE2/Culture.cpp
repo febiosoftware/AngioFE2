@@ -161,24 +161,26 @@ void Culture::Grow(SimulationTime& time)
 	UpdateNewVesselLength(time);
 
 	// Elongate the active vessel tips
-    list<Segment>::iterator it;
-	for (it = m_frag.begin(); it != m_frag.end(); ++it)
+	for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
 	{
 		for (int k=0; k<2; ++k)
 		{
 			// only grow active tips
 			if (it->tip(k).bactive)
 			{
-				GrowSegment(*it, k, time);	// Create new vessel segment at the current tip existing segment 
+				// Create new vessel segment at the current tip existing segment
+				Segment seg = GrowSegment(*it, k);
+
+				// Add the segment to the network
+				AddNewSegment(seg, k);
 			}
 	    }
-		    
-		// If branching is turned on determine if the segment forms a new branch
-		if (yes_branching == true) Branch(*it, time);												
     }
 
+	if (yes_branching) Branch(time);
+
 	// If anatomosis is turned on determine which segments form anatomoses
-	if (yes_anast == true) Fuse(time);										
+	if (yes_anast) Fuse(time);										
 
 	// Remove buggy segments
 	kill_dead_segs();
@@ -216,7 +218,7 @@ void Culture::UpdateNewVesselLength(SimulationTime& time)
 
 //-----------------------------------------------------------------------------
 // Create a new segment at the tip of an existing segment
-void Culture::GrowSegment(Segment& it, int k, SimulationTime& time, bool branch, bool bnew_vessel)
+Segment Culture::GrowSegment(Segment& it, int k, bool branch, bool bnew_vessel)
 {
 	// Make sure the tip is active
 	assert(it.tip(k).bactive);
@@ -287,44 +289,67 @@ void Culture::GrowSegment(Segment& it, int k, SimulationTime& time, bool branch,
 	// update length and unit vector
 	seg.Update();
 
-	// Add the segment to the culture
-	AddNewSegment(seg, k);
+	return seg;
+}
+
+//-----------------------------------------------------------------------------
+// Branching phase of the growth step.
+void Culture::Branch(SimulationTime& time)
+{
+	// Elongate the active vessel tips
+	for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
+	{
+		// Make sure segment has not reached a boundary
+		// and has not undegone anastimoses.
+		if ((it->GetFlag(Segment::BC_DEAD)==false)&&
+			(it->GetFlag(Segment::ANAST  )==false))
+		{
+			// pick an end randomly
+			int k = ( frand() < 0.5 ? k = 0 : k = 1);
+
+			// find the density scale factor
+			double den_scale = FindDensityScale(it->tip(k).pt);
+
+			// calculate actual branching probability
+			// TODO: This formula makes no sense to me.
+			double t = time.t;
+			double dt = time.dt;
+			double bprob = den_scale*dt*m_branch_chance/t;
+			assert(bprob < 1.0);
+
+//			fprintf(stdout, "branching probability: %lg\n", bprob);
+
+			// If branching is turned on determine if the segment forms a new branch
+			if ((frand() < bprob) || it->GetFlag(Segment::INIT_BRANCH)) BranchSegment(*it, k);
+		}
+	}
+
+	// Remove buggy segments
+	kill_dead_segs();
 }
 
 //-----------------------------------------------------------------------------
 // Branching is modeled as a random process, determine is the segment passed to this function forms a branch
-void Culture::Branch(Segment& it, SimulationTime& time)
+void Culture::BranchSegment(Segment& it, int k)
 {
-	// Segments that have encountered a boundary condition or formed an anastomoses may not form a branch
-	if (it.GetFlag(Segment::BC_DEAD | Segment::ANAST)) return;
+	// Increase the number of branches.
+	m_num_branches = m_num_branches + 1;
 
-	// pick an end randomly
-	int k = ( frand() < 0.5 ? k = 0 : k = 1);
-
-	// find the density scale factor
-	double den_scale = FindDensityScale(it.tip(k).pt);
-
-	double t = time.t;
-	double dt = time.dt;
-
-	// The segment generates a random number, if this number is less than the branching probability, or if the segment has an initial branch, then form a branch
-	if ( frand() < den_scale*dt*m_branch_chance/t || (it.GetFlag(Segment::INIT_BRANCH) == true) )
-    {
-		m_num_branches = m_num_branches + 1;            // Iterate the total number of branches +1
-			                                            // new vessel segment being created is arising from a branch      
-		// Turn off the initial branch flag
-		it.SetFlagOff(Segment::INIT_BRANCH);
+	// Turn off the initial branch flag
+	it.SetFlagOff(Segment::INIT_BRANCH);
     			
-		// we must reactive the tip
-		// (it will be deactivated by CreateNewSeg)
-		it.tip(k).bactive = true;
+	// we must reactive the tip
+	// (it will be deactivated by CreateNewSeg)
+	it.tip(k).bactive = true;
 
-		// Create the new vessel segment (with branch flag and new_vessel flag to true)
-		GrowSegment(it,k, time, true, true);
+	// Create the new vessel segment (with branch flag and new_vessel flag to true)
+	Segment seg = GrowSegment(it,k, true, true);
 
-		// Create a new sprout force for the branch
-//		CreateBranchingForce(seg);
-	}                                                              
+	// Create a new sprout force for the branch
+	CreateBranchingForce(seg);
+
+	// Add it to the culture
+	AddNewSegment(seg, k);	                                                              
 }
 
 //-----------------------------------------------------------------------------
@@ -494,14 +519,14 @@ vec3d Culture::CollagenDirection(GridPoint& pt)
     
     // Determine component of new vessel direction due to nodal collagen fiber orientation
 	vec3d coll_angle = 
-		((*elem.n1).collfib)*shapeF[0] + 
-		((*elem.n2).collfib)*shapeF[1] + 
-		((*elem.n3).collfib)*shapeF[2] + 
-		((*elem.n4).collfib)*shapeF[3] + 
-		((*elem.n5).collfib)*shapeF[4] + 
-		((*elem.n6).collfib)*shapeF[5] + 
-		((*elem.n7).collfib)*shapeF[6] + 
-		((*elem.n8).collfib)*shapeF[7];
+		((*elem.n1).m_collfib)*shapeF[0] + 
+		((*elem.n2).m_collfib)*shapeF[1] + 
+		((*elem.n3).m_collfib)*shapeF[2] + 
+		((*elem.n4).m_collfib)*shapeF[3] + 
+		((*elem.n5).m_collfib)*shapeF[4] + 
+		((*elem.n6).m_collfib)*shapeF[5] + 
+		((*elem.n7).m_collfib)*shapeF[6] + 
+		((*elem.n8).m_collfib)*shapeF[7];
 
 	// make unit vector
 	coll_angle.unit();
@@ -524,14 +549,14 @@ double Culture::FindDensityScale(const GridPoint& pt)
 
 	// evaluate the collagen density
 	double coll_den = 
-		shapeF[0]*(*elem.n1).ecm_den + 
-		shapeF[1]*(*elem.n2).ecm_den + 
-		shapeF[2]*(*elem.n3).ecm_den + 
-		shapeF[3]*(*elem.n4).ecm_den + 
-		shapeF[4]*(*elem.n5).ecm_den + 
-		shapeF[5]*(*elem.n6).ecm_den + 
-		shapeF[6]*(*elem.n7).ecm_den + 
-		shapeF[7]*(*elem.n8).ecm_den;
+		shapeF[0]*(*elem.n1).m_ecm_den + 
+		shapeF[1]*(*elem.n2).m_ecm_den + 
+		shapeF[2]*(*elem.n3).m_ecm_den + 
+		shapeF[3]*(*elem.n4).m_ecm_den + 
+		shapeF[4]*(*elem.n5).m_ecm_den + 
+		shapeF[5]*(*elem.n6).m_ecm_den + 
+		shapeF[6]*(*elem.n7).m_ecm_den + 
+		shapeF[7]*(*elem.n8).m_ecm_den;
     
 	// scale the density
 	double den_scale = ScaleDensity(coll_den);

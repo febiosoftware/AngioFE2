@@ -77,14 +77,17 @@ private:
     // Seed an initial fragment within the grid
 	Segment createInitFrag();
 
+	// branching phase
+	void Branch(SimulationTime& time);
+
 	// create a branch
-	void Branch(Segment& it, SimulationTime& time);
+	void BranchSegment(Segment& it, int k);
 
 	// fuse segments (i.e. anastomosis)
 	void Fuse(SimulationTime& time);
 
 	// Grow a segment
-	void GrowSegment(Segment& it, int k, SimulationTime& time, bool branch = false, bool bnew_vessel = false);
+	Segment GrowSegment(Segment& it, int k, bool branch = false, bool bnew_vessel = false);
 
 	// Create a new segment connecting two existing segments that are fusing through anastomosis
 	Segment ConnectSegment(Segment& it, Segment& it2, int k, int kk, SimulationTime& time);

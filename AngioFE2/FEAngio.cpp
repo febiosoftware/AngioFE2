@@ -31,9 +31,11 @@ bool CreateDensityMap(vector<double>& density, FEMaterial* pmat);
 //-----------------------------------------------------------------------------
 FEAngio::FEAngio(FEModel& fem) : m_fem(fem), m_grid(fem.GetMesh())
 {
+	// Create the culture
 	m_pCult = new Culture(*this);
 
-	total_bdyf = 0;													// Body force counter
+	// Body force counter
+	total_bdyf = 0;
 	
 	FE_state = 0;
 
@@ -42,7 +44,7 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem), m_grid(fem.GetMesh())
 
 	phi_stiff_factor = 1.0;
 	m_sub_cycles = 2;
-    m_n = 1;
+    m_ntime = 1;
 
 	// flag for generating fibers (0 = random, 3 = element orientation)
 	m_matrix_cond = 0;
@@ -248,8 +250,8 @@ bool FEAngio::InitECMDensity()
 	{
 		Node& node = m_grid.nodes[i];
 
-		node.ecm_den = density[i];									// Set the density of the ECM at the node 
-		node.ecm_den0 = node.ecm_den;	
+		node.m_ecm_den0 = density[i];	
+		node.m_ecm_den = node.m_ecm_den0;
 	}
 
 	return true;
@@ -300,10 +302,8 @@ bool FEAngio::InitCollagenFibers()
 		v.unit();
 
 		// assign the node
-		node.collfib = v;
-
-		// set the initial collagen fiber
-		node.collfib0 = node.collfib;
+		node.m_collfib0 = v;
+		node.m_collfib = node.m_collfib0;
 	}
 
 	return true;
@@ -367,14 +367,6 @@ void FEAngio::Output()
 	fileout.writeCollFib(GetGrid(), false);				// Output final collagen fiber orientation
 
 	fileout.writeECMDen(GetGrid());						// Output final matrix density
-
-	fileout.writeECMDenStore(GetGrid());
-
-	fileout.writeECMFibrilStore(GetGrid());
-
-	//fileout.writeECMDenGrad(grid);				// Output the ECM density gradient, I don't think this works right...
-
-	save_cropped_vessels();									// Output the vessels within a selected region of interest
 }
 
 //-----------------------------------------------------------------------------
@@ -681,9 +673,6 @@ void FEAngio::UpdateGrid()
 	int NN = m_grid.Nodes();
 	for (int i = 0; i < NN; ++i)
 	{
-		// Calculate the displacement vector by finding the difference between the node in the deformed FE mesh and the undeformed grid
-		m_grid.nodes[i].u = mesh.Node(i).m_rt - m_grid.nodes[i].rt;		
-				
 		// Update the grid node to the current position of the FE mesh
 		m_grid.nodes[i].rt = mesh.Node(i).m_rt;
 	}
@@ -699,203 +688,77 @@ void FEAngio::UpdateGrid()
 }
 
 //-----------------------------------------------------------------------------
-//		Update the ECM field after a deformation
+// Update the ECM field after a deformation
 void FEAngio::update_ECM()
 {
-	mat3d F;															// Deformation gradient tensor				
-	double Jacob = 0.;												// Jacobian (i.e., determinant of F)
-	
-	vec3d coll_fib;													// Collagen fiber vector
-	double ecm_den = 0.;											// Collagen density
+	// Natural coordinates of each node within the element
+	double LUT[8][3] = {
+		{-1., -1. ,-1.},
+		{ 1., -1. ,-1.},
+		{-1.,  1. ,-1.},
+		{ 1.,  1. ,-1.},
+		{-1., -1. , 1.},
+		{ 1., -1. , 1.},
+		{-1.,  1. , 1.},
+		{ 1.,  1. , 1.}
+	};
 
-	double e1 = 0.; double e2 = 0.; double e3 = 0.;					// Natural coordinates of each node within the element
-
-	int NE = m_grid.Elems();
-	for (int i = 0; i < NE; ++i)								// For each element within the mesh...
+	// reset nodal data
+	int NN = m_grid.Nodes();
+	for (int i=0; i<NN; ++i)
 	{
-		Elem& elem = m_grid.ebin[i];											// Obtain the element
+		Node& ni = m_grid.nodes[i];
+		ni.m_ntag = 0;
+		ni.m_collfib = vec3d(0,0,0);
+		ni.m_ecm_den = 0.0;
+	}
+
+	// For each element within the grid...
+	int NE = m_grid.Elems();
+	for (int i = 0; i < NE; ++i)
+	{
+		// Obtain the element
+		Elem& elem = m_grid.ebin[i];
 		
-		for (int j = 1; j < 9; j++)										// For each node in the element...
+		// For each node in the element...
+		for (int j=0; j<8; j++)
 		{
-			if (j == 1){													// Lower front left node
-				ecm_den = (*elem.n1).ecm_den0;									// Set the matrix density
-				coll_fib = vec3d((*elem.n1).collfib.x,(*elem.n1).collfib.y,(*elem.n1).collfib.z);	// Set the collagen fiber vector
-				e1 = -1.;														// Set the natural coordinates of the node
-				e2 = -1.;
-				e3 = -1.;}
-			
-			if (j == 2){													// Lower front right node
-				ecm_den = (*elem.n2).ecm_den0;									// Set the matrix density
-				coll_fib = vec3d((*elem.n2).collfib.x,(*elem.n2).collfib.y,(*elem.n2).collfib.z);	// Set the collagen fiber vector
-				e1 = 1.;														// Set the natural coordinates of the node
-				e2 = -1.;
-				e3 = -1.;}
+			// get the node
+			Node* nj = elem.GetNode(j);
 
-			if (j == 3){													// Lower back left node
-				ecm_den = (*elem.n3).ecm_den0;									// Set the matrix density
-				coll_fib = vec3d((*elem.n3).collfib.x,(*elem.n3).collfib.y,(*elem.n3).collfib.z);	// Set the collagen fiber vector	
-				e1 = -1.;														// Set the natural coordinates of the node
-				e2 = 1.;
-				e3 = -1.;}
+			// get the ecm density and collagen fiber
+			double ecm_den  = nj->m_ecm_den0;
+			vec3d coll_fib = nj->m_collfib0;
+			
+			// Calculate the deformation gradient tensor and jacobian at the node
+			mat3d F = m_grid.calculate_deform_tensor(elem, LUT[j][0], LUT[j][1], LUT[j][2]);
+			double Jacob = F.det();
+			assert(Jacob > 0.0);
+			
+			// Update the collagen fiber orientation vector into the current configuration using F		
+			coll_fib = F*coll_fib;
+			coll_fib.unit();
 
-			if (j == 4){													// Lower back right node
-				ecm_den = (*elem.n4).ecm_den0;									// Set the matrix density
-				coll_fib = vec3d((*elem.n4).collfib.x,(*elem.n4).collfib.y,(*elem.n4).collfib.z);	// Set the collagen fiber vector
-				e1 = 1.;														// Set the natural coordinates of the node
-				e2 = 1.;
-				e3 = -1.;}
+			// Update matrix density using the Jacobian
+			ecm_den = ecm_den/Jacob;
 
-			if (j == 5){													// Upper front left node
-				ecm_den = (*elem.n5).ecm_den0;									// Set the matrix density
-				coll_fib = vec3d((*elem.n5).collfib.x,(*elem.n5).collfib.y,(*elem.n5).collfib.z);	// Set the collagen fiber vector
-				e1 = -1.;														// Set the natural coordinates of the node
-				e2 = -1.;
-				e3 = 1.;}
+			// accumulate fiber directions and densities
+			nj->m_collfib += coll_fib;
+			nj->m_ecm_den += ecm_den;
 
-			if (j == 6){													// Upper front right node
-				ecm_den = (*elem.n6).ecm_den0;									// Set the matrix density
-				coll_fib = vec3d((*elem.n6).collfib.x,(*elem.n6).collfib.y,(*elem.n6).collfib.z);	// Set the collagen fiber vector
-				e1 = 1.;														// Set the natural coordinates of the node
-				e2 = -1.;
-				e3 = 1.;}
-
-			if (j == 7){													// Upper back left node
-				ecm_den = (*elem.n7).ecm_den0;									// Set the matrix density
-				coll_fib = vec3d((*elem.n7).collfib.x,(*elem.n7).collfib.y,(*elem.n7).collfib.z);	// Set the collagen fiber vector
-				e1 = -1.;														// Set the natural coordinates of the node
-				e2 = 1.;
-				e3 = 1.;}
-
-			if (j == 8){													// Upper back right node
-				ecm_den = (*elem.n8).ecm_den0;									// Set the matrix density
-				coll_fib = vec3d((*elem.n8).collfib.x,(*elem.n8).collfib.y,(*elem.n8).collfib.z);	// Set the collagen fiber vector
-				e1 = 1.;														// Set the natural coordinates of the node
-				e2 = 1.;
-				e3 = 1.;}
-			
-			F = m_grid.calculate_deform_tensor(elem, e1, e2, e3);					// Calculate the deformation gradient tensor
-			Jacob = F.det();												// Calculate the Jacobian by taking the determinant of F
-			
-			coll_fib = F*coll_fib;											// Update the collagen fiber orientation vector into the current configuration using F		
-
-			if (coll_fib.norm() != 0.)										// Normalize the collagen fiber vector to obtain the unit vector
-				coll_fib = coll_fib/coll_fib.norm();						
-
-			if (Jacob != 0.)												// Update matrix density using the Jacobian
-				ecm_den = ecm_den/Jacob;		
-			
-			if (j == 1){													// Lower front left node
-				if ((*elem.n1).updated == false){								// If the node hasn't been updated yet...
-					(*elem.n1).collfib.x = coll_fib.x;								// Set the new collagen fiber orientation
-					(*elem.n1).collfib.y = coll_fib.y;
-					(*elem.n1).collfib.z = coll_fib.z;
-					(*elem.n1).ecm_den = ecm_den;									// Set the new matrix density
-					(*elem.n1).updated = true;}										// Set the updated flag
-				else if ((*elem.n1).updated == true){							// If the node has been updated...
-					(*elem.n1).collfib.x = ((*elem.n1).collfib.x + coll_fib.x)/2;	// Average together the new fiber orientation vector
-					(*elem.n1).collfib.y = ((*elem.n1).collfib.y + coll_fib.y)/2;
-					(*elem.n1).collfib.z = ((*elem.n1).collfib.z + coll_fib.z)/2;				
-					(*elem.n1).ecm_den = ((*elem.n1).ecm_den + ecm_den)/2;}}		// Average together the new matrix density
-			
-			if (j == 2){													// Lower front right node
-				if ((*elem.n2).updated == false){								// If the node hasn't been updated yet...
-					(*elem.n2).collfib.x = coll_fib.x;								// Set the new collagen fiber orientation
-					(*elem.n2).collfib.y = coll_fib.y;
-					(*elem.n2).collfib.z = coll_fib.z;					
-					(*elem.n2).ecm_den = ecm_den;									// Set the new matrix density
-					(*elem.n2).updated = true;}										// Set the updated flag
-				else if ((*elem.n2).updated == true){							// If the node has been updated...
-					(*elem.n2).collfib.x = ((*elem.n2).collfib.x + coll_fib.x)/2;	// Average together the new fiber orientation vector
-					(*elem.n2).collfib.y = ((*elem.n2).collfib.y + coll_fib.y)/2;
-					(*elem.n2).collfib.z = ((*elem.n2).collfib.z + coll_fib.z)/2;
-					(*elem.n2).ecm_den = ((*elem.n2).ecm_den + ecm_den)/2;}}		// Average together the new matrix density
-			
-			if (j == 3){													// Lower back left node
-				if ((*elem.n3).updated == false){								// If the node hasn't been updated yet...
-					(*elem.n3).collfib.x = coll_fib.x;								// Set the new collagen fiber orientation
-					(*elem.n3).collfib.y = coll_fib.y;
-					(*elem.n3).collfib.z = coll_fib.z;						
-					(*elem.n3).ecm_den = ecm_den;									// Set the new matrix density
-					(*elem.n3).updated = true;}										// Set the updated flag
-				else if ((*elem.n3).updated == true){							// If the node has been updated...
-					(*elem.n3).collfib.x = ((*elem.n3).collfib.x + coll_fib.x)/2;	// Average together the new fiber orientation vector
-					(*elem.n3).collfib.y = ((*elem.n3).collfib.y + coll_fib.y)/2;
-					(*elem.n3).collfib.z = ((*elem.n3).collfib.z + coll_fib.z)/2;
-					(*elem.n3).ecm_den = ((*elem.n3).ecm_den + ecm_den)/2;}}		// Average together the new matrix density
-			
-			if (j == 4){													// Lower back right node
-				if ((*elem.n4).updated == false){								// If the node hasn't been updated yet...
-					(*elem.n4).collfib.x = coll_fib.x;								// Set the new collagen fiber orientation
-					(*elem.n4).collfib.y = coll_fib.y;
-					(*elem.n4).collfib.z = coll_fib.z;						
-					(*elem.n4).ecm_den = ecm_den;									// Set the new matrix density
-					(*elem.n4).updated = true;}										// Set the updated flag
-				else if ((*elem.n4).updated == true){							// If the node has been updated...
-					(*elem.n4).collfib.x = ((*elem.n4).collfib.x + coll_fib.x)/2;	// Average together the new fiber orientation vector
-					(*elem.n4).collfib.y = ((*elem.n4).collfib.y + coll_fib.y)/2;
-					(*elem.n4).collfib.z = ((*elem.n4).collfib.z + coll_fib.z)/2;
-					(*elem.n4).ecm_den = ((*elem.n4).ecm_den + ecm_den)/2;}}		// Average together the new matrix density
-			
-			if (j == 5){													// Upper front left node
-				if ((*elem.n5).updated == false){								// If the node hasn't been updated yet...
-					(*elem.n5).collfib.x = coll_fib.x;								// Set the new collagen fiber orientation
-					(*elem.n5).collfib.y = coll_fib.y;
-					(*elem.n5).collfib.z = coll_fib.z;
-					(*elem.n5).ecm_den = ecm_den;									// Set the new matrix density
-					(*elem.n5).updated = true;}										// Set the updated flag
-				else if ((*elem.n5).updated == true){							// If the node has been updated...
-					(*elem.n5).collfib.x = ((*elem.n5).collfib.x + coll_fib.x)/2;	// Average together the new fiber orientation vector
-					(*elem.n5).collfib.y = ((*elem.n5).collfib.y + coll_fib.y)/2;
-					(*elem.n5).collfib.z = ((*elem.n5).collfib.z + coll_fib.z)/2;
-					(*elem.n5).ecm_den = ((*elem.n5).ecm_den + ecm_den)/2;}}		// Average together the new matrix density
-		
-			if (j == 6){													// Upper front right node
-				if ((*elem.n6).updated == false){								// If the node hasn't been updated yet...
-					(*elem.n6).collfib.x = coll_fib.x;								// Set the new collagen fiber orientation
-					(*elem.n6).collfib.y = coll_fib.y;
-					(*elem.n6).collfib.z = coll_fib.z;
-					(*elem.n6).ecm_den = ecm_den;									// Set the new matrix density
-					(*elem.n6).updated = true;}										// Set the updated flag
-				else if ((*elem.n6).updated == true){							// If the node has been updated...
-					(*elem.n6).collfib.x = ((*elem.n6).collfib.x + coll_fib.x)/2;	// Average together the new fiber orientation vector
-					(*elem.n6).collfib.y = ((*elem.n6).collfib.y + coll_fib.y)/2;
-					(*elem.n6).collfib.z = ((*elem.n6).collfib.z + coll_fib.z)/2;
-					(*elem.n6).ecm_den = ((*elem.n6).ecm_den + ecm_den)/2;}}		// Average together the new matrix density
-			
-			if (j == 7){													// Upper back left node
-				if ((*elem.n7).updated == false){								// If the node hasn't been updated yet...
-					(*elem.n7).collfib.x = coll_fib.x;								// Set the new collagen fiber orientation
-					(*elem.n7).collfib.y = coll_fib.y;
-					(*elem.n7).collfib.z = coll_fib.z;
-					(*elem.n7).ecm_den = ecm_den;									// Set the new matrix density
-					(*elem.n7).updated = true;}										// Set the updated flag
-				else if ((*elem.n7).updated == true){							// If the node has been updated...
-					(*elem.n7).collfib.x = ((*elem.n7).collfib.x + coll_fib.x)/2;	// Average together the new fiber orientation vector
-					(*elem.n7).collfib.y = ((*elem.n7).collfib.y + coll_fib.y)/2;
-					(*elem.n7).collfib.z = ((*elem.n7).collfib.z + coll_fib.z)/2;
-					(*elem.n7).ecm_den = ((*elem.n7).ecm_den + ecm_den)/2;}}		// Average together the new matrix density
-			
-			if (j == 8){													// Upper back right node
-				if ((*elem.n8).updated == false){								// If the node hasn't been updated yet...
-					(*elem.n8).collfib.x = coll_fib.x;								// Set the new collagen fiber orientation
-					(*elem.n8).collfib.y = coll_fib.y;
-					(*elem.n8).collfib.z = coll_fib.z;
-					(*elem.n8).ecm_den = ecm_den;									// Set the new matrix density
-					(*elem.n8).updated = true;}										// Set the updated flag
-				else if ((*elem.n8).updated == true){							// If the node has been updated...
-					(*elem.n8).collfib.x = ((*elem.n8).collfib.x + coll_fib.x)/2;	// Average together the new fiber orientation vector
-					(*elem.n8).collfib.y = ((*elem.n8).collfib.y + coll_fib.y)/2;
-					(*elem.n8).collfib.z = ((*elem.n8).collfib.z + coll_fib.z)/2;
-					(*elem.n8).ecm_den = ((*elem.n8).ecm_den + ecm_den)/2;}}		// Average together the new matrix density
-
+			// increment counter
+			nj->m_ntag++;
 		}
 	}
-	
-	int NN = m_grid.Nodes();
-	for (int i = 0; i < NN; ++i){								// Turn off the updated flag for all nodes
-		m_grid.nodes[i].updated = false;
-		m_grid.nodes[i].ecm_den_store.push_back(m_grid.nodes[i].ecm_den);
-		m_grid.nodes[i].ecm_fibril_store.push_back(m_grid.nodes[i].collfib);}
+
+	// normalize fiber vector and average ecm density
+	for (int i = 0; i < NN; ++i)
+	{
+		Node& ni = m_grid.nodes[i];
+		assert(ni.m_ntag > 0);
+		ni.m_ecm_den /= (double) ni.m_ntag;
+		ni.m_collfib.unit();
+	}
 	
 	//update_ecm_den_grad();										  // Update the ECM density gradient based on the solution from FEBio
 		
@@ -1086,59 +949,12 @@ void FEAngio::output_params()
 	return;
 }
 
-
-///////////////////////////////////////////////////////////////////////
-// FEAngio - save_cropped_vessels
-//		Output parameter values after the simulation ends
-///////////////////////////////////////////////////////////////////////
-
-void FEAngio::save_cropped_vessels()
-{
-	FILE *data_stream;                                                          // Open stream to 'grid.ang' (stream2)                                                                   
-	data_stream = fopen("out_cropped_data.ang","wt");
-	
-	FILE *seg_conn_stream;                                                           // Open stream to 'out_seg_conn.ang' (stream)
-	seg_conn_stream = fopen("out_cropped_seg_conn.ang","wt");
-
-	double xmin = 0.; double xmax = 0.; double ymin = 0.; double ymax = 0.; double zmin = 0.; double zmax = 0.;
-	
-	Grid& grid = m_grid;
-	xmin = ((grid.xrange[1] + grid.xrange[0])/2) - 2548/2;
-	xmax = ((grid.xrange[1] + grid.xrange[0])/2) + 2548/2;
-	ymin = ((grid.yrange[1] + grid.yrange[0])/2) - 2548/2;
-	ymax = ((grid.yrange[1] + grid.yrange[0])/2) + 2548/2;
-	zmin = ((grid.zrange[1] + grid.zrange[0])/2) - 1500/2;
-	zmax = ((grid.zrange[1] + grid.zrange[0])/2) + 1500/2;
-
-	for (SegIter it = m_pCult->SegmentBegin(); it != m_pCult->SegmentEnd(); ++it)                         // Iterate through all segments in frag list container (it)
-	{
-		vec3d& r0 = it->tip(0).rt;
-		vec3d& r1 = it->tip(1).rt;
-		if (((r0.x <= xmax) && (r0.x >= xmin)) && ((r1.x <= xmax) && (r1.x >= xmin))){
-			if (((r0.y <= ymax) && (r0.y >= ymin)) && ((r1.y <= ymax) && (r1.y >= ymin))){
-				if (((r0.z <= zmax) && (r0.z >= zmin)) && ((r1.z <= zmax) && (r1.z >= zmin))){
-					fprintf(data_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i %-5.2i\n",it->GetTimeOfBirth(),r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length(),it->m_nid,it->m_nseed);  // Write to data.ang		
-//					fprintf(seg_conn_stream,"%-5.2i %-5.2i %-5.2i %-5.2i %-5.2i\n",it->seg_num,it->seg_conn[0][0],it->seg_conn[0][1],it->seg_conn[1][0],it->seg_conn[1][1]);  // Write to seg_conn.ang
-				}
-			}
-		}
-	}
-	
-	fclose(data_stream);
-	fclose(seg_conn_stream);
-
-	return;
-
-}
-
-///////////////////////////////////////////////////////////////////////
-// FEAngio - update_ecm_den_grad
-//		Calculate the density gradient for each element (this function may not work properly)
-///////////////////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------
+// Calculate the density gradient for each element (this function may not work properly)
 void FEAngio::update_ecm_den_grad()
 {
-	vec3d elem_den_grad;
+	assert(false);
+/*	vec3d elem_den_grad;
 	double ex = 0.; double ey = 0.; double ez = 0.;	
 	vec3d dN1; vec3d dN2; vec3d dN3; vec3d dN4; vec3d dN5; vec3d dN6; vec3d dN7; vec3d dN8;
 	
@@ -1213,8 +1029,7 @@ void FEAngio::update_ecm_den_grad()
 		else if ((*elem.n8).updated == true){
 			(*elem.n8).ecm_den_grad = (elem_den_grad + (*elem.n8).ecm_den_grad)*0.5;}
 	}
-	
-	return;
+*/
 }
 
 
@@ -1332,9 +1147,9 @@ void FEAngio::enforce_fiber_BCS(Node &node, bool circ)
 		mat3d I(1.0);
 		mat3d M = r&r;
 
-		vec3d r_new; r_new = (I - M)*node.collfib; r_new = r_new/r_new.norm();
+		vec3d r_new; r_new = (I - M)*node.m_collfib; r_new = r_new/r_new.norm();
 
-		node.collfib.x = r_new.x; node.collfib.y = r_new.y; node.collfib.z = r_new.z;
+		node.m_collfib.x = r_new.x; node.m_collfib.y = r_new.y; node.m_collfib.z = r_new.z;
 
 		return;
 	}
@@ -1342,7 +1157,7 @@ void FEAngio::enforce_fiber_BCS(Node &node, bool circ)
 	if (m_cgelbc == 'l'){
 		//Node on the front face
 		if (node.rt.y == grid.yrange[0])
-			node.collfib.y = 0;
+			node.m_collfib.y = 0;
 
 		// Node on the back face
 		//if (node.rt.y == grid.yrange[1])
@@ -1350,7 +1165,7 @@ void FEAngio::enforce_fiber_BCS(Node &node, bool circ)
 
 		// Node on the bottom face
 		if (node.rt.z == grid.zrange[0])
-			node.collfib.z = 0;
+			node.m_collfib.z = 0;
 
 		// Node on the top face
 		//if (node.rt.z == grid.zrange[1])
@@ -1364,11 +1179,11 @@ void FEAngio::enforce_fiber_BCS(Node &node, bool circ)
 
 		// Node on the left face
 		if (node.rt.x == grid.xrange[0])
-			node.collfib.x = 0;
+			node.m_collfib.x = 0;
 
 		// Node on the bottom face
 		if (node.rt.z == grid.zrange[0])
-			node.collfib.z = 0;
+			node.m_collfib.z = 0;
 
 		// Node on the top face
 		//if (node.rt.z == grid.zrange[1])
@@ -1378,7 +1193,7 @@ void FEAngio::enforce_fiber_BCS(Node &node, bool circ)
 	if (m_cgelbc == 'u'){
 		//Node on the front face
 		if (node.rt.y == grid.yrange[0])
-			node.collfib.y = 0;
+			node.m_collfib.y = 0;
 
 		// Node on the right face
 		//if (node.rt.x == grid.xrange[0])
@@ -1390,11 +1205,11 @@ void FEAngio::enforce_fiber_BCS(Node &node, bool circ)
 
 		// Node on the left face
 		if (node.rt.x == grid.xrange[0])
-			node.collfib.x = 0;
+			node.m_collfib.x = 0;
 
 		// Node on the bottom face
 		if (node.rt.z == grid.zrange[0])
-			node.collfib.z = 0;
+			node.m_collfib.z = 0;
 
 		// Node on the top face
 		//if (node.rt.z == grid.zrange[1])
@@ -1542,8 +1357,8 @@ bool CreateDensityMap(vector<double>& density, FEMaterial* pmat)
 // Update the time step size and current time value.
 void FEAngio::updateTime()
 {
-	double dt = m_dtA*exp(m_dtB/(m_n + m_dtC));
-    m_n += 1;
+	double dt = m_dtA*exp(m_dtB/(m_ntime + m_dtC));
+    m_ntime += 1;
 
     if (dt > (m_time.maxt - m_time.t) && (m_time.maxt - m_time.t) > 0)       // If dt is bigger than the amount of time left...
 		dt = m_time.maxt - m_time.t;                                       // then just set dt equal to the amount of time left (maxt-t)

@@ -42,7 +42,7 @@ bool Grid::Init()
 	for (int i = 0; i < NN; ++i)								
 	{
 		Node node;														// Create a new node
-		node.id = i;													// Give the node it's ID 
+		node.m_id = i;													// Give the node it's ID 
 		node.rt = m_mesh.Node(i).m_r0;									// Set the current position as FEBio initial position
 		node.r0 = node.rt;												// Set initial position to current position
 
@@ -64,11 +64,6 @@ bool Grid::Init()
 		if (nodes[j].rt.z > zrange[1]) zrange[1] = nodes[j].rt.z;
 	}
 
-	// add the initial data to the stores
-	for (int i = 0; i < NN; i++){
-		nodes[i].ecm_den_store.push_back(nodes[i].ecm_den0);
-		nodes[i].ecm_fibril_store.push_back(nodes[i].collfib0);}
-	
 	// Read in element connectivity from the FEBio mesh	
 	for (int d = 0; d < m_mesh.Domains(); d++)
 	{

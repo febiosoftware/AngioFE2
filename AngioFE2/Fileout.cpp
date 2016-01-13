@@ -130,7 +130,7 @@ void Fileout::writeNodes(FEAngio& angio)
 	int NN = grid.Nodes();
 	for (int i = 0; i < NN; ++i){
 	    node = grid.nodes[i];
-	    fprintf(stream2, "%-5.2i %-12.7f %-12.7f %-12.7f\n", node.id, node.rt.x, node.rt.y, node.rt.z);
+	    fprintf(stream2, "%-5.2i %-12.7f %-12.7f %-12.7f\n", node.m_id, node.rt.x, node.rt.y, node.rt.z);
 	}  
 	                                                                      	
 	fclose(stream2);                                                        
@@ -172,7 +172,8 @@ void Fileout::writeCollFib(Grid &grid, bool initial)
 	int NN = grid.Nodes();
 	for (int i = 0; i < NN; ++i)
 	{
-		fprintf(node_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", grid.nodes[i].id, grid.nodes[i].rt.x, grid.nodes[i].rt.y, grid.nodes[i].rt.z, grid.nodes[i].collfib.x, grid.nodes[i].collfib.y, grid.nodes[i].collfib.z);
+		Node& ni = grid.nodes[i];
+		fprintf(node_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", ni.m_id, ni.rt.x, ni.rt.y, ni.rt.z, ni.m_collfib.x, ni.m_collfib.y, ni.m_collfib.z);
 	}
 
 	fclose(node_stream);
@@ -192,72 +193,8 @@ void Fileout::writeECMDen(Grid &grid)
 	int NN = grid.Nodes();
 	for (int i = 0; i < NN; ++i)
 	{
-		fprintf(node_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", grid.nodes[i].id, grid.nodes[i].rt.x, grid.nodes[i].rt.y, grid.nodes[i].rt.z, grid.nodes[i].ecm_den, grid.nodes[i].ecm_den0);
-	}
-
-	fclose(node_stream);
-
-	return;
-}
-
-
-//-----------------------------------------------------------------------------
-void Fileout::writeECMDenGrad(Grid &grid)
-{
-	FILE *node_stream;
-	
-	node_stream = fopen("out_ecm_den_grad.ang","wt");	
-
-	int NN = grid.Nodes();
-	for (int i = 0; i < NN; ++i)
-	{
-		fprintf(node_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", grid.nodes[i].id, grid.nodes[i].rt.x, grid.nodes[i].rt.y, grid.nodes[i].rt.z, grid.nodes[i].ecm_den_grad.x, grid.nodes[i].ecm_den_grad.y, grid.nodes[i].ecm_den_grad.z);
-	}
-
-	fclose(node_stream);
-
-	return;
-}
-
-//-----------------------------------------------------------------------------
-void Fileout::writeECMDenStore(Grid &grid)
-{
-	FILE *node_stream;
-	
-	node_stream = fopen("out_ecm_density_store.ang","wt");	
-
-	int NN = grid.Nodes();
-	for (int i = 0; i < NN; ++i)
-	{
-		fprintf(node_stream,"%-5.2i ", grid.nodes[i].id+1);
-
-		for (int j = 0; j < (int) grid.nodes[i].ecm_den_store.size(); j++)
-			fprintf(node_stream,"%-12.7f ",grid.nodes[i].ecm_den_store[j]);
-		
-		fprintf(node_stream,"\n");
-	}
-
-	fclose(node_stream);
-
-	return;
-}
-
-//-----------------------------------------------------------------------------
-void Fileout::writeECMFibrilStore(Grid &grid)
-{
-	FILE *node_stream;
-	
-	node_stream = fopen("out_ecm_fibril_store.ang","wt");	
-
-	int NN = grid.Nodes();
-	for (int i = 0; i < NN; ++i)
-	{
-		fprintf(node_stream,"%-5.2i ", grid.nodes[i].id+1);
-
-		for (int j = 0; j < (int) grid.nodes[i].ecm_den_store.size(); j++)
-			fprintf(node_stream,"%-12.7f %-12.7f %-12.7f ",grid.nodes[i].ecm_fibril_store[j].x,grid.nodes[i].ecm_fibril_store[j].y,grid.nodes[i].ecm_fibril_store[j].z);
-		
-		fprintf(node_stream,"\n");
+		Node& ni = grid.nodes[i];
+		fprintf(node_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", ni.m_id, ni.rt.x, ni.rt.y, ni.rt.z, ni.m_ecm_den, ni.m_ecm_den0);
 	}
 
 	fclose(node_stream);

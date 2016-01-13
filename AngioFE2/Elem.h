@@ -1,24 +1,5 @@
-///////////////////////////////////////////////////////////////////////
-// Elem.h
-///////////////////////////////////////////////////////////////////////
-
-
-
-///////////////////////////////////////////////////////////////////////
-//  The ELEM class contains the basic hexahedral element used to 
-//  construct the grid.  The ELEM class also contains the NODE class
-//  and the FACE class. 
-///////////////////////////////////////////////////////////////////////
-
-
-
 #pragma once
-
-#include <list>
 #include <FECore\vec3d.h>
-#include <vector>
-class Segment;
-using namespace std;
 
 //-----------------------------------------------------------------------------
 // Represents a node on the grid
@@ -28,45 +9,19 @@ public:
 	// default constructor
     Node();
 
-	// copy constructor
-	Node(const Node& n);
-
-	// assignment operator
-	void operator = (const Node& n);
-
-	// TODO: Can we remove this?
-	bool operator == (const Node& n2)
-	{
-		if ((rt.x == n2.rt.x) && (rt.y == n2.rt.y) && (rt.z == n2.rt.z))
-			return true;
-		else 
-			return false;
-	}
-
 public: 
 	vec3d	r0;	// initial position of node
 	vec3d	rt;	// position of node
     
-    double theta;
-    double eta;
-    
-	double theta0;
-	double eta0;
-
-	double ecm_den;
-    double ecm_den0;
+	double m_ecm_den;		// current ecm density
+    double m_ecm_den0;		// initial ecm density
 	
-	int id;
-        
-	bool updated;
+	vec3d m_ecm_den_grad;
+	vec3d m_collfib;		// current collagen fiber direction
+	vec3d m_collfib0;		// initial collagen fiber direction
 
-	vec3d ecm_den_grad;
-	vec3d u;
-	vec3d collfib;
-	vec3d collfib0;
-
-	vector<double> ecm_den_store;
-	vector<vec3d> ecm_fibril_store;
+	int m_id;		// node ID (zero-based)
+	int m_ntag;
 };
 
 //-----------------------------------------------------------------------------
@@ -143,16 +98,8 @@ class Elem
 {
 public:
     Elem() : elem_num(-1), volume(0.), volume0(0.), alpha(0.) {}
-	  
-	// Find the dimensions of the bounding box for the element
-	// TODO: Make a class for this
-    double bb_xmin();
-    double bb_xmax();
-    double bb_ymin();
-    double bb_ymax();
-	double bb_zmin();
-    double bb_zmax();
 
+	// get the bounding box of this element
 	BBOX GetBoundingBox();
 
 	void GetFace(int n, int* fn);
@@ -167,6 +114,8 @@ public:
 		case 3: return n4; break;
 		case 4: return n5; break;
 		case 5: return n6; break;
+		case 6: return n7; break;
+		case 7: return n8; break;
 		}
 		return 0;
 	}
@@ -184,7 +133,7 @@ public:
 		}
 		return 0;
 	}
-    
+
 public:
 	int elem_num;       // Element Identifier
     

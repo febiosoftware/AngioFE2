@@ -57,7 +57,6 @@ public:
 	void adjust_mesh_stiffness();
 	void update_ecm_den_grad();
 	void output_params();
-	void save_cropped_vessels();
 	void update_sprout_stress_scaling();
 	void circ_gel();
 	void update_angio_sprout(int i, bool bactive, const vec3d& rc, const vec3d& sprout_vect);
@@ -115,9 +114,9 @@ public:	// parameters read directly from file
 	int				m_bzfibflat;		// flatten fiber option
 
 public:
-    double	half_cell_l;		// Half the length of one grid element in the x direction, use in determining variable time step
-	int		m_sub_cycles;		// number of FE steps per growth step
-    int		m_n;				// number of total time steps ?
+    double	half_cell_l;			// Half the length of one grid element in the x direction, use in determining variable time step
+	int		m_sub_cycles;			// number of FE steps per growth step
+    int		m_ntime;				// number of total time steps ?
 	double	m_dtA, m_dtB, m_dtC;	// Time step parameters. TODO: make these user variables.
     
 	vector<vector<double> > sprout_nodes;
