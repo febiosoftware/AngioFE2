@@ -348,31 +348,26 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 		inter.z = shape_2D(1, e1, e2)*X1.rt.z + shape_2D(2, e1, e2)*X2.rt.z + shape_2D(3, e1, e2)*X3.rt.z + shape_2D(4, e1, e2)*X4.rt.z;
 				
 		int elem_num = elem.elem_num;
-		double xix = 0.; double xiy = 0.; double xiz = 0.;
+		vec3d q(0,0,0);
 
 		if (seg.tip(1).bactive)
 			seg.tip(1).pt.nelem = elem_num;
 		else if (seg.tip(0).bactive)
 			seg.tip(0).pt.nelem = elem_num;
 		
-		grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
+		grid.natcoord(q, inter, elem_num);
 
-		if (xix >= 1.0)
-			xix = 0.99;
-		if (xix <= -1.0)
-			xix = -0.99;
-		if (xiy >= 1.0)
-			xiy = 0.99;
-		if (xiy <= -1.0)
-			xiy = -0.99;
-		if (xiz >= 1.0)
-			xiz = 0.99;
-		if (xiz <= -1.0)
-			xiz = -0.99;
+		if (q.x >=  1.0) q.x =  0.99;
+		if (q.x <= -1.0) q.x = -0.99;
+		if (q.y >=  1.0) q.y =  0.99;
+		if (q.y <= -1.0) q.y = -0.99;
+		if (q.z >=  1.0) q.z =  0.99;
+		if (q.z <= -1.0) q.z = -0.99;
 				
-		grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, elem_num);
+		grid.nattoglobal(inter, q, elem_num);
 
-		return inter;}
+		return inter;
+	}
 	
 	
 	// If that doesn't work, check all other boundary faces
@@ -444,29 +439,21 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 				inter.z = shape_2D(1, e1, e2)*X1.rt.z + shape_2D(2, e1, e2)*X2.rt.z + shape_2D(3, e1, e2)*X3.rt.z + shape_2D(4, e1, e2)*X4.rt.z;
 				
 				int elem_num = elem.elem_num;
-				double xix = 0.; double xiy = 0.; double xiz = 0.;
+				vec3d q(0,0,0);
 
 				if (seg.tip(1).bactive)
 					seg.tip(1).pt.nelem = elem_num;
 				else if (seg.tip(0).bactive)
 					seg.tip(0).pt.nelem = elem_num;
 
-				grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, elem_num);
-
-				if (xix >= 1.0)
-					xix = 0.99;
-				if (xix <= -1.0)
-					xix = -0.99;
-				if (xiy >= 1.0)
-					xiy = 0.99;
-				if (xiy <= -1.0)
-					xiy = -0.99;
-				if (xiz >= 1.0)
-					xiz = 0.99;
-				if (xiz <= -1.0)
-					xiz = -0.99;
-				
-				grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, elem_num);
+				grid.natcoord(q, inter, elem_num);
+				if (q.x >=  1.0) q.x =  0.99;
+				if (q.x <= -1.0) q.x = -0.99;
+				if (q.y >=  1.0) q.y =  0.99;
+				if (q.y <= -1.0) q.y = -0.99;
+				if (q.z >=  1.0) q.z =  0.99;
+				if (q.z <= -1.0) q.z = -0.99;
+				grid.nattoglobal(inter, q, elem_num);
 
 				return inter;}
 			else if ((fabs(e1) < 2.0) && (fabs(e2) < 2.0)){
@@ -569,24 +556,24 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 					inter.y = shape_2D(1, e1, e2)*X1.rt.y + shape_2D(2, e1, e2)*X2.rt.y + shape_2D(3, e1, e2)*X3.rt.y + shape_2D(4, e1, e2)*X4.rt.y;
 					inter.z = shape_2D(1, e1, e2)*X1.rt.z + shape_2D(2, e1, e2)*X2.rt.z + shape_2D(3, e1, e2)*X3.rt.z + shape_2D(4, e1, e2)*X4.rt.z;
 
-					double xix = 0.; double xiy = 0.; double xiz = 0.;
+					vec3d q(0,0,0);
 
-					grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, neighbor_num);
+					grid.natcoord(q, inter, neighbor_num);
 
-					if (xix >= 1.0)
-						xix = 0.99;
-					if (xix <= -1.0)
-						xix = -0.99;
-					if (xiy >= 1.0)
-						xiy = 0.99;
-					if (xiy <= -1.0)
-						xiy = -0.99;
-					if (xiz >= 1.0)
-						xiz = 0.99;
-					if (xiz <= -1.0)
-						xiz = -0.99;
+					if (q.x >= 1.0)
+						q.x = 0.99;
+					if (q.x <= -1.0)
+						q.x = -0.99;
+					if (q.y >= 1.0)
+						q.y = 0.99;
+					if (q.y <= -1.0)
+						q.y = -0.99;
+					if (q.z >= 1.0)
+						q.z = 0.99;
+					if (q.z <= -1.0)
+						q.z = -0.99;
 				
-					grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, neighbor_num);
+					grid.nattoglobal(inter, q, elem_num);
 					elem = grid.GetElement(neighbor_num);
 					return true;}}}}	
 	
@@ -645,24 +632,15 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 					inter.y = shape_2D(1, e1, e2)*X1.rt.y + shape_2D(2, e1, e2)*X2.rt.y + shape_2D(3, e1, e2)*X3.rt.y + shape_2D(4, e1, e2)*X4.rt.y;
 					inter.z = shape_2D(1, e1, e2)*X1.rt.z + shape_2D(2, e1, e2)*X2.rt.z + shape_2D(3, e1, e2)*X3.rt.z + shape_2D(4, e1, e2)*X4.rt.z;
 
-					double xix = 0.; double xiy = 0.; double xiz = 0.;
-
-					grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, neighbor_num);
-
-					if (xix >= 1.0)
-						xix = 0.99;
-					if (xix <= -1.0)
-						xix = -0.99;
-					if (xiy >= 1.0)
-						xiy = 0.99;
-					if (xiy <= -1.0)
-						xiy = -0.99;
-					if (xiz >= 1.0)
-						xiz = 0.99;
-					if (xiz <= -1.0)
-						xiz = -0.99;
-				
-					grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, neighbor_num);
+					vec3d q(0,0,0);
+					grid.natcoord(q, inter, elem_num);
+					if (q.x >=  1.0) q.x =  0.99;
+					if (q.x <= -1.0) q.x = -0.99;
+					if (q.y >=  1.0) q.y =  0.99;
+					if (q.y <= -1.0) q.y = -0.99;
+					if (q.z >=  1.0) q.z =  0.99;
+					if (q.z <= -1.0) q.z = -0.99;
+					grid.nattoglobal(inter, q, elem_num);
 					elem = grid.GetElement(neighbor_num);
 
 					return true;}}}}	
@@ -722,24 +700,15 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 					inter.y = shape_2D(1, e1, e2)*X1.rt.y + shape_2D(2, e1, e2)*X2.rt.y + shape_2D(3, e1, e2)*X3.rt.y + shape_2D(4, e1, e2)*X4.rt.y;
 					inter.z = shape_2D(1, e1, e2)*X1.rt.z + shape_2D(2, e1, e2)*X2.rt.z + shape_2D(3, e1, e2)*X3.rt.z + shape_2D(4, e1, e2)*X4.rt.z;
 
-					double xix = 0.; double xiy = 0.; double xiz = 0.;
-
-					grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, neighbor_num);
-
-					if (xix >= 1.0)
-						xix = 0.99;
-					if (xix <= -1.0)
-						xix = -0.99;
-					if (xiy >= 1.0)
-						xiy = 0.99;
-					if (xiy <= -1.0)
-						xiy = -0.99;
-					if (xiz >= 1.0)
-						xiz = 0.99;
-					if (xiz <= -1.0)
-						xiz = -0.99;
-				
-					grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, neighbor_num);
+					vec3d q(0,0,0);
+					grid.natcoord(q, inter, elem_num);
+					if (q.x >=  1.0) q.x =  0.99;
+					if (q.x <= -1.0) q.x = -0.99;
+					if (q.y >=  1.0) q.y =  0.99;
+					if (q.y <= -1.0) q.y = -0.99;
+					if (q.z >=  1.0) q.z =  0.99;
+					if (q.z <= -1.0) q.z = -0.99;
+					grid.nattoglobal(inter, q, elem_num);
 					elem = grid.GetElement(neighbor_num);
 
 					return true;}}}}
@@ -799,24 +768,15 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 					inter.y = shape_2D(1, e1, e2)*X1.rt.y + shape_2D(2, e1, e2)*X2.rt.y + shape_2D(3, e1, e2)*X3.rt.y + shape_2D(4, e1, e2)*X4.rt.y;
 					inter.z = shape_2D(1, e1, e2)*X1.rt.z + shape_2D(2, e1, e2)*X2.rt.z + shape_2D(3, e1, e2)*X3.rt.z + shape_2D(4, e1, e2)*X4.rt.z;
 
-					double xix = 0.; double xiy = 0.; double xiz = 0.;
-
-					grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, neighbor_num);
-
-					if (xix >= 1.0)
-						xix = 0.99;
-					if (xix <= -1.0)
-						xix = -0.99;
-					if (xiy >= 1.0)
-						xiy = 0.99;
-					if (xiy <= -1.0)
-						xiy = -0.99;
-					if (xiz >= 1.0)
-						xiz = 0.99;
-					if (xiz <= -1.0)
-						xiz = -0.99;
-				
-					grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, neighbor_num);
+					vec3d q(0,0,0);
+					grid.natcoord(q, inter, elem_num);
+					if (q.x >=  1.0) q.x =  0.99;
+					if (q.x <= -1.0) q.x = -0.99;
+					if (q.y >=  1.0) q.y =  0.99;
+					if (q.y <= -1.0) q.y = -0.99;
+					if (q.z >=  1.0) q.z =  0.99;
+					if (q.z <= -1.0) q.z = -0.99;
+					grid.nattoglobal(inter, q, elem_num);
 					elem = grid.GetElement(neighbor_num);
 
 					return true;}}}}
@@ -876,24 +836,15 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 					inter.y = shape_2D(1, e1, e2)*X1.rt.y + shape_2D(2, e1, e2)*X2.rt.y + shape_2D(3, e1, e2)*X3.rt.y + shape_2D(4, e1, e2)*X4.rt.y;
 					inter.z = shape_2D(1, e1, e2)*X1.rt.z + shape_2D(2, e1, e2)*X2.rt.z + shape_2D(3, e1, e2)*X3.rt.z + shape_2D(4, e1, e2)*X4.rt.z;
 
-					double xix = 0.; double xiy = 0.; double xiz = 0.;
-
-					grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, neighbor_num);
-
-					if (xix >= 1.0)
-						xix = 0.99;
-					if (xix <= -1.0)
-						xix = -0.99;
-					if (xiy >= 1.0)
-						xiy = 0.99;
-					if (xiy <= -1.0)
-						xiy = -0.99;
-					if (xiz >= 1.0)
-						xiz = 0.99;
-					if (xiz <= -1.0)
-						xiz = -0.99;
-				
-					grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, neighbor_num);
+					vec3d q(0,0,0);
+					grid.natcoord(q, inter, elem_num);
+					if (q.x >=  1.0) q.x =  0.99;
+					if (q.x <= -1.0) q.x = -0.99;
+					if (q.y >=  1.0) q.y =  0.99;
+					if (q.y <= -1.0) q.y = -0.99;
+					if (q.z >=  1.0) q.z =  0.99;
+					if (q.z <= -1.0) q.z = -0.99;
+					grid.nattoglobal(inter, q, elem_num);
 					elem = grid.GetElement(neighbor_num);
 
 					return true;}}}}
@@ -953,24 +904,15 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 					inter.y = shape_2D(1, e1, e2)*X1.rt.y + shape_2D(2, e1, e2)*X2.rt.y + shape_2D(3, e1, e2)*X3.rt.y + shape_2D(4, e1, e2)*X4.rt.y;
 					inter.z = shape_2D(1, e1, e2)*X1.rt.z + shape_2D(2, e1, e2)*X2.rt.z + shape_2D(3, e1, e2)*X3.rt.z + shape_2D(4, e1, e2)*X4.rt.z;
 
-					double xix = 0.; double xiy = 0.; double xiz = 0.;
-
-					grid.natcoord(xix, xiy, xiz, inter.x, inter.y, inter.z, neighbor_num);
-
-					if (xix >= 1.0)
-						xix = 0.99;
-					if (xix <= -1.0)
-						xix = -0.99;
-					if (xiy >= 1.0)
-						xiy = 0.99;
-					if (xiy <= -1.0)
-						xiy = -0.99;
-					if (xiz >= 1.0)
-						xiz = 0.99;
-					if (xiz <= -1.0)
-						xiz = -0.99;
-				
-					grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, neighbor_num);
+					vec3d q(0,0,0);
+					grid.natcoord(q, inter, elem_num);
+					if (q.x >=  1.0) q.x =  0.99;
+					if (q.x <= -1.0) q.x = -0.99;
+					if (q.y >=  1.0) q.y =  0.99;
+					if (q.y <= -1.0) q.y = -0.99;
+					if (q.z >=  1.0) q.z =  0.99;
+					if (q.z <= -1.0) q.z = -0.99;
+					grid.nattoglobal(inter, q, elem_num);
 					elem = grid.GetElement(neighbor_num);
 					return true;}}}}
 
@@ -1700,7 +1642,8 @@ double oppface[6];
 // TODO: vessel lenghts are always positive. Fix the logic here.
 Segment BC::PeriodicBC(Segment &seg)
 {
-	Grid& grid = m_angio.GetGrid();
+	assert(false);
+/*	Grid& grid = m_angio.GetGrid();
 	Culture& cult = m_angio.GetCulture();
 
 	oppface[0] = grid.yrange[1];
@@ -1734,7 +1677,7 @@ Segment BC::PeriodicBC(Segment &seg)
 				seg.tip(1).rt.y = intersectpt[1];
 				seg.tip(1).rt.z = intersectpt[2];
 				seg.Update();
-/*				if (seg.length() < 0)
+				if (seg.length() < 0)
 				{
 					seg.m_length = -(seg.tip(1).rt - seg.tip(0).rt).norm();
 				}
@@ -1742,7 +1685,7 @@ Segment BC::PeriodicBC(Segment &seg)
 				{
 					seg.m_length = (seg.tip(1).rt - seg.tip(0).rt).norm();
 				}
-*/
+
 				seg.tip(1).bactive = false;
 				seg.SetFlagOn(Segment::BC_DEAD);
 				
@@ -1924,5 +1867,6 @@ Segment BC::PeriodicBC(Segment &seg)
 			}
 		}
 	}
+*/
 	return seg;
 }

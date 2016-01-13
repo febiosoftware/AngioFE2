@@ -122,42 +122,6 @@ bool Filein::set_param(FEAngio& angio, char* buffer, char* pname)
 		sscanf(buffer,"%*s %*s %lf",&cult.m_length_adjust);
         return true;}
     
-	// Number of nodes in x-direction for autogrid (xnodes 7)
-    if (!strcmp(pname,"xnodes")){
-        sscanf(buffer,"%*s %*s %i",&grid.xnodes);
-        return true;}  
-    
-	// Number of nodes in y-direction for autogrid (ynodes 7)
-    if (!strcmp(pname,"ynodes")){
-        sscanf(buffer,"%*s %*s %i",&grid.ynodes);
-        return true;} 
-    
-	// Number of nodes in z-direction for autogrid (znodes 3)
-    if (!strcmp(pname,"znodes")){
-        sscanf(buffer,"%*s %*s %i",&grid.znodes);
-        return true;} 
-    
-	// Alternative way of specifying the number of nodes in each direction.  Reads three int in succession indicating the number of nodes in the x-, y-, and z-
-	// direction, respectively (num_nodes 7 7 3)
-    if (!strcmp(pname,"num_nodes")){
-        sscanf(buffer,"%*s %*s %i %i %i",&grid.xnodes,&grid.ynodes,&grid.znodes);
-        return true;}
-    
-	// Read in the minimum and maximum dimension of the domain in the x-direction (xrange 0 300) um
-    if (!strcmp(pname,"xrange")){
-		sscanf(buffer,"%*s %*s %lf %lf",&grid.xrange[0],&grid.xrange[1]);
-        return true;}
-    
-	// Read in the minimum and maximum dimension of the domain in the y-direction (yrange 0 300) um
-    if (!strcmp(pname,"yrange")){
-		sscanf(buffer,"%*s %*s %lf %lf",&grid.yrange[0],&grid.yrange[1]);
-        return true;}
-    
-	// Read in the minimum and maximum dimension of the domain in the z-direction (zrange 0 300) um
-    if (!strcmp(pname,"zrange")){
-		sscanf(buffer,"%*s %*s %lf %lf",&grid.zrange[0],&grid.zrange[1]);
-        return true;}
-    
 	// Specify if a composite material model is being using 
 	if (!strcmp(pname,"comp_mat")){
         sscanf(buffer,"%*s %*s %i",&angio.comp_mat);
@@ -206,14 +170,6 @@ bool Filein::set_param(FEAngio& angio, char* buffer, char* pname)
 		}
         return true;
 	}
-
-	// old boundary condition flags. No longer supported.
-	if (!strcmp(pname,"front_bc" )){ return false; }
-	if (!strcmp(pname,"right_bc" )){ return false; }
-	if (!strcmp(pname,"back_bc"  )){ return false; }
-	if (!strcmp(pname,"left_bc"  )){ return false; }
-	if (!strcmp(pname,"bottom_bc")){ return false; }
-	if (!strcmp(pname,"top_bc"   )){ return false; }
 
 	// Specify the location of the x symmetry panel
 	if (!strcmp(pname,"Sx")){

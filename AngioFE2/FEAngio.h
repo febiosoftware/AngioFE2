@@ -85,10 +85,6 @@ private:
 	// do the final output (called at the end of Run())
 	void Output();
 
-protected:
-	// enforce_fiber_BCS - If a node lies on a boundary face, adjust the collagen fiber orientation at that node accordingly
-	void enforce_fiber_BCS(Node &node, bool circ);
-
 public:	// parameters read directly from file
 
 	// sprout force parameters

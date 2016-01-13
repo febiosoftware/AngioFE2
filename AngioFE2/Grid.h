@@ -9,12 +9,6 @@ using namespace std;
 class FEMesh;
 
 //-----------------------------------------------------------------------------
-// Define the number of nodes in the x, y, and z direction
-const int xnodes = 76;          // Node distribution according to total domain size of 3822 x 2548 x 200
-const int ynodes = 51;
-const int znodes = 20;
-
-//-----------------------------------------------------------------------------
 // utility class for defining an intersection of a face
 struct FACE_INTERSECTION 
 {
@@ -44,17 +38,8 @@ public:
 	bool FindIntersection(vec3d& r0, vec3d& r1, int elem, FACE_INTERSECTION& ic);
 
 public:
-	// Inline function that determines if a newly created vessel Segment is outside of the domain
-	bool IsOutsideBox(const Segment& seg);
-
 	// Accepts a position in global coordinates and determines the position in natural coorindates for the particular grid element
-    void natcoord(double &xix, double &xiy, double &xiz, double xpt, double ypt, double zpt, int elem_num);
-
-	// Accepts a position in global coordinates and determines the position in natural coorindates for the particular grid element
-    void natcoord(vec3d& q, const vec3d& pt, int elem_num)
-	{
-		natcoord(q.x, q.y, q.z, pt.x, pt.y, pt.z, elem_num);
-	}
+    void natcoord(vec3d& q, const vec3d& pt, int elem_num);
 
 	// find the element in which this point lies
 	int findelem(const vec3d& pt);
@@ -77,7 +62,7 @@ public:
 	mat3d calculate_deform_tensor(Elem& elem, double e1, double e2, double e3);
     
 	// Convert from natural to global coordinates for element
-    void nattoglobal(double &xpt, double &ypt, double &zpt, double xix, double xiy, double xiz, int elem_num);
+    void nattoglobal(vec3d& pt, const vec3d& q, int elem_num);
 
 	vec3d Position(const GridPoint& pt);
 
@@ -114,21 +99,9 @@ public:
 	Elem& GetElement(int i) { return m_Elem[i]; }
     
 public:
-	int xnodes;
-	int ynodes;
-	int znodes;
-	
-	double xrange[2];                                           // GRID.xrange - Array containing the minimum and maximum values in the x direction
-	double yrange[2];                                           // GRID.yrange - Array containing the minimum and maximum values in the y direction
-	double zrange[2];                                           // GRID.zrange - Array containing the minimum and maximum values in the z direction
-	
 	double m_coll_den;
-	double den_scale;                                           // GRID.den_scale - Scaling factor based off of the collagen density within the domain
-	double a, b, c;                                             // GRID.a, GRID.b, GRID.c - Parameters that describe the function that determines den_scale
-	                                                            //                          given the command line input of collagen density.
-	char x_bctype; 
-	char y_bctype;
-	char z_bctype;
+	double den_scale;    // Scaling factor based off of the collagen density within the domain
+	double a, b, c;      // Parameters that describe the function that determines den_scale
 
 	unsigned int m_bc_type;	// default bc type for faces
 
@@ -140,24 +113,3 @@ private:
 private:
 	FEMesh&		m_mesh;
 };
-
-//-----------------------------------------------------------------------------
-//      Input:       const Segment& seg - Newly created vessel Segment
-//
-//      Output:      Boolean operator 'true' if segment is outside the domain
-
-inline bool Grid::IsOutsideBox(const Segment& seg) //determine if segment is outside box
-{
-	const vec3d& r0 = seg.tip(0).rt;
-	const vec3d& r1 = seg.tip(1).rt;
-
-	if (r0.x < xrange[0] || r0.x > xrange[1] ||
-		r1.x < xrange[0] || r1.x > xrange[1] ||
-		r0.y < yrange[0] || r0.y > yrange[1] ||
-		r1.y < yrange[0] || r1.y > yrange[1] ||
-		r0.z < zrange[0] || r0.z > zrange[1] ||
-		r1.z < zrange[0] || r1.z > zrange[1])
-		return true;
-	else
-		return false;
-}

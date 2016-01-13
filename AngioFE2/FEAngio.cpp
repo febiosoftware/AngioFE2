@@ -1035,6 +1035,7 @@ void FEAngio::update_ecm_den_grad()
 }
 
 
+//-----------------------------------------------------------------------------
 void FEAngio::update_sprout_stress_scaling()
 {
 	double y0 = -0.004; double x0 = 3.0; double b = 0.5436; double a = 1.0081;
@@ -1042,98 +1043,6 @@ void FEAngio::update_sprout_stress_scaling()
 	if (m_pmat)
 		m_pmat->scale = y0 + a/(1 + exp(-(m_time.t - x0)/b));
 	
-	return;
-}
-
-///////////////////////////////////////////////////////////////////////
-// enfore_fiber_BCS
-///////////////////////////////////////////////////////////////////////
-
-void FEAngio::enforce_fiber_BCS(Node &node, bool circ)
-{
-	Grid& grid = m_grid;
-	if (circ == true){
-		vec3d r;
-		r.x = node.rt.x - grid.xrange[1];
-		r.y = node.rt.y - grid.yrange[1];
-
-		r = r/r.norm();
-
-		mat3d I(1.0);
-		mat3d M = r&r;
-
-		vec3d r_new; r_new = (I - M)*node.m_collfib; r_new = r_new/r_new.norm();
-
-		node.m_collfib.x = r_new.x; node.m_collfib.y = r_new.y; node.m_collfib.z = r_new.z;
-
-		return;
-	}
-		
-	if (m_cgelbc == 'l'){
-		//Node on the front face
-		if (node.rt.y == grid.yrange[0])
-			node.m_collfib.y = 0;
-
-		// Node on the back face
-		//if (node.rt.y == grid.yrange[1])
-			//node.collfib.y = 0;
-
-		// Node on the bottom face
-		if (node.rt.z == grid.zrange[0])
-			node.m_collfib.z = 0;
-
-		// Node on the top face
-		//if (node.rt.z == grid.zrange[1])
-			//node.collfib.z = 0;
-	}
-
-	if (m_cgelbc == 's'){
-		// Node on the right face
-		//if (node.rt.x == grid.xrange[1])
-			//node.collfib.x = 0;
-
-		// Node on the left face
-		if (node.rt.x == grid.xrange[0])
-			node.m_collfib.x = 0;
-
-		// Node on the bottom face
-		if (node.rt.z == grid.zrange[0])
-			node.m_collfib.z = 0;
-
-		// Node on the top face
-		//if (node.rt.z == grid.zrange[1])
-			//node.collfib.z = 0;
-	}
-
-	if (m_cgelbc == 'u'){
-		//Node on the front face
-		if (node.rt.y == grid.yrange[0])
-			node.m_collfib.y = 0;
-
-		// Node on the right face
-		//if (node.rt.x == grid.xrange[0])
-			//node.collfib.x = 0;
-
-		// Node on the back face
-		//if (node.rt.y == grid.yrange[1])
-			//node.collfib.y = 0;
-
-		// Node on the left face
-		if (node.rt.x == grid.xrange[0])
-			node.m_collfib.x = 0;
-
-		// Node on the bottom face
-		if (node.rt.z == grid.zrange[0])
-			node.m_collfib.z = 0;
-
-		// Node on the top face
-		//if (node.rt.z == grid.zrange[1])
-			//node.collfib.z = 0;
-	}
-
-	if (m_cgelbc == 'n'){
-	}
-
 	return;
 }
 

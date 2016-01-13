@@ -18,13 +18,8 @@
 //-----------------------------------------------------------------------------
 Grid::Grid(FEMesh& mesh) : m_mesh(mesh)
 {
-	m_coll_den = 3.0;
-
-	xnodes = 0;
-	ynodes = 0;
-	znodes = 0;
-
-	m_bc_type = BC::STOP;
+	m_coll_den	= 3.0;
+	m_bc_type	= BC::STOP;
 }
 
 //-----------------------------------------------------------------------------
@@ -48,20 +43,6 @@ bool Grid::Init()
 
 		// Add the node to the list
 		m_Node.push_back(node);
-	}
-
-	// override the grid dimensions based on the mesh
-	xrange[0] = xrange[1] = m_Node[0].rt.x;
-	yrange[0] = yrange[1] = m_Node[0].rt.y;
-	zrange[0] = zrange[1] = m_Node[0].rt.z;
-	for (int j=1; j<NN; ++j)
-	{
-		if (m_Node[j].rt.x < xrange[0]) xrange[0] = m_Node[j].rt.x;
-		if (m_Node[j].rt.x > xrange[1]) xrange[1] = m_Node[j].rt.x;
-		if (m_Node[j].rt.y < yrange[0]) yrange[0] = m_Node[j].rt.y;
-		if (m_Node[j].rt.y > yrange[1]) yrange[1] = m_Node[j].rt.y;
-		if (m_Node[j].rt.z < zrange[0]) zrange[0] = m_Node[j].rt.z;
-		if (m_Node[j].rt.z > zrange[1]) zrange[1] = m_Node[j].rt.z;
 	}
 
 	// Read in element connectivity from the FEBio mesh	
@@ -266,7 +247,7 @@ bool Grid::FindGridPoint(const vec3d& r, GridPoint& p)
 	p.q = vec3d(0,0,0);
 
 	double eps = 0.00001;
-    double xix = 0.0, xiy = 0.0, xiz = 0.0;
+    vec3d q(0,0,0);
 
 	// loop over all elements
 	int NE = Elems();
@@ -288,12 +269,12 @@ bool Grid::FindGridPoint(const vec3d& r, GridPoint& p)
 		if (b.IsInside(r))
 		{
 			// find the natural coordinates.
-			natcoord(xix, xiy, xiz, r.x, r.y, r.z, i);
+			natcoord(q, r, i);
 
 			// ensure that the natural coordinates lie inside the valid range [-1,1]
-            if ((fabs(xix) <= (1.0 + eps)) && (fabs(xiy) <= (1.0 + eps)) && (fabs(xiz) <= (1.0 + eps)))
+            if ((fabs(q.x) <= (1.0 + eps)) && (fabs(q.y) <= (1.0 + eps)) && (fabs(q.z) <= (1.0 + eps)))
 			{
-				p.q = vec3d(xix, xiy, xiz);
+				p.q = q;
 				p.nelem = i;
 				return true;
 			}
@@ -304,20 +285,17 @@ bool Grid::FindGridPoint(const vec3d& r, GridPoint& p)
     return false;
 }
 
-///////////////////////////////////////////////////////////////////////
-// natcoord
-///////////////////////////////////////////////////////////////////////
-
-void Grid::natcoord(double &xix, double &xiy, double &xiz, double xpt, double ypt, double zpt, int elem_num)
+//-----------------------------------------------------------------------------
+// Calculate the natural coordinates from a global point (pt) and an element number.
+void Grid::natcoord(vec3d& q, const vec3d& pt, int elem_num)
 {
     vec3d F;
     mat3d Jmat;
-    vec3d E;
+    vec3d E(0,0,0);
     vec3d dE;
-    vec3d newE;
     
     double err = 1;
-    double tol = 1e-9;
+    const double tol = 1e-9;
     
     Elem& elem = m_Elem[elem_num];
     
@@ -335,23 +313,23 @@ void Grid::natcoord(double &xix, double &xiy, double &xiz, double xpt, double yp
 	int max_iter = 10;
 	
 	while ((err > tol) && (iter < max_iter)){
-        xix = E.x;
-        xiy = E.y;
-        xiz = E.z;
+        double r = E.x;
+        double s = E.y;
+        double t = E.z;
         
-        shapefunctions(shapeF, xix, xiy, xiz);    
-        shapefun_d1(dN1, xix, xiy, xiz, 1);
-        shapefun_d1(dN2, xix, xiy, xiz, 2);
-        shapefun_d1(dN3, xix, xiy, xiz, 3);
-        shapefun_d1(dN4, xix, xiy, xiz, 4);
-        shapefun_d1(dN5, xix, xiy, xiz, 5);
-        shapefun_d1(dN6, xix, xiy, xiz, 6);
-        shapefun_d1(dN7, xix, xiy, xiz, 7);
-        shapefun_d1(dN8, xix, xiy, xiz, 8);
+        shapefunctions(shapeF, r, s, t);    
+        shapefun_d1(dN1, r, s ,t , 1);
+        shapefun_d1(dN2, r, s ,t , 2);
+        shapefun_d1(dN3, r, s ,t , 3);
+        shapefun_d1(dN4, r, s ,t , 4);
+        shapefun_d1(dN5, r, s ,t , 5);
+        shapefun_d1(dN6, r, s ,t , 6);
+        shapefun_d1(dN7, r, s ,t , 7);
+        shapefun_d1(dN8, r, s ,t , 8);
                 
-        F.x = xpt - (shapeF[0]*(*elem.n1).rt.x + shapeF[1]*(*elem.n2).rt.x + shapeF[2]*(*elem.n3).rt.x + shapeF[3]*(*elem.n4).rt.x + shapeF[4]*(*elem.n5).rt.x + shapeF[5]*(*elem.n6).rt.x + shapeF[6]*(*elem.n7).rt.x + shapeF[7]*(*elem.n8).rt.x);          
-        F.y = ypt - (shapeF[0]*(*elem.n1).rt.y + shapeF[1]*(*elem.n2).rt.y + shapeF[2]*(*elem.n3).rt.y + shapeF[3]*(*elem.n4).rt.y + shapeF[4]*(*elem.n5).rt.y + shapeF[5]*(*elem.n6).rt.y + shapeF[6]*(*elem.n7).rt.y + shapeF[7]*(*elem.n8).rt.y); 
-        F.z = zpt - (shapeF[0]*(*elem.n1).rt.z + shapeF[1]*(*elem.n2).rt.z + shapeF[2]*(*elem.n3).rt.z + shapeF[3]*(*elem.n4).rt.z + shapeF[4]*(*elem.n5).rt.z + shapeF[5]*(*elem.n6).rt.z + shapeF[6]*(*elem.n7).rt.z + shapeF[7]*(*elem.n8).rt.z); 
+        F.x = pt.x - (shapeF[0]*(*elem.n1).rt.x + shapeF[1]*(*elem.n2).rt.x + shapeF[2]*(*elem.n3).rt.x + shapeF[3]*(*elem.n4).rt.x + shapeF[4]*(*elem.n5).rt.x + shapeF[5]*(*elem.n6).rt.x + shapeF[6]*(*elem.n7).rt.x + shapeF[7]*(*elem.n8).rt.x);          
+        F.y = pt.y - (shapeF[0]*(*elem.n1).rt.y + shapeF[1]*(*elem.n2).rt.y + shapeF[2]*(*elem.n3).rt.y + shapeF[3]*(*elem.n4).rt.y + shapeF[4]*(*elem.n5).rt.y + shapeF[5]*(*elem.n6).rt.y + shapeF[6]*(*elem.n7).rt.y + shapeF[7]*(*elem.n8).rt.y); 
+        F.z = pt.z - (shapeF[0]*(*elem.n1).rt.z + shapeF[1]*(*elem.n2).rt.z + shapeF[2]*(*elem.n3).rt.z + shapeF[3]*(*elem.n4).rt.z + shapeF[4]*(*elem.n5).rt.z + shapeF[5]*(*elem.n6).rt.z + shapeF[6]*(*elem.n7).rt.z + shapeF[7]*(*elem.n8).rt.z); 
                
         Jmat[0][0] = -(dN1[0]*(*elem.n1).rt.x + dN2[0]*(*elem.n2).rt.x + dN3[0]*(*elem.n3).rt.x + dN4[0]*(*elem.n4).rt.x + dN5[0]*(*elem.n5).rt.x + dN6[0]*(*elem.n6).rt.x + dN7[0]*(*elem.n7).rt.x + dN8[0]*(*elem.n8).rt.x);
         Jmat[0][1] = -(dN1[1]*(*elem.n1).rt.x + dN2[1]*(*elem.n2).rt.x + dN3[1]*(*elem.n3).rt.x + dN4[1]*(*elem.n4).rt.x + dN5[1]*(*elem.n5).rt.x + dN6[1]*(*elem.n6).rt.x + dN7[1]*(*elem.n7).rt.x + dN8[1]*(*elem.n8).rt.x);
@@ -366,22 +344,18 @@ void Grid::natcoord(double &xix, double &xiy, double &xiz, double xpt, double yp
         Jmat[2][2] = -(dN1[2]*(*elem.n1).rt.z + dN2[2]*(*elem.n2).rt.z + dN3[2]*(*elem.n3).rt.z + dN4[2]*(*elem.n4).rt.z + dN5[2]*(*elem.n5).rt.z + dN6[2]*(*elem.n6).rt.z + dN7[2]*(*elem.n7).rt.z + dN8[2]*(*elem.n8).rt.z);
         
         dE = Jmat.inverse()*F;
-        newE = E - dE;
-        
         err = dE.norm();
-        E = newE;
+
+		E = E - dE;
+        
 		++iter;
 	}
-
 	assert(iter < max_iter);
         
-    xix = E.x;
-    xiy = E.y;
-    xiz = E.z;
-    
-    return;
+    q.x = E.x;
+    q.y = E.y;
+    q.z = E.z;
 }
-
 
 //-----------------------------------------------------------------------------
 // Determines the shape function values for a given position in natural coordinates
@@ -669,22 +643,18 @@ void Grid::update_grid_volume()
 }
 
 
-///////////////////////////////////////////////////////////////////////
-// nattoglobal
-///////////////////////////////////////////////////////////////////////
-
-void Grid::nattoglobal(double &xpt, double &ypt, double &zpt, double xix, double xiy, double xiz, int elem_num)
+//-----------------------------------------------------------------------------
+// Convert local coordinates (q) to global coordinates (pt)
+void Grid::nattoglobal(vec3d& pt, const vec3d& q, int elem_num)
 {
     Elem& elem = m_Elem[elem_num];
     double shapeF[8];
     
-    shapefunctions(shapeF, xix, xiy, xiz);
+    shapefunctions(shapeF, q.x, q.y, q.z);
 
-    xpt = shapeF[0]*(*elem.n1).rt.x + shapeF[1]*(*elem.n2).rt.x + shapeF[2]*(*elem.n3).rt.x + shapeF[3]*(*elem.n4).rt.x + shapeF[4]*(*elem.n5).rt.x + shapeF[5]*(*elem.n6).rt.x + shapeF[6]*(*elem.n7).rt.x + shapeF[7]*(*elem.n8).rt.x;
-    ypt = shapeF[0]*(*elem.n1).rt.y + shapeF[1]*(*elem.n2).rt.y + shapeF[2]*(*elem.n3).rt.y + shapeF[3]*(*elem.n4).rt.y + shapeF[4]*(*elem.n5).rt.y + shapeF[5]*(*elem.n6).rt.y + shapeF[6]*(*elem.n7).rt.y + shapeF[7]*(*elem.n8).rt.y;
-    zpt = shapeF[0]*(*elem.n1).rt.z + shapeF[1]*(*elem.n2).rt.z + shapeF[2]*(*elem.n3).rt.z + shapeF[3]*(*elem.n4).rt.z + shapeF[4]*(*elem.n5).rt.z + shapeF[5]*(*elem.n6).rt.z + shapeF[6]*(*elem.n7).rt.z + shapeF[7]*(*elem.n8).rt.z;
-    
-    return;
+    pt.x = shapeF[0]*(*elem.n1).rt.x + shapeF[1]*(*elem.n2).rt.x + shapeF[2]*(*elem.n3).rt.x + shapeF[3]*(*elem.n4).rt.x + shapeF[4]*(*elem.n5).rt.x + shapeF[5]*(*elem.n6).rt.x + shapeF[6]*(*elem.n7).rt.x + shapeF[7]*(*elem.n8).rt.x;
+    pt.y = shapeF[0]*(*elem.n1).rt.y + shapeF[1]*(*elem.n2).rt.y + shapeF[2]*(*elem.n3).rt.y + shapeF[3]*(*elem.n4).rt.y + shapeF[4]*(*elem.n5).rt.y + shapeF[5]*(*elem.n6).rt.y + shapeF[6]*(*elem.n7).rt.y + shapeF[7]*(*elem.n8).rt.y;
+    pt.z = shapeF[0]*(*elem.n1).rt.z + shapeF[1]*(*elem.n2).rt.z + shapeF[2]*(*elem.n3).rt.z + shapeF[3]*(*elem.n4).rt.z + shapeF[4]*(*elem.n5).rt.z + shapeF[5]*(*elem.n6).rt.z + shapeF[6]*(*elem.n7).rt.z + shapeF[7]*(*elem.n8).rt.z;
 }
 
 //-----------------------------------------------------------------------------
@@ -932,7 +902,9 @@ bool Grid::FindIntersection(vec3d& r0, vec3d& r1, int elem, FACE_INTERSECTION& i
 // Bottom = 5
 bool Grid::intersectPlane(Segment &seg, int n, double intersectpt[3])
 {
-	double N0[3], N1[3], N2[3], N3[3], N4[3], N5[3]; //face normals
+	assert(false);
+
+/*	double N0[3], N1[3], N2[3], N3[3], N4[3], N5[3]; //face normals
 	double P0[3], P1[3], P2[3], P3[3], P4[3], P5[3]; //point on faces
 
 	//front
@@ -1100,5 +1072,6 @@ bool Grid::intersectPlane(Segment &seg, int n, double intersectpt[3])
 			}
 			break;
 	}
+*/
 	return false;
 }
