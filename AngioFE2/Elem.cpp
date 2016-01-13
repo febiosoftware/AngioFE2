@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Elem.h"
+#include "BC.h"
 
 //-----------------------------------------------------------------------------
 Node::Node() : theta(0.), eta(0.), theta0(0.), eta0(0.), ecm_den(0.), ecm_den0(0.), id(0), updated(false) 
@@ -62,6 +63,12 @@ void Node::operator = (const Node& n)
 
 	ecm_den_store = n.ecm_den_store;
 	ecm_fibril_store = n.ecm_fibril_store;
+}
+
+//-----------------------------------------------------------------------------
+Face::Face() : BC(false), bc_type(BC::STOP) 
+{
+
 }
 
 //-----------------------------------------------------------------------------

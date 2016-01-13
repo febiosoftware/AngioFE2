@@ -19,8 +19,8 @@ public:
 
 private:
 	// read_param - Read a parameter from the current line within the buffer
-    void read_param(FEAngio &angio, char* buffer);
+    bool read_param(FEAngio &angio, char* buffer);
 
 	// set_param - Set a certain parameter within the INPUT class based on what's read from the input file
-    void set_param(FEAngio &angio, char* buffer, char* pname);		
+    bool set_param(FEAngio &angio, char* buffer, char* pname);		
 };

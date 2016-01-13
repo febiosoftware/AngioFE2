@@ -25,52 +25,23 @@ void BC::checkBC(Segment &seg, int k)
 {
 	Grid& grid = m_angio.GetGrid();
 
-	// get the tip point
-	vec3d pt = seg.tip(k).rt;
-	
-	// See if this point lies inside an element
-	int elem_num = grid.findelem(pt);
-	if (elem_num != -1) return;
-
-	if (((seg.tip(0).bactive == false) && (seg.tip(1).bactive == false)) || (seg.length() == 0.0)){
-		assert(false);
-		seg.mark_of_death = true;
-		seg.death_label = 3;
-		return;}
-
 	// get the end-points and reference element
 	vec3d r0 = (k==0? seg.tip(1).rt : seg.tip(0).rt);
 	vec3d r1 = (k==0? seg.tip(0).rt : seg.tip(1).rt);
-	elem_num = (k==0? seg.tip(1).pt.nelem : seg.tip(0).pt.nelem);
+	int elem_num = (k==0? seg.tip(1).pt.nelem : seg.tip(0).pt.nelem);
 	assert(elem_num >= 0);
 
 	// find the intersection with the element's boundary
-	int face;
-	vec3d i_point;
-	if (grid.FindIntersection(r0, r1, elem_num, i_point, face))
+	FACE_INTERSECTION ic;
+	if (grid.FindIntersection(r0, r1, elem_num, ic))
 	{
 		Elem& elem = grid.ebin[elem_num];
-		assert(face != -1);
-		assert(elem.m_nbr[face] == -1);
-		assert(elem.GetFace(face)->BC == true);
+		assert(ic.nface != -1);
+		assert(elem.m_nbr[ic.nface] == -1);
+		assert(elem.GetFace(ic.nface)->BC == true);
 
-		Segment::TIP& tip = seg.tip(k);
-
-		// update position and grid point structure
-		tip.pt.nelem = elem_num;
-		grid.natcoord(tip.pt.q.x, tip.pt.q.y, tip.pt.q.z, i_point.x, i_point.y, i_point.z, elem_num);
-		seg.tip(k).rt = i_point;
-
-		// For now, just turn off the tip
-		seg.tip(k).bactive = false;
-
-/*		if (face == 0) { enforceBC(i_point, face+1, elem.f1.bc_type, seg, elem_num, k); return;}
-		if (face == 1) { enforceBC(i_point, face+1, elem.f2.bc_type, seg, elem_num, k); return;}
-		if (face == 2) { enforceBC(i_point, face+1, elem.f3.bc_type, seg, elem_num, k); return;}
-		if (face == 3) { enforceBC(i_point, face+1, elem.f4.bc_type, seg, elem_num, k); return;}
-		if (face == 4) { enforceBC(i_point, face+1, elem.f5.bc_type, seg, elem_num, k); return;}
-		if (face == 5) { enforceBC(i_point, face+1, elem.f6.bc_type, seg, elem_num, k); return;}
-*/
+		// enforce the BC
+		enforceBC(seg, k, ic);
 	}
 	else
 	{
@@ -78,22 +49,33 @@ void BC::checkBC(Segment &seg, int k)
 	}
 } 
 
-///////////////////////////////////////////////////////////////////////
-// enforceBC
-///////////////////////////////////////////////////////////////////////
-
-void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_num, int k)
+//-----------------------------------------------------------------------------
+// This enforces a boundary condition on a new vessel.
+void BC::enforceBC(Segment &seg, int k, FACE_INTERSECTION& ic)
 {
-    BC_violated = true;
 	Grid& grid = m_angio.GetGrid();
 	Culture& cult = m_angio.GetCulture();
+
+	// get the element
+	Elem& elem = grid.ebin[ic.nelem];
+
+	// get the BC type
+	unsigned int bctype = elem.GetFace(ic.nface)->bc_type;
 	
-	// Flat wall boundary type
-    if (bctype == 119){           
-        flatwallBC(i_point, face, seg, elem_num, k);
-        BC_violated = false;
-		return;}
-    
+	// vessel stops growing
+    if (bctype == BC::STOP){
+        BCStop(seg, k, ic);
+		return;
+	}
+
+	// vessl bounces off the wall
+	if (bctype == BC::BOUNCY){
+		BCBouncy(seg, k, ic);
+		return;
+	}
+
+	assert(false);
+/*    
     // Bouncy wall boundary type
     if (bctype == 98){
         Segment seg2;
@@ -177,175 +159,115 @@ void BC::enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_
 			seg.tip(k).BC = 1;
 
 		return;} 
-
-    return;
+*/
 }
 
-
-
-///////////////////////////////////////////////////////////////////////
-// flatwallBC
-///////////////////////////////////////////////////////////////////////
-
-void BC::flatwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k)
+//-----------------------------------------------------------------------------
+// Boundary condition where vessels stops growing after hitting boundary.
+void BC::BCStop(Segment &seg, int k, FACE_INTERSECTION& ic)
 {
-	if (k == 1){
-        seg.tip(1).rt = i_point;
-        seg.Update();
-        seg.tip(1).bactive = false;
-	}
-    else if (k == 0){
-        seg.tip(0).rt = i_point;
-        seg.Update();
-        seg.tip(0).bactive = false;
-	}
-    
-	seg.SetFlagOn(Segment::BC_DEAD);
+	Segment::TIP& tip = seg.tip(k);
 
+	// update position and grid point structure
+	Grid& grid = m_angio.GetGrid();
+	tip.pt.nelem = ic.nelem;
+	vec3d p = ic.q;
+	grid.natcoord(tip.pt.q, p, ic.nelem);
+	seg.tip(k).rt = ic.q;
+	seg.Update();
+
+	// turn the tip off
+	seg.tip(k).bactive = false;
+
+	// mark as dead
+	seg.SetFlagOn(Segment::BC_DEAD);
 	seg.tip(k).BC = 1;
 
-    return;
+	// add the segment
+	Culture& cult = m_angio.GetCulture();
+	cult.AddSegment(seg);
 }
 
-
-
-///////////////////////////////////////////////////////////////////////
-// bouncywallBC
-///////////////////////////////////////////////////////////////////////
-
-Segment BC::bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k)
+//-----------------------------------------------------------------------------
+// Boundary condition where the vessel bounces off the wall.
+// This effectively creates another segment by breaking the current segment
+// in two at the intersection point and then creating a new segment that bounces of the wall.
+void BC::BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic)
 {
-    BC_bouncy = true;
-	
-	double xpt_0, ypt_0, zpt_0 = {0.};
-    double xpt_1, ypt_1, zpt_1 = {0.};      
-	double xpt_i = 0.; double ypt_i = 0.; double zpt_i = 0.;
+	Grid& grid = m_angio.GetGrid();
+	Culture& cult = m_angio.GetCulture();
 
-	double old_length = 0.;
-	double remain_length = 0.;
+	// get the original tip positions
+	vec3d r0 = seg.tip(0).rt;
+	vec3d r1 = seg.tip(1).rt;
+	vec3d q = ic.q;	// intersection point
 
-    xpt_0 = seg.tip(0).rt.x;
-    ypt_0 = seg.tip(0).rt.y;
-    zpt_0 = seg.tip(0).rt.z;
-    xpt_1 = seg.tip(1).rt.x;
-    ypt_1 = seg.tip(1).rt.y;
-    zpt_1 = seg.tip(1).rt.z;
- 
-	xpt_i = i_point.x;
-	ypt_i = i_point.y;
-	zpt_i = i_point.z;
-
-	old_length = seg.length();
-	
-    double eps = 1e-3;
-
-	if (face == 1){
-		ypt_i = (1.0 + eps)*i_point.y;}
-	if (face == 2){
-		xpt_i = (1.0 - eps)*i_point.x;}
-	if (face == 3){
-		ypt_i = (1.0 - eps)*i_point.y;}
-	if (face == 4){
-		xpt_i = (1.0 + eps)*i_point.x;}
-	if (face == 5){
-		zpt_i = (1.0 - eps)*i_point.z;}
-	if (face == 6){
-		zpt_i = (1.0 + eps)*i_point.z;}
-
-	Segment seg2;
-    seg2.m_nseed = seg.m_nseed;
-            
-	if (k == 1){
-        seg.tip(1).rt.x = xpt_i;
-        seg.tip(1).rt.y = ypt_i;
-        seg.tip(1).rt.z = zpt_i;
-        seg.Update();
-        seg.tip(1).bactive = false;
-        seg2.tip(1).bactive = true;
-		seg2.tip(0).pt = seg.tip(1).pt;
-	}
-    else if (k == 0){
-        seg.tip(0).rt.x = xpt_i;
-        seg.tip(0).rt.y = ypt_i;
-        seg.tip(0).rt.z = zpt_i;
-        seg.Update();
-        seg.tip(0).bactive = false;
-        seg2.tip(0).bactive = true;
-		seg2.tip(1).pt = seg.tip(0).pt;
+	// get the old length
+    double old_length = seg.length();
+	if (old_length == 0.0)
+	{
+//		assert(false);
+		return;
 	}
 
+	// break the first segment
+	Segment::TIP& tip = seg.tip(k);
+	tip.rt = q;
+	tip.pt.nelem = ic.nelem;
+	grid.natcoord(tip.pt.q, q, ic.nelem);
+	seg.Update();
+	tip.bactive = false;
     seg.SetFlagOn(Segment::BC_DEAD);
-       
-    remain_length = fabs(old_length) - seg.length();
 
-	if (k == 0)
-		remain_length = -1.0*remain_length;
-	
-	vec3d seg_unit;
+	// calculate new length
+	double new_length = seg.length();
 
-	switch (face)
-    {
-    case 1:
-        seg_unit.y = -1.0*seg_unit.y;
-        break;
-    
-    case 2:
-       seg_unit.x = -1.0*seg_unit.x;
-        break;
-            
-    case 3:
-        seg_unit.y = -1.0*seg_unit.y;
-        break;       
-    
-    case 4:
-        seg_unit.x = -1.0*seg_unit.x;
-        break;
-    
-    case 5:
-        seg_unit.z = -1.0*seg_unit.z;
-        break;     
-    
-    case 6:
-        seg_unit.z = -1.0*seg_unit.z;
-        break;
-    
-	case -1:
+	// Add this segment
+	// TODO: if the new length is zero, I should not add it, but then the
+	//       continuity of the vessel will be broken. Not sure yet how to handle this.
+	cult.AddSegment(seg);
+
+	// create a new segment
+	Segment seg2;
+
+	// set the starting point at the intersection point
+	if (k==1)
+	{
+		seg2.tip(0).rt = q;
+		seg2.tip(0).pt = tip.pt;
 		seg2.tip(0).bactive = false;
-		seg2.tip(1).bactive = false;
-		seg2.mark_of_death = true;
-		seg2.death_label = 1;
-		return seg2;
-		break;
 	}
-    
-	if (k == 1){
-        seg2.tip(0).rt.x = xpt_i;
-        seg2.tip(0).rt.y = ypt_i;
-        seg2.tip(0).rt.z = zpt_i;
-		seg2.tip(1).rt.x = xpt_i + remain_length*seg_unit.x;
-        seg2.tip(1).rt.y = ypt_i + remain_length*seg_unit.y;
-        seg2.tip(1).rt.z = zpt_i + remain_length*seg_unit.z;}
-    else if (k == 0){
-        seg2.tip(1).rt.x = xpt_i;
-        seg2.tip(1).rt.y = ypt_i;
-        seg2.tip(1).rt.z = zpt_i;
-        seg2.tip(0).rt.x = xpt_i + remain_length*seg_unit.x;
-        seg2.tip(0).rt.y = ypt_i + remain_length*seg_unit.y;
-        seg2.tip(0).rt.z = zpt_i + remain_length*seg_unit.z;}
+	else
+	{
+		seg2.tip(1).rt = q;
+		seg2.tip(1).pt = tip.pt;
+		seg2.tip(1).bactive = false;
+	}
 
-//	seg2.m_length = remain_length;
-	seg2.SetFlagOn(Segment::BC_DEAD);
-    seg2.SetTimeOfBirth(m_angio.m_time.t);
-    
-	if (seg.GetFlag(Segment::INIT_SPROUT) == false)
-		seg2.SetFlagOn(seg.GetFlags());
-    
-    //seg2.findphi();
-    seg2.tip(k).bdyf_id = seg.tip(k).bdyf_id; 
+	// calculate the recoil vector
+	vec3d t = r1 - r0; t.unit();
+	vec3d n = ic.norm;
 
-	return seg2;
+	vec3d new_vec = t - n*(2.0*(t*n));
+	
+	// calculate the remaining length
+    double remain_length = old_length - seg.length();
+	assert(remain_length > 0.0);
+
+	if (k == 1)
+		seg2.tip(1).rt = q + new_vec*remain_length;
+    else if (k == 0)
+        seg2.tip(0).rt = q - new_vec*remain_length;
+
+	// activate the new tip
+	seg2.tip(k).bactive = true;
+
+	// pass on body force ID
+	seg2.tip(k).bdyf_id = seg.tip(k).bdyf_id; 
+
+	// Add the new segment to the culture
+	cult.AddNewSegment(seg2, k);
 }
-
 
 ///////////////////////////////////////////////////////////////////////
 // find_intersect
@@ -1645,7 +1567,6 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
 
 //	seg2.m_length = remain_length;
 	seg2.SetFlagOn(Segment::BC_DEAD);
-	seg2.SetTimeOfBirth(m_angio.m_time.t);
     /*data.num_vessel++; 
 	seg2.line_num = seg.line_num;*/
 
@@ -1773,7 +1694,6 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	seg2.tip(1).bactive = true;
 //	seg2.m_length = remain_length;
 	seg2.SetFlagOn(Segment::BC_DEAD);
-    seg2.SetTimeOfBirth(m_angio.m_time.t);
 
 	// TODO: I don't think I want to copy all the flags. Maybe I don't need to copy anything.
 	if (seg.GetFlag(Segment::INIT_SPROUT) == false)
@@ -1907,7 +1827,6 @@ Segment BC::PeriodicBC(Segment &seg)
 //				seg2.m_length = rem_length;
 //				seg2.phi1 = seg.phi1;
 //				seg2.phi2 = seg.phi2;
-				seg2.SetTimeOfBirth(seg.GetTimeOfBirth());
 				if (grid.IsOutsideBox(seg2))
 					seg = PeriodicBC(seg2);
 				else
@@ -2012,7 +1931,6 @@ Segment BC::PeriodicBC(Segment &seg)
 //				seg2.m_length = rem_length;
 //				seg2.phi1 = seg.phi1;
 //				seg2.phi2 = seg.phi2;
-				seg2.SetTimeOfBirth(seg.GetTimeOfBirth());
 				
 				if (grid.IsOutsideBox(seg2))
 					seg = PeriodicBC(seg2);

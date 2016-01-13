@@ -15,6 +15,17 @@ const int ynodes = 51;
 const int znodes = 20;
 
 //-----------------------------------------------------------------------------
+// utility class for defining an intersection of a face
+struct FACE_INTERSECTION 
+{
+	int		nelem;	// element number
+	int		nface;	// face number
+	double	r[2];	// natural coordinates
+	vec3d	q;		// intersection point (global coordinates)
+	vec3d	norm;	// noram at intersection point
+};
+
+//-----------------------------------------------------------------------------
 // The GRID class stores the regular quadrilateral grid that is fit to 
 // the simulation domain.  The nodes of the grid store field 
 // information which influences microvessel growth.  Interpolation within
@@ -30,7 +41,7 @@ public:
 
 	// find an intersection of a segment with an element
 	// The intersection point is returned in q.
-	bool FindIntersection(vec3d& r0, vec3d& r1, int elem, vec3d& q, int& face);
+	bool FindIntersection(vec3d& r0, vec3d& r1, int elem, FACE_INTERSECTION& ic);
 
 public:
 	// Inline function that determines if a newly created vessel Segment is outside of the domain
@@ -38,7 +49,13 @@ public:
 
 	// Accepts a position in global coordinates and determines the position in natural coorindates for the particular grid element
     void natcoord(double &xix, double &xiy, double &xiz, double xpt, double ypt, double zpt, int elem_num);
-    
+
+	// Accepts a position in global coordinates and determines the position in natural coorindates for the particular grid element
+    void natcoord(vec3d& q, const vec3d& pt, int elem_num)
+	{
+		natcoord(q.x, q.y, q.z, pt.x, pt.y, pt.z, elem_num);
+	}
+
 	// find the element in which this point lies
 	int findelem(const vec3d& pt);
 
@@ -107,12 +124,7 @@ public:
 	char y_bctype;
 	char z_bctype;
 
-	char frontbc;
-	char rightbc;
-	char backbc;
-	char leftbc;
-	char bottombc;
-	char topbc;
+	unsigned int m_bc_type;	// default bc type for faces
 
 private:
 	FEMesh&		m_mesh;

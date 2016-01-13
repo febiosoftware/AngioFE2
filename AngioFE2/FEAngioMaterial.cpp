@@ -160,7 +160,7 @@ void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t)
 	s.bactive = true;
 	s.sprout = t;
 	UpdateSprout(s, r);
-	m_spr.push_back(s);
+//	m_spr.push_back(s);
 }
 
 //-----------------------------------------------------------------------------

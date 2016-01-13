@@ -2,6 +2,7 @@
 #include <list>
 using namespace std;
 #include <FECore/vec3d.h>
+#include "Grid.h"
 
 //-----------------------------------------------------------------------------
 class FEAngio;
@@ -14,14 +15,30 @@ class Node;
 // conditions within the model.
 class BC
 {
-  public:
+public:
+	enum {
+		STOP,		// the segment stops at the boundary
+		BOUNCY		// bouncy wall
+	};
+
+public:
 	BC(FEAngio& angio);
-	virtual ~BC();
+	~BC();
 	
+	// checks if a new segment has cross the boundary
 	void checkBC(Segment &seg, int k);
-	void enforceBC(vec3d i_point, int face, char bctype, Segment &seg, int elem_num, int k);
-	void flatwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k);
-	Segment bouncywallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k);
+
+private:
+	// enforces a boundary condition
+	void enforceBC(Segment &seg, int k, FACE_INTERSECTION& ic);
+
+	// apply BC where vessel stops growing after hitting boundary
+	void BCStop(Segment &seg, int k, FACE_INTERSECTION& ic);
+
+	// apply BC where the vessel bounces off the boundary
+	void BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic);
+
+public:
 	void collfibwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k);
 	vec3d intersceptface(int face, double &xix_0, double &xiy_0, double &xiz_0, double &xix_1, double &xiy_1, double &xiz_1, Segment &seg, int k);
 	vec3d find_intersect(Elem &elem, int &face, Segment &seg);

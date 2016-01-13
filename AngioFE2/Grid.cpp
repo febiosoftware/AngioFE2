@@ -13,6 +13,7 @@
 #include <FECore/vec3d.h>
 #include "Elem.h"
 #include "math.h"
+#include "BC.h"
 
 //-----------------------------------------------------------------------------
 Grid::Grid(FEMesh& mesh) : m_mesh(mesh)
@@ -23,12 +24,7 @@ Grid::Grid(FEMesh& mesh) : m_mesh(mesh)
 	ynodes = 0;
 	znodes = 0;
 
-	frontbc = 'w';
-	rightbc = 'w';
-	backbc = 'w';
-	leftbc = 'w';
-	bottombc = 'w';
-	topbc = 'w';
+	m_bc_type = BC::STOP;
 }
 
 //-----------------------------------------------------------------------------
@@ -117,12 +113,12 @@ bool Grid::Init()
 	{
 	    Elem& ei = ebin[i];
 
-	    if (ei.m_nbr[0] == -1) { ei.f1.BC = true; ei.f1.bc_type = frontbc; }
-	    if (ei.m_nbr[1] == -1) { ei.f2.BC = true; ei.f2.bc_type = frontbc; }
-	    if (ei.m_nbr[2] == -1) { ei.f3.BC = true; ei.f3.bc_type = frontbc; }
-	    if (ei.m_nbr[3] == -1) { ei.f4.BC = true; ei.f4.bc_type = frontbc; }
-	    if (ei.m_nbr[4] == -1) { ei.f5.BC = true; ei.f5.bc_type = frontbc; }
-	    if (ei.m_nbr[5] == -1) { ei.f6.BC = true; ei.f6.bc_type = frontbc; }
+	    if (ei.m_nbr[0] == -1) { ei.f1.BC = true; ei.f1.bc_type = m_bc_type; }
+	    if (ei.m_nbr[1] == -1) { ei.f2.BC = true; ei.f2.bc_type = m_bc_type; }
+	    if (ei.m_nbr[2] == -1) { ei.f3.BC = true; ei.f3.bc_type = m_bc_type; }
+	    if (ei.m_nbr[3] == -1) { ei.f4.BC = true; ei.f4.bc_type = m_bc_type; }
+	    if (ei.m_nbr[4] == -1) { ei.f5.BC = true; ei.f5.bc_type = m_bc_type; }
+	    if (ei.m_nbr[5] == -1) { ei.f6.BC = true; ei.f6.bc_type = m_bc_type; }
 	}
 
 	// initialize all element grid volumes
@@ -735,9 +731,10 @@ int Grid::elem_find_neighbor(int elem_num,int neighbor_id)
 // calculate intersection between a line and a (quadratic) face.
 // This is used by Grid::FindIntersection to determine the intersection between
 // a segment and an element's face.
-bool IntersectFace(vec3d p[4], const vec3d& r0, const vec3d& r1, double& lam)
+bool IntersectFace(vec3d p[4], const vec3d& r0, const vec3d& r1, double& lam, double& r, double& s)
 {
-	double r = 0.0, s = 0.0;
+	r = 0.0;
+	s = 0.0;
 	double H[4], Hr[4], Hs[4];
 	vec3d R;
 	mat3d K;
@@ -795,20 +792,41 @@ bool IntersectFace(vec3d p[4], const vec3d& r0, const vec3d& r1, double& lam)
 }
 
 //-----------------------------------------------------------------------------
+vec3d FindFaceNormal(vec3d y[4], double r, double s)
+{
+	// evaluate shape function derivatives
+	double Hr[4], Hs[4];
+	Hr[0] = -0.25*(1.0 - s); Hs[0] = -0.25*(1.0 - r);
+	Hr[1] =  0.25*(1.0 - s); Hs[1] = -0.25*(1.0 + r);
+	Hr[2] =  0.25*(1.0 + s); Hs[2] =  0.25*(1.0 + r);
+	Hr[3] = -0.25*(1.0 + s); Hs[3] =  0.25*(1.0 - r);
+
+	// calculate covariant base vectors
+	vec3d dr = y[0]*Hr[0] + y[1]*Hr[1] + y[2]*Hr[2] + y[3]*Hr[3];
+	vec3d ds = y[0]*Hs[0] + y[1]*Hs[1] + y[2]*Hs[2] + y[3]*Hs[3];
+
+	// calculate unit normal
+	vec3d n = dr ^ ds;
+	n.unit();
+
+	return n;
+}
+
+//-----------------------------------------------------------------------------
 // This function tries to find the face of an element that intersects the segment.
 // It assumes that point1 (r0) of the segment is inside the element, whereas point2 (r1) does not.
 // The intersection point is returned int q and the facet number in face.
 // The function returns false if the intersection search fails.
-bool Grid::FindIntersection(vec3d& r0, vec3d& r1, int elem, vec3d& q, int& face)
+bool Grid::FindIntersection(vec3d& r0, vec3d& r1, int elem, FACE_INTERSECTION& ic)
 {
-	vec3d d = r1 - r0;
-
-	int nf[4];
 	double lam_min = 1e99;
 
-	face = -1;
+	ic.nelem = elem;
+	ic.nface = -1;
 	Elem& el = ebin[elem];
 
+	vec3d d = r1 - r0;
+	int nf[4];
 	vec3d y[4];
 	for (int i=0; i<6; ++i)
 	{
@@ -821,22 +839,35 @@ bool Grid::FindIntersection(vec3d& r0, vec3d& r1, int elem, vec3d& q, int& face)
 			y[2] = nodes[nf[2]].rt;
 			y[3] = nodes[nf[3]].rt;
 
-			double lam = 0.5;
-			if (IntersectFace(y, r0, r1, lam))
+			double lam = 0.5, r = 0.0, s = 0.0;
+			if (IntersectFace(y, r0, r1, lam, r, s))
 			{
 				if ((lam <= 1.0001) && (lam >= 0.0) && (lam < lam_min))
 				{
-					q = r0 + d*(0.95*lam);
-					face = i;
+					ic.q = r0 + d*(0.95*lam);
+					ic.nface = i;
+					ic.r[0] = r;
+					ic.r[1] = s;
 					lam_min = lam;
 				}
 			}
 		}
 	}
 
-	assert(face!=-1);
+	assert(ic.nface!=-1);
 
-	return (face!=-1);
+	// calculate face normal
+	if (ic.nface != -1)
+	{
+		el.GetFace(ic.nface, nf);
+		y[0] = nodes[nf[0]].rt;
+		y[1] = nodes[nf[1]].rt;
+		y[2] = nodes[nf[2]].rt;
+		y[3] = nodes[nf[3]].rt;
+		ic.norm = FindFaceNormal(y, ic.r[0], ic.r[1]);
+	}
+
+	return (ic.nface!=-1);
 }
 
 //-----------------------------------------------------------------------------

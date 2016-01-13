@@ -54,8 +54,14 @@ public:
 	void CheckForIntersection(Segment &seg, Segment& it);
 	
 public:
-	// Add a segment to the culture
+	// Add a segment to the culture (without checking BCs).
+	// This assumes that the segment is valid.
 	void AddSegment(Segment& seg);
+
+	// Add a new segment to the culture.
+	// This will apply BCs to the new segment and may result in 
+	// the addition of several new segments. 
+	void AddNewSegment(Segment& seg, int k);
 
 	// return the number of segments
 	int Segments() { return m_nsegs; }
@@ -67,6 +73,7 @@ public:
 	SegIter SegmentEnd() { return m_frag.end(); }
 
 private:
+
     // Seed an initial fragment within the grid
 	Segment createInitFrag();
 
@@ -76,8 +83,8 @@ private:
 	// fuse segments (i.e. anastomosis)
 	void Fuse(SimulationTime& time);
 
-	// Create a new segment at the tip of an existing segment
-	Segment CreateNewSeg(Segment& it, int k, SimulationTime& time, bool branch = false);
+	// Grow a segment
+	void GrowSegment(Segment& it, int k, SimulationTime& time, bool branch = false, bool bnew_vessel = false);
 
 	// Create a new segment connecting two existing segments that are fusing through anastomosis
 	Segment ConnectSegment(Segment& it, Segment& it2, int k, int kk, SimulationTime& time);
@@ -104,7 +111,12 @@ private:
 
 public:
     BC		bc;
-	double	W[4];			// W[1] = Weight for vessel density
+	double	m_W[4];			// W[0] = Weight for collagen orientation
+							// W[1] = Weight for vessel density	gradient(?)	(TODO: not used)
+							// W[2] = Weight for random component	(TODO: not used)
+							// W[3] = Weight for previous vessel direction
+
+
     int		m_ninit_frags;	// Number of initial microvessel fragments
     int		m_num_vessel;   // Counter that indicates the next vessel ID number of new Segments
 	int		m_num_branches;		// Counter indicating the number of branches formed during the simulation

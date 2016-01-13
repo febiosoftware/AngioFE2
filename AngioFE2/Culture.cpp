@@ -10,13 +10,13 @@
 //-----------------------------------------------------------------------------
 Culture::Culture(FEAngio& angio) : bc(angio), m_angio(angio)
 {
-	W[0] = 0;
-	W[1] = 0;
-	W[2] = 0;
-	W[3] = 0;
+	m_W[0] = 0;
+	m_W[1] = 0;
+	m_W[2] = 0;
+	m_W[3] = 0;
 
-	m_ninit_frags = 3;
-    m_num_vessel = m_ninit_frags - 1;
+	m_ninit_frags = 0;
+    m_num_vessel = 0;
 	m_num_branches = 0;		// Initialize branching counter
 
 	m_num_zdead = 0;
@@ -79,12 +79,12 @@ void Culture::SeedFragments(SimulationTime& time)
 		// Set the segment vessel as the segment label
 		seg.m_nvessel = seg.m_nseed;
 
-		// Store the segment's time of birth
-		seg.SetTimeOfBirth(time.t);
-
 		// add it to the list
 		AddSegment(seg);
 	}
+
+	// set the number of vessels
+    m_num_vessel = m_ninit_frags;
 
 	// Update the active tip container
 	FindActiveTips();
@@ -169,8 +169,7 @@ void Culture::Grow(SimulationTime& time)
 			// only grow active tips
 			if (it->tip(k).bactive)
 			{
-				Segment seg = CreateNewSeg(*it, k, time);	// Create new vessel segment at the current tip existing segment 
-				AddSegment(seg);							// Add new segment at the top of the list 'frag'
+				GrowSegment(*it, k, time);	// Create new vessel segment at the current tip existing segment 
 			}
 	    }
 		    
@@ -217,7 +216,7 @@ void Culture::UpdateNewVesselLength(SimulationTime& time)
 
 //-----------------------------------------------------------------------------
 // Create a new segment at the tip of an existing segment
-Segment Culture::CreateNewSeg(Segment& it, int k, SimulationTime& time, bool branch)
+void Culture::GrowSegment(Segment& it, int k, SimulationTime& time, bool branch, bool bnew_vessel)
 {
 	// Make sure the tip is active
 	assert(it.tip(k).bactive);
@@ -231,7 +230,7 @@ Segment Culture::CreateNewSeg(Segment& it, int k, SimulationTime& time, bool bra
 	// determine the growth direction
 	vec3d seg_vec = FindDirection(it, it.tip(k).pt);
 
-	// If new segment is a branch...
+	// If new segment is a branch we modify the grow direction a bit
 	if (branch)
 	{
 		vec3d coll_fib = CollagenDirection(it.tip(k).pt);
@@ -242,12 +241,16 @@ Segment Culture::CreateNewSeg(Segment& it, int k, SimulationTime& time, bool bra
 	// Create a new segment
 	Segment seg;
 
-	// transer label and vessel number
+	// transer seed label
 	seg.m_nseed  = it.m_nseed;
-	seg.m_nvessel = it.m_nvessel;
 
-	// Stamp segment with time of birth
-	seg.SetTimeOfBirth(time.t);
+	// assign vessel ID
+	if (bnew_vessel)
+	{
+		seg.m_nvessel = m_num_vessel++;
+		assert(seg.m_nvessel > it.m_nvessel);
+	}
+	else seg.m_nvessel = it.m_nvessel;
 
 	// grow from the end point
 	if (k == 1)
@@ -284,18 +287,8 @@ Segment Culture::CreateNewSeg(Segment& it, int k, SimulationTime& time, bool bra
 	// update length and unit vector
 	seg.Update();
 
-	// Find the position of the new end point
-	Grid& grid = m_angio.GetGrid();
-	if (grid.FindGridPoint(seg.tip(k).rt, seg.tip(k).pt) == false)
-	{
-		// If we get here, the new end point lies outside the grid
-		// In that case, we apply boundary conditions
-		// (Note that this may create additional segments)
-		bc.checkBC(seg, k);
-	}
-	
-	// Return the new segment
-	return seg;
+	// Add the segment to the culture
+	AddNewSegment(seg, k);
 }
 
 //-----------------------------------------------------------------------------
@@ -326,17 +319,11 @@ void Culture::Branch(Segment& it, SimulationTime& time)
 		// (it will be deactivated by CreateNewSeg)
 		it.tip(k).bactive = true;
 
-		// Create the new vessel segment (with branch flag true)
-		Segment seg = CreateNewSeg(it,k, time, true);
+		// Create the new vessel segment (with branch flag and new_vessel flag to true)
+		GrowSegment(it,k, time, true, true);
 
-		m_num_vessel = m_num_vessel + 1;				// Iterate the vessel counter
-		seg.m_nvessel = m_num_vessel;						// Set the segments ID number
-    				                    
 		// Create a new sprout force for the branch
-		CreateBranchingForce(seg);
-
-		// Append new segment at the top of the list 'frag'
-		AddSegment(seg);
+//		CreateBranchingForce(seg);
 	}                                                              
 }
 
@@ -431,13 +418,47 @@ void Culture::anastomose(double dist0, double dist1, int k, Segment& it1, Segmen
 }
 
 //-----------------------------------------------------------------------------
+// Add a new segment to the culture.
+// This will apply BCs to the new segment and may result in 
+// the addition of several new segments. 
+// k is the new tip
+// (it is assumed that the other tip was form at the end of 
+// another segment and is valid)
+void Culture::AddNewSegment(Segment& seg, int k)
+{
+	// get the new tip
+	Segment::TIP& new_tip = seg.tip(k);
+	assert(new_tip.pt.nelem == -1);
+
+	// Find the position of the new end point
+	Grid& grid = m_angio.GetGrid();
+	if (grid.FindGridPoint(new_tip.rt, new_tip.pt) == false)
+	{
+		// If we get here, the new end point lies outside the grid
+		// In that case, we apply boundary conditions
+		// (Note that this may create additional segments)
+		bc.checkBC(seg, k);
+	}
+	else
+	{
+		// everything looks good, so let's add the segment
+		AddSegment(seg);
+	}
+}
+
+//-----------------------------------------------------------------------------
 // This function adds a segment to the list.
-// It also updates the segment counter and assigns Segment::m_nid.
+// It also updates the segment counter and assigns Segment::m_nid and sets the time of birth.
 // Note that we also push to the front of the list so that we don't corrupt
 // any active iterators.
 void Culture::AddSegment(Segment& seg)
 {
+	// let's check a few things
+	assert(seg.tip(0).pt.nelem >= 0);
+	assert(seg.tip(1).pt.nelem >= 0);
+
 	seg.m_nid = m_nsegs;
+	seg.SetTimeOfBirth(m_angio.m_time.t);
 	m_nsegs++;
 	m_frag.push_front(seg);
 	assert(m_nsegs == (int)m_frag.size());
@@ -447,19 +468,13 @@ void Culture::AddSegment(Segment& seg)
 // Determine the orientation of a newly created segment
 vec3d Culture::FindDirection(Segment& it, GridPoint& pt)
 {
-	//double W[4] = {10*(1/grid.den_scale), 0, 0, 100};
-	//double W[4] = {10, 0, 0, 100};                       // W[0] = Weight for collagen orientation
-	//double W[4] = {10, 0, 0, 50};                                                                        // W[1] = Weight for vessel density
-	                                                                        // W[2] = Weight for random component
-	                                                                        // W[3] = Weight for previous vessel direction
-   
     // Find the component of the new vessel direction determined by collagen fiber orientation    
     vec3d coll_dir = CollagenDirection(pt);
 
 	// Component of new vessel orientation resulting from previous vessel direction        
 	vec3d per_dir = it.uvect();
 
-	vec3d new_dir = (coll_dir*W[0] + per_dir*W[3])/(W[0]+W[3]);
+	vec3d new_dir = (coll_dir*m_W[0] + per_dir*m_W[3])/(m_W[0]+m_W[3]);
 	new_dir.unit();
 
 	return new_dir;
@@ -557,8 +572,7 @@ Segment Culture::ConnectSegment(Segment& it1, Segment& it2, int k, int kk, Simul
 	seg.tip(1).pt = it2.tip(kk).pt;
 	seg.Update();
  	
-	seg.SetTimeOfBirth(time.t);
- 	
+
  	seg.tip(0).bactive = false;
  	seg.tip(1).bactive = false;
 	seg.SetFlagOn(Segment::ANAST);

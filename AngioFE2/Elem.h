@@ -74,11 +74,11 @@ public:
 class Face
 {
 public:
-	Face() : BC(false), bc_type('n') {}
+	Face();
 
 public:
-	bool BC;
-	char bc_type;
+	bool			BC;
+	unsigned int	bc_type;	// boundary condition type for this face
 };
 
 //-----------------------------------------------------------------------------
