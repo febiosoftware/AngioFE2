@@ -47,21 +47,21 @@ bool Grid::Init()
 		node.r0 = node.rt;												// Set initial position to current position
 
 		// Add the node to the list
-		nodes.push_back(node);
+		m_Node.push_back(node);
 	}
 
 	// override the grid dimensions based on the mesh
-	xrange[0] = xrange[1] = nodes[0].rt.x;
-	yrange[0] = yrange[1] = nodes[0].rt.y;
-	zrange[0] = zrange[1] = nodes[0].rt.z;
+	xrange[0] = xrange[1] = m_Node[0].rt.x;
+	yrange[0] = yrange[1] = m_Node[0].rt.y;
+	zrange[0] = zrange[1] = m_Node[0].rt.z;
 	for (int j=1; j<NN; ++j)
 	{
-		if (nodes[j].rt.x < xrange[0]) xrange[0] = nodes[j].rt.x;
-		if (nodes[j].rt.x > xrange[1]) xrange[1] = nodes[j].rt.x;
-		if (nodes[j].rt.y < yrange[0]) yrange[0] = nodes[j].rt.y;
-		if (nodes[j].rt.y > yrange[1]) yrange[1] = nodes[j].rt.y;
-		if (nodes[j].rt.z < zrange[0]) zrange[0] = nodes[j].rt.z;
-		if (nodes[j].rt.z > zrange[1]) zrange[1] = nodes[j].rt.z;
+		if (m_Node[j].rt.x < xrange[0]) xrange[0] = m_Node[j].rt.x;
+		if (m_Node[j].rt.x > xrange[1]) xrange[1] = m_Node[j].rt.x;
+		if (m_Node[j].rt.y < yrange[0]) yrange[0] = m_Node[j].rt.y;
+		if (m_Node[j].rt.y > yrange[1]) yrange[1] = m_Node[j].rt.y;
+		if (m_Node[j].rt.z < zrange[0]) zrange[0] = m_Node[j].rt.z;
+		if (m_Node[j].rt.z > zrange[1]) zrange[1] = m_Node[j].rt.z;
 	}
 
 	// Read in element connectivity from the FEBio mesh	
@@ -84,21 +84,24 @@ bool Grid::Init()
 			int n7 = FEelem.m_node[7];	// Notice 6 and 7 are swapped
 			int n8 = FEelem.m_node[6];
 	            
-			elem.n1 = &nodes[n1];
-			elem.n2 = &nodes[n2];
-			elem.n3 = &nodes[n3];
-			elem.n4 = &nodes[n4];
-			elem.n5 = &nodes[n5];
-			elem.n6 = &nodes[n6];
-			elem.n7 = &nodes[n7];
-			elem.n8 = &nodes[n8];
+			elem.n1 = &m_Node[n1];
+			elem.n2 = &m_Node[n2];
+			elem.n3 = &m_Node[n3];
+			elem.n4 = &m_Node[n4];
+			elem.n5 = &m_Node[n5];
+			elem.n6 = &m_Node[n6];
+			elem.n7 = &m_Node[n7];
+			elem.n8 = &m_Node[n8];
 	        
-			ebin.push_back(elem);
+			m_Elem.push_back(elem);
 		}
 	}
 	
 	// Find all the element neighbors
 	FindElementNeighbors();
+
+	// build all faces
+	BuildFaces();
 
 	// Determine the boundary flags for the faces
 	// We assume that a boundary face is determined by an element that
@@ -106,14 +109,18 @@ bool Grid::Init()
 	int NE = Elems();
 	for (int i = 0; i < NE; ++i)
 	{
-	    Elem& ei = ebin[i];
+	    Elem& ei = m_Elem[i];
 
-	    if (ei.m_nbr[0] == -1) { ei.f1.BC = true; ei.f1.bc_type = m_bc_type; }
-	    if (ei.m_nbr[1] == -1) { ei.f2.BC = true; ei.f2.bc_type = m_bc_type; }
-	    if (ei.m_nbr[2] == -1) { ei.f3.BC = true; ei.f3.bc_type = m_bc_type; }
-	    if (ei.m_nbr[3] == -1) { ei.f4.BC = true; ei.f4.bc_type = m_bc_type; }
-	    if (ei.m_nbr[4] == -1) { ei.f5.BC = true; ei.f5.bc_type = m_bc_type; }
-	    if (ei.m_nbr[5] == -1) { ei.f6.BC = true; ei.f6.bc_type = m_bc_type; }
+		for (int j=0; j<6; ++j)
+		{
+			Face* pf = ei.GetFace(j);
+			if (pf) 
+			{ 
+				assert(ei.m_nbr[j] == -1); 
+				assert(pf->m_nelem == i);
+				pf->bc_type = m_bc_type; 
+			}
+		}
 	}
 
 	// initialize all element grid volumes
@@ -142,7 +149,7 @@ void Grid::FindElementNeighbors()
 	int NE = Elems();
 	for (int i=0; i<NE; ++i)
 	{
-		Elem& ei = ebin[i];
+		Elem& ei = m_Elem[i];
 		for (int k=0; k<6; ++k)
 		{
 			ei.GetFace(k, ni);
@@ -152,7 +159,7 @@ void Grid::FindElementNeighbors()
 			{
 				if (i != j)
 				{
-					Elem& ej = ebin[j];
+					Elem& ej = m_Elem[j];
 					for (int l=0; l<6; ++l)
 					{
 						ej.GetFace(l, nj);
@@ -169,18 +176,60 @@ void Grid::FindElementNeighbors()
 }
 
 //-----------------------------------------------------------------------------
+// This function builds the face table and assigns the faces to Elem::f[i].
+// This function must be called after the element neighbors are found (i.e. Grid::FindElementNeighbors())
+void Grid::BuildFaces()
+{
+	// clear all faces
+	m_Face.clear();
+
+	// we assume that the element neighbors have been identified. 
+	// we create a face for each null neighbor
+	int NF = 0;
+	int NE = Elems();
+	for (int i=0; i<NE; ++i)
+	{
+		Elem& el = m_Elem[i];
+		for (int j=0; j<6; ++j)
+		{
+			if (el.m_nbr[j] == -1) ++NF;
+		}
+	}
+
+	// allocate faces
+	m_Face.resize(NF);
+
+	// assign faces
+	NF = 0;
+	for (int i=0; i<NE; ++i)
+	{
+		Elem& el = m_Elem[i];
+		for (int j=0; j<6; ++j)
+		{
+			if (el.m_nbr[j] == -1)
+			{
+				Face& f = m_Face[NF++];
+				assert(f.m_nelem == -1);
+				f.m_nelem = i;
+				assert(el.pface[j]==0);
+				el.pface[j] = &f;
+			}
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
 // Find the element in which the point lies.
 int Grid::findelem(const vec3d& pt)
 {
 	const double eps = 0.00001;
-    double xix = 0.0, xiy = 0.0, xiz = 0.0;
 
 	// loop over all elements
 	int NE = Elems();
     for (int i = 0; i < NE; i++)
     {
 		// get the next candidate
-        Elem& elem = ebin[i];
+        Elem& elem = m_Elem[i];
         
  		// get the bounding box
 		BBOX b = elem.GetBoundingBox();
@@ -193,10 +242,11 @@ int Grid::findelem(const vec3d& pt)
 		if (b.IsInside(pt))
 		{
 			// get the natural coordinates of the point in the element
-			natcoord(xix, xiy, xiz, pt.x, pt.y, pt.z, i);
+		    vec3d q(0,0,0);
+			natcoord(q, pt, i);
 
 			// see if the natural coordinates fall within the valid range
-			if ((fabs(xix) <= (1.0 + eps)) && (fabs(xiy) <= (1.0 + eps)) && (fabs(xiz) <= (1.0 + eps)))
+			if ((fabs(q.x) <= (1.0 + eps)) && (fabs(q.y) <= (1.0 + eps)) && (fabs(q.z) <= (1.0 + eps)))
 			{
 				return i;
 			}
@@ -223,7 +273,7 @@ bool Grid::FindGridPoint(const vec3d& r, GridPoint& p)
     for (int i = 0; i < NE; i++)
     {
 		// get the next element
-        Elem& elem = ebin[i];
+        Elem& elem = m_Elem[i];
         
 		// Since the search for natural coordinates is expensive
 		// we do a quick search to determine if this point lies
@@ -269,7 +319,7 @@ void Grid::natcoord(double &xix, double &xiy, double &xiz, double xpt, double yp
     double err = 1;
     double tol = 1e-9;
     
-    Elem elem = ebin[elem_num];
+    Elem& elem = m_Elem[elem_num];
     
     double dN1[3] = {0};
     double dN2[3] = {0};
@@ -320,7 +370,10 @@ void Grid::natcoord(double &xix, double &xiy, double &xiz, double xpt, double yp
         
         err = dE.norm();
         E = newE;
-		++iter;}
+		++iter;
+	}
+
+	assert(iter < max_iter);
         
     xix = E.x;
     xiy = E.y;
@@ -571,7 +624,7 @@ void Grid::InitGridVolumes()
 		
 	int NE = Elems();
 	for (int i = 0; i < NE; ++i){									// For each element within the mesh...
-		Elem& elem = ebin[i];												// Obtain the element
+		Elem& elem = m_Elem[i];												// Obtain the element
 		
 		// Construct the Jacobian matrix
 		Jacob_mat[0][0] = ((*elem.n1).rt.x)*dN1.x + ((*elem.n2).rt.x)*dN2.x + ((*elem.n3).rt.x)*dN3.x + ((*elem.n4).rt.x)*dN4.x + ((*elem.n5).rt.x)*dN5.x + ((*elem.n6).rt.x)*dN6.x + ((*elem.n7).rt.x)*dN7.x + ((*elem.n8).rt.x)*dN8.x;
@@ -589,8 +642,8 @@ void Grid::InitGridVolumes()
 		if (Jacob_mat.det() != 0.)											// Calculate the volume from the Jacobian matrix using the determinant
 			volume = 8*Jacob_mat.det();
 
-		ebin[i].volume = volume;										// Set the element volume
-		ebin[i].volume0 = volume;										// Set the element initial volume
+		m_Elem[i].volume = volume;										// Set the element volume
+		m_Elem[i].volume0 = volume;										// Set the element initial volume
 	}
 }
 
@@ -606,12 +659,12 @@ void Grid::update_grid_volume()
 
 	int NE = Elems();
 	for (int i = 0; i < NE; ++i){								// For each element within the mesh...
-		Elem& elem = ebin[i];									// Obtain the element
+		Elem& elem = m_Elem[i];									// Obtain the element
 		F = calculate_deform_tensor(elem, ex, ey, ez);			// Calculate the deformation gradient tensor
 		Jacob = F.det();										// Calculate the Jacobian by taking the determinant of F
 
 		new_volume = Jacob*elem.volume0;						// Calculate the new element volume using the Jacobian
-		ebin[i].volume = new_volume;							// Store the new element volume
+		m_Elem[i].volume = new_volume;							// Store the new element volume
 	}
 }
 
@@ -622,7 +675,7 @@ void Grid::update_grid_volume()
 
 void Grid::nattoglobal(double &xpt, double &ypt, double &zpt, double xix, double xiy, double xiz, int elem_num)
 {
-    Elem elem = ebin[elem_num];
+    Elem& elem = m_Elem[elem_num];
     double shapeF[8];
     
     shapefunctions(shapeF, xix, xiy, xiz);
@@ -638,7 +691,7 @@ void Grid::nattoglobal(double &xpt, double &ypt, double &zpt, double xix, double
 // Calculates the global position of a grid point.
 vec3d Grid::Position(const GridPoint& pt)
 {
-	Elem elem = ebin[pt.nelem];
+	Elem& elem = m_Elem[pt.nelem];
     double shapeF[8];
     
     shapefunctions(shapeF, pt.q.x, pt.q.y, pt.q.z);
@@ -664,7 +717,7 @@ int Grid::elem_find_neighbor(int elem_num,int neighbor_id)
 		return elem_neighbor;
 
 
-	Elem& elem = ebin[elem_num];
+	Elem& elem = m_Elem[elem_num];
 
 	// neighbor_ids:
 	// 1 - Fronty (neighbor on face with normal -y)
@@ -679,7 +732,7 @@ int Grid::elem_find_neighbor(int elem_num,int neighbor_id)
 	{
 		if (i != elem_num)
 		{
-			Elem& neighbor = ebin[i];
+			Elem& neighbor = m_Elem[i];
 
 			// Find Fronty
 			if (neighbor_id == 1){
@@ -818,7 +871,7 @@ bool Grid::FindIntersection(vec3d& r0, vec3d& r1, int elem, FACE_INTERSECTION& i
 
 	ic.nelem = elem;
 	ic.nface = -1;
-	Elem& el = ebin[elem];
+	Elem& el = m_Elem[elem];
 
 	vec3d d = r1 - r0;
 	int nf[4];
@@ -829,10 +882,10 @@ bool Grid::FindIntersection(vec3d& r0, vec3d& r1, int elem, FACE_INTERSECTION& i
 		if (el.m_nbr[i] == -1)
 		{
 			el.GetFace(i, nf);
-			y[0] = nodes[nf[0]].rt;
-			y[1] = nodes[nf[1]].rt;
-			y[2] = nodes[nf[2]].rt;
-			y[3] = nodes[nf[3]].rt;
+			y[0] = m_Node[nf[0]].rt;
+			y[1] = m_Node[nf[1]].rt;
+			y[2] = m_Node[nf[2]].rt;
+			y[3] = m_Node[nf[3]].rt;
 
 			double lam = 0.5, r = 0.0, s = 0.0;
 			if (IntersectFace(y, r0, r1, lam, r, s))
@@ -855,10 +908,10 @@ bool Grid::FindIntersection(vec3d& r0, vec3d& r1, int elem, FACE_INTERSECTION& i
 	if (ic.nface != -1)
 	{
 		el.GetFace(ic.nface, nf);
-		y[0] = nodes[nf[0]].rt;
-		y[1] = nodes[nf[1]].rt;
-		y[2] = nodes[nf[2]].rt;
-		y[3] = nodes[nf[3]].rt;
+		y[0] = m_Node[nf[0]].rt;
+		y[1] = m_Node[nf[1]].rt;
+		y[2] = m_Node[nf[2]].rt;
+		y[3] = m_Node[nf[3]].rt;
 		ic.norm = FindFaceNormal(y, ic.r[0], ic.r[1]);
 	}
 

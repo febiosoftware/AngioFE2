@@ -35,10 +35,9 @@ void BC::checkBC(Segment &seg, int k)
 	FACE_INTERSECTION ic;
 	if (grid.FindIntersection(r0, r1, elem_num, ic))
 	{
-		Elem& elem = grid.ebin[elem_num];
+		Elem& elem = grid.GetElement(elem_num);
 		assert(ic.nface != -1);
 		assert(elem.m_nbr[ic.nface] == -1);
-		assert(elem.GetFace(ic.nface)->BC == true);
 
 		// enforce the BC
 		enforceBC(seg, k, ic);
@@ -57,7 +56,7 @@ void BC::enforceBC(Segment &seg, int k, FACE_INTERSECTION& ic)
 	Culture& cult = m_angio.GetCulture();
 
 	// get the element
-	Elem& elem = grid.ebin[ic.nelem];
+	Elem& elem = grid.GetElement(ic.nelem);
 
 	// get the BC type
 	unsigned int bctype = elem.GetFace(ic.nface)->bc_type;
@@ -376,28 +375,14 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 		return inter;}
 	
 	
-	 // If that doesn't work, check all other boundary faces
-	
+	// If that doesn't work, check all other boundary faces
 	int BC_face[6] = {0};
-
-	if (elem.f1.BC == true)
-		BC_face[0] = 1;
-
-	if (elem.f2.BC == true)
-		BC_face[1] = 1;
-	
-	if (elem.f3.BC == true)
-		BC_face[2] = 1;
-	
-	if (elem.f4.BC == true)
-		BC_face[3] = 1;
-
-	if (elem.f5.BC == true)
-		BC_face[4] = 1;
-
-	if (elem.f6.BC == true)
-		BC_face[5] = 1;
-
+	if (elem.GetFace(0)) BC_face[0] = 1;
+	if (elem.GetFace(1)) BC_face[1] = 1;
+	if (elem.GetFace(2)) BC_face[2] = 1;
+	if (elem.GetFace(3)) BC_face[3] = 1;
+	if (elem.GetFace(4)) BC_face[4] = 1;
+	if (elem.GetFace(5)) BC_face[5] = 1;
 
 	for (int i = 0; i < 6; ++i)
 	{
@@ -567,7 +552,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 
 			
 			if (neighbor_num != -1){
-				neighbor = grid.ebin[neighbor_num];
+				neighbor = grid.GetElement(neighbor_num);
 
 				X1 = (*neighbor.n1);
 				X2 = (*neighbor.n2);
@@ -602,7 +587,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 						xiz = -0.99;
 				
 					grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, neighbor_num);
-					elem = grid.ebin[neighbor_num];
+					elem = grid.GetElement(neighbor_num);
 					return true;}}}}	
 	
 	// Face 2
@@ -643,7 +628,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 			
 
 			if (neighbor_num != -1){
-				neighbor = grid.ebin[neighbor_num];
+				neighbor = grid.GetElement(neighbor_num);
 
 				X1 = (*neighbor.n2);
 				X2 = (*neighbor.n4);
@@ -678,7 +663,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 						xiz = -0.99;
 				
 					grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, neighbor_num);
-					elem = grid.ebin[neighbor_num];
+					elem = grid.GetElement(neighbor_num);
 
 					return true;}}}}	
 
@@ -720,7 +705,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 
 			
 			if (neighbor_num != -1){
-				neighbor = grid.ebin[neighbor_num];
+				neighbor = grid.GetElement(neighbor_num);
 
 				X1 = (*neighbor.n3);
 				X2 = (*neighbor.n4);
@@ -755,7 +740,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 						xiz = -0.99;
 				
 					grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, neighbor_num);
-					elem = grid.ebin[neighbor_num];
+					elem = grid.GetElement(neighbor_num);
 
 					return true;}}}}
 
@@ -797,7 +782,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 			
 
 			if (neighbor_num != -1){
-				neighbor = grid.ebin[neighbor_num];
+				neighbor = grid.GetElement(neighbor_num);
 
 				X1 = (*neighbor.n1);
 				X2 = (*neighbor.n3);
@@ -832,7 +817,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 						xiz = -0.99;
 				
 					grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, neighbor_num);
-					elem = grid.ebin[neighbor_num];
+					elem = grid.GetElement(neighbor_num);
 
 					return true;}}}}
 
@@ -874,7 +859,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 			
 
 			if (neighbor_num != -1){
-				neighbor = grid.ebin[neighbor_num];
+				neighbor = grid.GetElement(neighbor_num);
 
 				X1 = (*neighbor.n5);
 				X2 = (*neighbor.n6);
@@ -909,7 +894,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 						xiz = -0.99;
 				
 					grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, neighbor_num);
-					elem = grid.ebin[neighbor_num];
+					elem = grid.GetElement(neighbor_num);
 
 					return true;}}}}
 
@@ -951,7 +936,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 			
 
 			if (neighbor_num != -1){
-				neighbor = grid.ebin[neighbor_num];
+				neighbor = grid.GetElement(neighbor_num);
 
 				X1 = (*neighbor.n1);
 				X2 = (*neighbor.n2);
@@ -986,7 +971,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 						xiz = -0.99;
 				
 					grid.nattoglobal(inter.x, inter.y, inter.z, xix, xiy, xiz, neighbor_num);
-					elem = grid.ebin[neighbor_num];
+					elem = grid.GetElement(neighbor_num);
 					return true;}}}}
 
 	return false;
@@ -1477,7 +1462,7 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
 
 	Grid& grid = m_angio.GetGrid();
 	Elem elem;
-	elem = grid.ebin[elem_num];
+	elem = grid.GetElement(elem_num);
 	
 	switch (face)
     {

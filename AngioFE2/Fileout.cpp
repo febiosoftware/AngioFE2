@@ -129,7 +129,7 @@ void Fileout::writeNodes(FEAngio& angio)
 
 	int NN = grid.Nodes();
 	for (int i = 0; i < NN; ++i){
-	    node = grid.nodes[i];
+	    Node& node = grid.GetNode(i);
 	    fprintf(stream2, "%-5.2i %-12.7f %-12.7f %-12.7f\n", node.m_id, node.rt.x, node.rt.y, node.rt.z);
 	}  
 	                                                                      	
@@ -172,7 +172,7 @@ void Fileout::writeCollFib(Grid &grid, bool initial)
 	int NN = grid.Nodes();
 	for (int i = 0; i < NN; ++i)
 	{
-		Node& ni = grid.nodes[i];
+		Node& ni = grid.GetNode(i);
 		fprintf(node_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", ni.m_id, ni.rt.x, ni.rt.y, ni.rt.z, ni.m_collfib.x, ni.m_collfib.y, ni.m_collfib.z);
 	}
 
@@ -193,7 +193,7 @@ void Fileout::writeECMDen(Grid &grid)
 	int NN = grid.Nodes();
 	for (int i = 0; i < NN; ++i)
 	{
-		Node& ni = grid.nodes[i];
+		Node& ni = grid.GetNode(i);
 		fprintf(node_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", ni.m_id, ni.rt.x, ni.rt.y, ni.rt.z, ni.m_ecm_den, ni.m_ecm_den0);
 	}
 
@@ -201,44 +201,6 @@ void Fileout::writeECMDen(Grid &grid)
 
 	return;
 }
-
-//-----------------------------------------------------------------------------
-void Fileout::writeBC(Grid &grid)
-{
-    /// File output: 'eBC.ang' /////
-     
-	FILE *stream2;                                                                                                                           
-	stream2 = fopen("out_eBC.ang","wt");                                       
-	
-	int BC_violate[6] = {0};
-
-	int NE = grid.Elems();
-	for (int i = 0; i < NE; ++i){
-	    Elem& elem = grid.ebin[i];
-	    
-	    for (int j = 0; j < 6; ++j)
-	        BC_violate[j] = 0;
-	    
-	    if ((elem.f1.BC == true) || (elem.f2.BC == true) || (elem.f3.BC == true) || (elem.f4.BC == true) || (elem.f5.BC == true) || (elem.f6.BC == true)){
-	        if (elem.f1.BC == true)
-	            BC_violate[0] = 1;
-	        if (elem.f2.BC == true)
-	            BC_violate[1] = 1;
-	        if (elem.f3.BC == true)
-	            BC_violate[2] = 1;
-	        if (elem.f4.BC == true)
-	            BC_violate[3] = 1;
-	        if (elem.f5.BC == true)
-	            BC_violate[4] = 1;
-	        if (elem.f6.BC == true)
-	            BC_violate[5] = 1;   
-	        
-	        fprintf(stream2, "%-5.2i %-5.2i %-5.2i %-5.2i %-5.2i %-5.2i %-5.2i \n", elem.elem_num, BC_violate[0], BC_violate[1], BC_violate[2], BC_violate[3], BC_violate[4], BC_violate[5]);}
-	}  
-	                                                                      	
-	fclose(stream2);                                                        
-}
-
 
 //-----------------------------------------------------------------------------
 void Fileout::printtime(FEAngio& angio)

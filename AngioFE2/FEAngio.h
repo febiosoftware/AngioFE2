@@ -58,7 +58,6 @@ public:
 	void update_ecm_den_grad();
 	void output_params();
 	void update_sprout_stress_scaling();
-	void circ_gel();
 	void update_angio_sprout(int i, bool bactive, const vec3d& rc, const vec3d& sprout_vect);
 
 private:

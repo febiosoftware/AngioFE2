@@ -94,15 +94,24 @@ private:
 	// Find the neighbors of all elements
 	void FindElementNeighbors();
 
+	// build all the faces
+	void BuildFaces();
+
 	// initialize grid elements volume
 	void InitGridVolumes();
     
 public:
 	// number of grid nodes
-	int Nodes() { return (int) nodes.size(); }
+	int Nodes() { return (int) m_Node.size(); }
+
+	// get a node
+	Node& GetNode(int i) { return m_Node[i]; }
 
 	// number of grid elements
-	int Elems() { return (int) ebin.size(); }
+	int Elems() { return (int) m_Elem.size(); }
+
+	// get element
+	Elem& GetElement(int i) { return m_Elem[i]; }
     
 public:
 	int xnodes;
@@ -113,9 +122,6 @@ public:
 	double yrange[2];                                           // GRID.yrange - Array containing the minimum and maximum values in the y direction
 	double zrange[2];                                           // GRID.zrange - Array containing the minimum and maximum values in the z direction
 	
-	vector<Node> nodes;			// list of grid nodes
-    vector<Elem> ebin;			// list of elements
-                   
 	double m_coll_den;
 	double den_scale;                                           // GRID.den_scale - Scaling factor based off of the collagen density within the domain
 	double a, b, c;                                             // GRID.a, GRID.b, GRID.c - Parameters that describe the function that determines den_scale
@@ -126,6 +132,11 @@ public:
 
 	unsigned int m_bc_type;	// default bc type for faces
 
+private:
+	vector<Node> m_Node;		// list of grid nodes
+    vector<Elem> m_Elem;		// list of elements
+	vector<Face> m_Face;		// list of faces
+                   
 private:
 	FEMesh&		m_mesh;
 };

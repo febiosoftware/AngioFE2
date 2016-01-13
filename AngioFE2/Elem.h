@@ -32,8 +32,8 @@ public:
 	Face();
 
 public:
-	bool			BC;
-	unsigned int	bc_type;	// boundary condition type for this face
+	unsigned int	bc_type;		// boundary condition type for this face
+	int				m_nelem;		// element number that this face belongs to.
 };
 
 //-----------------------------------------------------------------------------
@@ -97,7 +97,7 @@ public:
 class Elem
 {
 public:
-    Elem() : elem_num(-1), volume(0.), volume0(0.), alpha(0.) {}
+    Elem();
 
 	// get the bounding box of this element
 	BBOX GetBoundingBox();
@@ -120,19 +120,8 @@ public:
 		return 0;
 	}
 
-	Face* GetFace(int i)
-	{
-		switch (i)
-		{
-		case 0: return &f1; break;
-		case 1: return &f2; break;
-		case 2: return &f3; break;
-		case 3: return &f4; break;
-		case 4: return &f5; break;
-		case 5: return &f6; break;
-		}
-		return 0;
-	}
+	// get a face
+	Face* GetFace(int i) { return pface[i]; }
 
 public:
 	int elem_num;       // Element Identifier
@@ -152,12 +141,6 @@ public:
     Node * n7;            // Top, upper, left node
     Node * n8;            // Top, upper, right node
     
-    Face f1;            // Front face -y
-    Face f2;            // Right face +x
-    Face f3;            // Back face +y
-    Face f4;            // Left face -x
-    Face f5;            // Top face +z
-    Face f6;            // Bottom face -z
-
+    Face*	pface[6];		// pointer to faces
 	int		m_nbr[6];	// list of indices to neighbor elements (-1 if no neighbor)
 };

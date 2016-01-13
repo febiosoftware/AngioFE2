@@ -248,7 +248,7 @@ bool FEAngio::InitECMDensity()
 	// assign ECM density
 	for (int i = 0; i < NN; ++i)								
 	{
-		Node& node = m_grid.nodes[i];
+		Node& node = m_grid.GetNode(i);
 
 		node.m_ecm_den0 = density[i];	
 		node.m_ecm_den = node.m_ecm_den0;
@@ -291,7 +291,7 @@ bool FEAngio::InitCollagenFibers()
 	// assign collagen fibers
 	for (int i=0; i<NN; ++i)
 	{
-		Node& node = m_grid.nodes[i];
+		Node& node = m_grid.GetNode(i);
 
 		vec3d v = fiber[i];
 
@@ -674,7 +674,7 @@ void FEAngio::UpdateGrid()
 	for (int i = 0; i < NN; ++i)
 	{
 		// Update the grid node to the current position of the FE mesh
-		m_grid.nodes[i].rt = mesh.Node(i).m_rt;
+		m_grid.GetNode(i).rt = mesh.Node(i).m_rt;
 	}
 
 	// Update the volume for each element in the grid
@@ -707,7 +707,7 @@ void FEAngio::update_ECM()
 	int NN = m_grid.Nodes();
 	for (int i=0; i<NN; ++i)
 	{
-		Node& ni = m_grid.nodes[i];
+		Node& ni = m_grid.GetNode(i);
 		ni.m_ntag = 0;
 		ni.m_collfib = vec3d(0,0,0);
 		ni.m_ecm_den = 0.0;
@@ -718,7 +718,7 @@ void FEAngio::update_ECM()
 	for (int i = 0; i < NE; ++i)
 	{
 		// Obtain the element
-		Elem& elem = m_grid.ebin[i];
+		Elem& elem = m_grid.GetElement(i);
 		
 		// For each node in the element...
 		for (int j=0; j<8; j++)
@@ -754,7 +754,7 @@ void FEAngio::update_ECM()
 	// normalize fiber vector and average ecm density
 	for (int i = 0; i < NN; ++i)
 	{
-		Node& ni = m_grid.nodes[i];
+		Node& ni = m_grid.GetNode(i);
 		assert(ni.m_ntag > 0);
 		ni.m_ecm_den /= (double) ni.m_ntag;
 		ni.m_collfib.unit();
@@ -782,11 +782,10 @@ void FEAngio::adjust_mesh_stiffness()
 
 	int NE = m_grid.Elems();
 	for (int i = 0; i < NE; ++i)
-	{									
-		grid.ebin[i].alpha = 0.;											// Set the vessel volume fraction, alpha, to zero
-		grid.ebin[i].fiber_orient.x = 0.;									// Set the vessel orientation vector to 0 (this is the element fiber_orient vector, which does not contain collagen fiber orientation information but rather the material fiber direction for a transversely isotropic material model)
-		grid.ebin[i].fiber_orient.y = 0.;
-		grid.ebin[i].fiber_orient.z = 0.;
+	{							
+		Elem& el = grid.GetElement(i);
+		el.alpha = 0.;						// Set the vessel volume fraction, alpha, to zero
+		el.fiber_orient = vec3d(0,0,0);		// Set the vessel orientation vector to 0 (this is the element fiber_orient vector, which does not contain collagen fiber orientation information but rather the material fiber direction for a transversely isotropic material model)
 	}
 	
 	int Nsub = 2;														// Number of subdivisions used to calculate vessel orientation
@@ -841,21 +840,24 @@ void FEAngio::adjust_mesh_stiffness()
 
 			if (elem_num != -1)											// If the midpoint has a real element number...
 			{
-				elem_volume = m_grid.ebin[elem_num].volume;					// Calculate the volume of the element
+				Elem& el = m_grid.GetElement(elem_num);
+
+				elem_volume = el.volume;					// Calculate the volume of the element
+
 				subunit_volume = pi*(m_vessel_width/2.)*(m_vessel_width/2.)*fabs(subunit.length());		// Find the volume of the subdivision
 				volume_fraction = subunit_volume/elem_volume;				// Calculate the volume fraction
 
-				m_grid.ebin[elem_num].alpha = m_grid.ebin[elem_num].alpha + volume_fraction;	// Add the volume fraction for each subdivision to alpha
+				el.alpha = el.alpha + volume_fraction;	// Add the volume fraction for each subdivision to alpha
 			
 				// Calculate the vessel orientation vector 
-				if ((grid.ebin[elem_num].fiber_orient.x == 0) && (grid.ebin[elem_num].fiber_orient.y == 0) && (grid.ebin[elem_num].fiber_orient.z == 0)){	// If the vessel orientation vector hasn't been assigned yet...
-					grid.ebin[elem_num].fiber_orient.x = vess_vect.x;			// Set the vessel orientation vector					
-					grid.ebin[elem_num].fiber_orient.y = vess_vect.y;
-					grid.ebin[elem_num].fiber_orient.z = vess_vect.z;}
+				if ((el.fiber_orient.x == 0) && (el.fiber_orient.y == 0) && (el.fiber_orient.z == 0)){	// If the vessel orientation vector hasn't been assigned yet...
+					el.fiber_orient = vess_vect;			// Set the vessel orientation vector					
+					el.fiber_orient.z = vess_vect.z;
+				}
 				else{														// If it has been...	
-					grid.ebin[elem_num].fiber_orient.x = (grid.ebin[elem_num].fiber_orient.x + vess_vect.x)/2;	// Average together the vessel orientation vector
-					grid.ebin[elem_num].fiber_orient.y = (grid.ebin[elem_num].fiber_orient.y + vess_vect.y)/2;
-					grid.ebin[elem_num].fiber_orient.z = (grid.ebin[elem_num].fiber_orient.z + vess_vect.z)/2;}
+					el.fiber_orient.x = (el.fiber_orient.x + vess_vect.x)/2;	// Average together the vessel orientation vector
+					el.fiber_orient.y = (el.fiber_orient.y + vess_vect.y)/2;
+					el.fiber_orient.z = (el.fiber_orient.z + vess_vect.z)/2;}
 			}
 			
 			// Set the origin of the next subdivision to the end of the current one
@@ -883,11 +885,11 @@ void FEAngio::adjust_mesh_stiffness()
 			FEElement& e = d.ElementRef(j);										// Obtain the element from the domain
 			int nint = e.GaussPoints();											// Obtain the number of gauss points
 		
-			alpha = grid.ebin[num_elem].alpha;											// Obtain alpha from the grid element
+			Elem& eg = grid.GetElement(num_elem);
+			alpha = eg.alpha;											// Obtain alpha from the grid element
 
-			e1.x = grid.ebin[num_elem].fiber_orient.x;									// Set e1 to the vessel orientation vector
-			e1.y = grid.ebin[num_elem].fiber_orient.y;
-			e1.z = grid.ebin[num_elem].fiber_orient.z;
+			// Set e1 to the vessel orientation vector
+			e1 = eg.fiber_orient;
 
 			if ((e1.x == 0) && (e1.y == 0) && (e1.z == 0)){						// If there is not vessels in the element, set the material basis to the global coordinate basis
 				e1 = vec3d(1,0,0);
@@ -1040,93 +1042,6 @@ void FEAngio::update_sprout_stress_scaling()
 	if (m_pmat)
 		m_pmat->scale = y0 + a/(1 + exp(-(m_time.t - x0)/b));
 	
-	return;
-}
-
-void FEAngio::circ_gel()
-{
-	Grid& grid = m_grid;
-	double xmax = grid.xrange[1];
-	double ymax = grid.yrange[1];
-
-	int NE = grid.Elems();
-	for (int i = 0; i < NE; ++i){
-		Elem& elem = grid.ebin[i];
-
-		// Check face 1 for right boundary
-		if ((((*elem.n1).rt.x == xmax) && ((*elem.n2).rt.x == xmax) && ((*elem.n5).rt.x == xmax) && ((*elem.n6).rt.x == xmax)) || (((*elem.n1).rt.y == ymax) && ((*elem.n2).rt.y == ymax) && ((*elem.n5).rt.y == ymax) && ((*elem.n6).rt.y == ymax))){
-			grid.ebin[i].f1.BC = true;
-			grid.ebin[i].f1.bc_type = 'w';
-		}
-
-		// Check face 2 for right boundary
-		if ((((*elem.n2).rt.x == xmax) && ((*elem.n4).rt.x == xmax) && ((*elem.n6).rt.x == xmax) && ((*elem.n8).rt.x == xmax)) || (((*elem.n2).rt.y == ymax) && ((*elem.n4).rt.y == ymax) && ((*elem.n6).rt.y == ymax) && ((*elem.n8).rt.y == ymax))){
-			grid.ebin[i].f2.BC = true;
-			grid.ebin[i].f2.bc_type = 'w';
-		}
-
-		// Check face 3 for right boundary
-		if ((((*elem.n3).rt.x == xmax) && ((*elem.n4).rt.x == xmax) && ((*elem.n7).rt.x == xmax) && ((*elem.n8).rt.x == xmax)) || (((*elem.n3).rt.y == ymax) && ((*elem.n4).rt.y == ymax) && ((*elem.n7).rt.y == ymax) && ((*elem.n8).rt.y == ymax))){
-			grid.ebin[i].f3.BC = true;
-			grid.ebin[i].f3.bc_type = 'w';
-		}
-
-		// Check face 4 for right boundary
-		if ((((*elem.n1).rt.x == xmax) && ((*elem.n3).rt.x == xmax) && ((*elem.n5).rt.x == xmax) && ((*elem.n7).rt.x == xmax)) || (((*elem.n1).rt.y == ymax) && ((*elem.n3).rt.y == ymax) && ((*elem.n5).rt.y == ymax) && ((*elem.n7).rt.y == ymax))){
-			grid.ebin[i].f4.BC = true;
-			grid.ebin[i].f4.bc_type = 'w';
-		}
-
-		double xpt; double ypt; 	
-		vec3d r;
-		double d;
-		double ep = 200.;
-
-		//// Check face 1 for circumfrential boundary
-		//xpt = ((*elem.n1).x + (*elem.n2).x + (*elem.n5).x + (*elem.n6).x)/4;
-		//ypt = ((*elem.n1).y + (*elem.n2).y + (*elem.n5).y + (*elem.n6).y)/4;
-
-		//r.x = xpt - xmax; r.y = ypt - ymax;
-		//d = r.norm();
-
-		//if (abs(d - xmax) <= ep){
-		//	grid.ebin[i].f1.BC = true;
-		//	grid.ebin[i].f1.bc_type = 'i';}
-	
-		// Check face 2 for circumfrential boundary
-		xpt = ((*elem.n2).rt.x + (*elem.n4).rt.x + (*elem.n6).rt.x + (*elem.n8).rt.x)/4;
-		ypt = ((*elem.n2).rt.y + (*elem.n4).rt.y + (*elem.n6).rt.y + (*elem.n8).rt.y)/4;
-
-		r.x = xpt - xmax; r.y = ypt - ymax;
-		d = r.norm();
-
-		if (fabs(d - xmax) <= ep){
-			grid.ebin[i].f2.BC = true;
-			grid.ebin[i].f2.bc_type = 'i';}
-
-		//// Check face 3 for circumfrential boundary
-		//xpt = ((*elem.n3).x + (*elem.n4).x + (*elem.n7).x + (*elem.n8).x)/4;
-		//ypt = ((*elem.n3).y + (*elem.n4).y + (*elem.n7).y + (*elem.n8).y)/4;
-
-		//r.x = xpt - xmax; r.y = ypt - ymax;
-		//d = r.norm();
-
-		//if (abs(d - xmax) <= ep){
-		//	grid.ebin[i].f3.BC = true;
-		//	grid.ebin[i].f3.bc_type = 'i';}
-
-		//// Check face 4 for circumfrential boundary
-		//xpt = ((*elem.n1).x + (*elem.n3).x + (*elem.n5).x + (*elem.n7).x)/4;
-		//ypt = ((*elem.n1).y + (*elem.n3).y + (*elem.n5).y + (*elem.n7).y)/4;
-
-		//r.x = xpt - xmax; r.y = ypt - ymax;
-		//d = r.norm();
-
-		//if (abs(d - xmax) <= ep){
-		//	grid.ebin[i].f4.BC = true;
-		//	grid.ebin[i].f4.bc_type = 'i';}
-	}
-
 	return;
 }
 

@@ -511,7 +511,7 @@ vec3d Culture::CollagenDirection(GridPoint& pt)
 {   
 	// get the element
 	Grid& grid = m_angio.GetGrid();
-	Elem& elem = grid.ebin[pt.nelem];
+	Elem& elem = grid.GetElement(pt.nelem);
         
     // Obtain shape function weights
     double shapeF[8];
@@ -541,7 +541,7 @@ double Culture::FindDensityScale(const GridPoint& pt)
 	Grid& grid = m_angio.GetGrid();
 
 	// get the element
-	Elem& elem = grid.ebin[pt.nelem];
+	Elem& elem = grid.GetElement(pt.nelem);
         
     // Obtain shape function weights
     double shapeF[8];

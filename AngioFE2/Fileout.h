@@ -36,7 +36,6 @@ public:
 	void writeEconn(FEAngio& angio);
 	void writeCollFib(Grid &grid, bool initial);
 	void writeECMDen(Grid &grid);
-	void writeBC(Grid &grid);
 	void printtime(FEAngio& angio);
 	void printrandseed(int randseed);
 	void save_vessel_state(FEAngio& angio);
