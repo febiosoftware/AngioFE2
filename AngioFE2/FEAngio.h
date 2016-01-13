@@ -44,16 +44,16 @@ public:
 	// Get the grid
 	Grid& GetGrid() { return m_grid; }
 
-public:
-	void updateTime();
-	void removeErrors();
+	// get the run time (in secs)
+	double RunTime();
+
+	// get the simulation time
+	SimulationTime& CurrentSimTime() { return m_time; }
 
 public:
-	bool Subgrowth(int sub_steps);
 	void apply_sprout_forces(int load_curve, double scale);
 	int create_body_force(vec3d sprout_vect, double xpt, double ypt, double zpt, double mag, double range, int load_curve);
 	void update_body_forces(double scale);
-	void update_ECM();
 	void adjust_mesh_stiffness();
 	void update_ecm_den_grad();
 	void output_params();
@@ -73,17 +73,14 @@ private:
 	// Run the FE model
 	bool RunFEM();
 
-	// Update the grid based on the FE solution.
-	void UpdateGrid();
-
-	// Reposition the vessels based on the FE solution
-	void DisplaceVessels();
-
-	// Recalculate the total lenght of the network
-	void UpdateTotalLength();
-
 	// do the final output (called at the end of Run())
 	void Output();
+
+	// do sub-growth steps
+	bool Subgrowth(int sub_steps);
+
+	// update time parameters
+	void updateTime();
 
 public:	// parameters read directly from file
 
@@ -108,32 +105,15 @@ public:	// parameters read directly from file
 	int				m_matrix_cond;		// flag indicating how the collagen fibers are oriented initially ( 0 = random, 3 = along local element direction)
 	int				m_bzfibflat;		// flatten fiber option
 
-public:
     double	half_cell_l;			// Half the length of one grid element in the x direction, use in determining variable time step
 	int		m_sub_cycles;			// number of FE steps per growth step
     int		m_ntime;				// number of total time steps ?
 	double	m_dtA, m_dtB, m_dtC;	// Time step parameters. TODO: make these user variables.
     
-	vector<vector<double> > sprout_nodes;
-
 public:
-
 	int		total_bdyf;
 	int		FE_state;			// State counter to count the number of solved FE states
-	
-	// time stepping parameters
-	SimulationTime	m_time;
 
-public:
-	// stats
-	double	m_total_length;		// Total vascular length within the domain (sum of the length of all Segments) (in um)
-
-public:	// IO stuff
-
-    time_t m_start;				// time of start
-	Fileout fileout;
-	bool kill_off;
-	
 public:
 	FESproutBodyForce*	m_pbf;	//!< sprout body-force
 	FEAngioMaterial*	m_pmat;	//!< the angio-material pointer
@@ -142,4 +122,9 @@ private:
 	FEModel&		m_fem;		// the FE model
     Grid			m_grid;		// The grid class
 	Culture*		m_pCult;	// The culture class
+
+	SimulationTime	m_time;		// simulation time
+
+    time_t m_start;			// time of start
+	Fileout fileout;		// output manager
 };

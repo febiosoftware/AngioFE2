@@ -22,6 +22,8 @@ Culture::Culture(FEAngio& angio) : bc(angio), m_angio(angio)
 	m_num_zdead = 0;
 	m_anast_dist = 75.0;
 
+    m_total_length = 0.;
+    
 	// parameter for growth curve (TODO: Maybe move all this to Culture?)
     m_a = 1900.0;
     m_b = 1.4549;
@@ -182,9 +184,6 @@ void Culture::Grow(SimulationTime& time)
 	// If anatomosis is turned on determine which segments form anatomoses
 	if (yes_anast) Fuse(time);										
 
-	// Remove buggy segments
-	kill_dead_segs();
-
 	// Locate all active growth tips
 	FindActiveTips();
 }
@@ -323,9 +322,6 @@ void Culture::Branch(SimulationTime& time)
 			if ((frand() < bprob) || it->GetFlag(Segment::INIT_BRANCH)) BranchSegment(*it, k);
 		}
 	}
-
-	// Remove buggy segments
-	kill_dead_segs();
 }
 
 //-----------------------------------------------------------------------------
@@ -483,7 +479,8 @@ void Culture::AddSegment(Segment& seg)
 	assert(seg.tip(1).pt.nelem >= 0);
 
 	seg.m_nid = m_nsegs;
-	seg.SetTimeOfBirth(m_angio.m_time.t);
+	SimulationTime& sim_time = m_angio.CurrentSimTime();
+	seg.SetTimeOfBirth(sim_time.t);
 	m_nsegs++;
 	m_frag.push_front(seg);
 	assert(m_nsegs == (int)m_frag.size());
@@ -518,15 +515,12 @@ vec3d Culture::CollagenDirection(GridPoint& pt)
     grid.shapefunctions(shapeF, pt.q.x, pt.q.y, pt.q.z);
     
     // Determine component of new vessel direction due to nodal collagen fiber orientation
-	vec3d coll_angle = 
-		((*elem.n1).m_collfib)*shapeF[0] + 
-		((*elem.n2).m_collfib)*shapeF[1] + 
-		((*elem.n3).m_collfib)*shapeF[2] + 
-		((*elem.n4).m_collfib)*shapeF[3] + 
-		((*elem.n5).m_collfib)*shapeF[4] + 
-		((*elem.n6).m_collfib)*shapeF[5] + 
-		((*elem.n7).m_collfib)*shapeF[6] + 
-		((*elem.n8).m_collfib)*shapeF[7];
+	vec3d coll_angle(0,0,0);
+	for (int i=0; i<8; ++i)
+	{
+		Node& n = elem.GetNode(i);
+		coll_angle += n.m_collfib*shapeF[i];
+	}
 
 	// make unit vector
 	coll_angle.unit();
@@ -548,15 +542,12 @@ double Culture::FindDensityScale(const GridPoint& pt)
     grid.shapefunctions(shapeF, pt.q.x, pt.q.y, pt.q.z);
 
 	// evaluate the collagen density
-	double coll_den = 
-		shapeF[0]*(*elem.n1).m_ecm_den + 
-		shapeF[1]*(*elem.n2).m_ecm_den + 
-		shapeF[2]*(*elem.n3).m_ecm_den + 
-		shapeF[3]*(*elem.n4).m_ecm_den + 
-		shapeF[4]*(*elem.n5).m_ecm_den + 
-		shapeF[5]*(*elem.n6).m_ecm_den + 
-		shapeF[6]*(*elem.n7).m_ecm_den + 
-		shapeF[7]*(*elem.n8).m_ecm_den;
+	double coll_den = 0.0;
+	for (int i=0; i<8; ++i)
+	{
+		Node& n = elem.GetNode(i);
+		coll_den += n.m_ecm_den*shapeF[i];
+	}
     
 	// scale the density
 	double den_scale = ScaleDensity(coll_den);
@@ -763,26 +754,6 @@ void Culture::CheckForIntersection(Segment &seg, Segment& it)
 }
 
 //-----------------------------------------------------------------------------
-// Remove dead segments.
-// TODO: It think this is a sloppy way of sweeping bugs under the carpet. Remove this.
-void Culture::kill_dead_segs()
-{  
-	if (m_angio.kill_off == false){
-		list<Segment>::iterator it;
-    
-		for (it = m_frag.begin(); it != m_frag.end(); ++it){
-			if (it->mark_of_death == true){
-				vec3d& r0 = it->tip(0).rt;
-				vec3d& r1 = it->tip(1).rt;
-				it = m_frag.erase(it);
-				assert(false);
-			}
-		}
-	}
-}
-
-
-//-----------------------------------------------------------------------------
 // Updates the list of active tips.
 // TODO: I think this logic is flawed. This presumes that only one tip is active
 //       yet the initial fragments have both tips active.
@@ -802,3 +773,35 @@ void Culture::FindActiveTips()
 			
     return;
 }
+
+//-----------------------------------------------------------------------------
+// Use the displacement field from the FE solution to update microvessels into the current configuration
+void Culture::Update()
+{
+	Grid& grid = m_angio.GetGrid();
+
+	// loop over all fragments
+	for (SegIter it = SegmentBegin(); it != SegmentEnd(); ++it)             // Iterate through all segments in frag list container (it)                               
+	{
+		// Iterate through both segment tips
+		for (int k=0; k<2; ++k)
+		{
+			// get the tip
+			Segment::TIP& tip = it->tip(k);
+
+			// Update position
+			assert(tip.pt.nelem >= 0);
+			tip.rt = grid.Position(tip.pt);
+		}
+		
+		// Recalculate the segment's length and unit vector based on it's new position
+		it->Update();
+	}
+
+	// Update the total vascular length within the simulation   
+    m_total_length = 0.;
+    for (SegIter it = SegmentBegin(); it != SegmentEnd(); ++it)
+    {
+        m_total_length += it->length();
+    }
+}   

@@ -44,7 +44,9 @@ Fileout::~Fileout()
 void Fileout::writeTracking(FEAngio& angio)
 {
 	Culture& cult = angio.GetCulture();
-    fprintf(m_stream3,"%-12.7f %-12.7f %-12.7f %-5i\n",angio.m_time.dt,angio.m_time.t,angio.m_total_length,cult.m_num_branches);   // Write to tracking.ang
+	double l = cult.TotalVesselLength();
+	SimulationTime& t = angio.CurrentSimTime();
+    fprintf(m_stream3,"%-12.7f %-12.7f %-12.7f %-5i\n",t.dt, t.t, l, cult.m_num_branches);   // Write to tracking.ang
     
     return;
 }
@@ -61,17 +63,19 @@ void Fileout::closeTracking()
 void Fileout::printStatus(FEAngio& angio)
 {
 	Culture& cult = angio.GetCulture();
-    cout << endl << "Time: " << angio.m_time.t << endl;                             // Print out current time to user
+	SimulationTime& t = angio.CurrentSimTime();
+    
+	cout << endl << "Time: " << t.t << endl;                             // Print out current time to user
 	//cout << "dt: " << data.dt << endl;
     cout << "Segments: " << cult.Segments() << endl;                             // Print out current number of segments to user
-	cout << "Total Length: " << angio.m_total_length << endl;                  // Print out the current total length to user
+	cout << "Total Length: " << cult.TotalVesselLength() << endl;                  // Print out the current total length to user
 	cout << "Branch Points: " << cult.m_num_branches << endl;                 // Print out the current number of branches to user
 	cout << "Anastomoses: " << cult.m_num_anastom << endl << endl;            // Print out the current number of anastomoses to user
     
-    logstream << endl << "Time: " << angio.m_time.t << endl;                        // Print out current time to log file
+    logstream << endl << "Time: " << t.t << endl;                        // Print out current time to log file
 	//logstream << "dt: " << data.dt << endl;
     logstream << "Segments: " << cult.Segments() << endl;                        // Print out current number of segments to log file
-	logstream << "Total Length: " << angio.m_total_length << endl;             // Print out the current total length to log file
+	logstream << "Total Length: " << cult.TotalVesselLength() << endl;             // Print out the current total length to log file
 	logstream << "Branch Points: " << cult.m_num_branches << endl;            // Print out the current number of branches to log file
 	logstream << "Anastomoses: " << cult.m_num_anastom << endl << endl;       // Print out the current number of anastomoses to log file
         
@@ -205,10 +209,7 @@ void Fileout::writeECMDen(Grid &grid)
 //-----------------------------------------------------------------------------
 void Fileout::printtime(FEAngio& angio)
 {
-	time_t stop;
-    time(&stop);                                                // Stop the timer
-	
-	double t_seconds = (double) difftime(stop, angio.m_start);                 // Calculate the simulation time in seconds
+	double t_seconds = angio.RunTime();                 // Calculate the simulation time in seconds
 	
 	cout << endl << "Simulation time: " << t_seconds << " seconds (" 
 	    << floor(t_seconds/60) << " minutes)." << endl << endl;                // Show the user how long the simulation took (in seconds)
@@ -248,6 +249,7 @@ void Fileout::save_bdy_forces(FEAngio& angio)
 
 	fprintf(bf_stream,"%-5s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n","State","Time","X1","Y1","Z1","X2","Y2","Z2","Length"); 
 
+	SimulationTime& t = angio.CurrentSimTime();
 	for (int i = 0; i < NBF; ++i)
 	{
 		FEBodyForce* pbf = dynamic_cast<FEBodyForce*>(fem.GetBodyLoad(i));
@@ -258,7 +260,7 @@ void Fileout::save_bdy_forces(FEAngio& angio)
 		if (pa && prc)
 		{
 			if (pa->value<double>() != 0.0)
-				fprintf(bf_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n",angio.FE_state, angio.m_time.t, prc->value<vec3d>().x, prc->value<vec3d>().y, prc->value<vec3d>().z, prc->value<vec3d>().x + 1.0, prc->value<vec3d>().y + 1.0, prc->value<vec3d>().z + 1.0, 1.73); 
+				fprintf(bf_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n",angio.FE_state, t.t, prc->value<vec3d>().x, prc->value<vec3d>().y, prc->value<vec3d>().z, prc->value<vec3d>().x + 1.0, prc->value<vec3d>().y + 1.0, prc->value<vec3d>().z + 1.0, 1.73); 
 		}
 	}
 
@@ -269,12 +271,13 @@ void Fileout::save_bdy_forces(FEAngio& angio)
 // Save the current time information			
 void Fileout::save_time(FEAngio& angio)
 {
+	SimulationTime& t = angio.CurrentSimTime();
 	if (time_write_headers == true){												// If this is the first time writing to out_time.ang
 		fprintf(time_stream,"%-5s %-12s %-12s\n","State","Vess Time","FE Time");		// Print the column labels
 		time_write_headers = false;}													// Turn off the headers flag
 	
 //	fprintf(time_stream,"%-5.2i %-12.7f %-12.7f\n",angio.FE_state, angio.m_time.t, ((double)angio.FE_state - 1.0)*angio.FE_time_step);	// Print out the FE state, the vessel growth model time, and the FE time
-	fprintf(time_stream,"%-5.2i %-12.7f \n",angio.FE_state, angio.m_time.t);	// Print out the FE state, the vessel growth model time, and the FE time
+	fprintf(time_stream,"%-5.2i %-12.7f \n",angio.FE_state, t.t);	// Print out the FE state, the vessel growth model time, and the FE time
 	
 	return;
 }

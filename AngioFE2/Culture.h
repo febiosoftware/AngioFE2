@@ -37,6 +37,12 @@ public:
 	// perform a sub-growth step
 	void SubGrowth(double scale);
 
+	// Reposition the vessels based on the FE solution
+	void Update();
+
+	// get the total vessel length
+	double TotalVesselLength() const { return m_total_length; }
+
 public:
 	// Determine the orientation vector of a newly created segment
 	vec3d FindDirection(Segment& it, GridPoint& pt);
@@ -102,15 +108,13 @@ private:
     void check4anast(Segment& it, int k, SimulationTime& time);
     void anastomose(double dist0, double dist1, int k, Segment& it, Segment& it2, SimulationTime& time);
 
-
-	void kill_dead_segs();
-
 public: // TODO: make private
 	list<SegIter> m_active_tips;		// list of active segments
 
 private:
-	int				m_nsegs;	// Counter that stores in current number of Segments within the simulation domain
-	list<Segment>	m_frag;		// vessel fragments
+	int				m_nsegs;			// Counter that stores in current number of Segments within the simulation domain
+	double			m_total_length;		// Total vascular length within the domain (sum of the length of all Segments) (in um)
+	list<Segment>	m_frag;				// vessel fragments
 
 public:
     BC		bc;

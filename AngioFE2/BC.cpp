@@ -36,8 +36,6 @@ void BC::checkBC(Segment &seg, int k)
 	if (grid.FindIntersection(r0, r1, elem_num, ic))
 	{
 		Elem& elem = grid.GetElement(elem_num);
-		assert(ic.nface != -1);
-		assert(elem.m_nbr[ic.nface] == -1);
 
 		// enforce the BC
 		enforceBC(seg, k, ic);
@@ -274,6 +272,10 @@ void BC::BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic)
 
 vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 {
+	assert(false);
+	return vec3d(0,0,0);
+
+/*
 	vec3d inter;
 	vec3d A, B;
 	vec3d R;
@@ -364,7 +366,7 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 		if (q.z >=  1.0) q.z =  0.99;
 		if (q.z <= -1.0) q.z = -0.99;
 				
-		grid.nattoglobal(inter, q, elem_num);
+		inter = grid.nattoglobal(q, elem_num);
 
 		return inter;
 	}
@@ -453,7 +455,7 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 				if (q.y <= -1.0) q.y = -0.99;
 				if (q.z >=  1.0) q.z =  0.99;
 				if (q.z <= -1.0) q.z = -0.99;
-				grid.nattoglobal(inter, q, elem_num);
+				inter = grid.nattoglobal(q, elem_num);
 
 				return inter;}
 			else if ((fabs(e1) < 2.0) && (fabs(e2) < 2.0)){
@@ -475,6 +477,7 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 	seg.death_label = 2;
 	seg.mark_of_death = true;
 	return inter;
+*/
 }
 
 
@@ -485,6 +488,10 @@ vec3d BC::find_intersect(Elem &elem, int &face, Segment &seg)
 
 bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double &e1, double &e2, vec3d &A, vec3d &B, vec3d &inter) 
 {
+	assert(false);
+	return false;
+
+/*
 	Grid& grid = m_angio.GetGrid();
 	int elem_num = elem.elem_num;
 
@@ -573,7 +580,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 					if (q.z <= -1.0)
 						q.z = -0.99;
 				
-					grid.nattoglobal(inter, q, elem_num);
+					inter = grid.nattoglobal(q, elem_num);
 					elem = grid.GetElement(neighbor_num);
 					return true;}}}}	
 	
@@ -640,7 +647,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 					if (q.y <= -1.0) q.y = -0.99;
 					if (q.z >=  1.0) q.z =  0.99;
 					if (q.z <= -1.0) q.z = -0.99;
-					grid.nattoglobal(inter, q, elem_num);
+					inter = grid.nattoglobal(q, elem_num);
 					elem = grid.GetElement(neighbor_num);
 
 					return true;}}}}	
@@ -708,7 +715,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 					if (q.y <= -1.0) q.y = -0.99;
 					if (q.z >=  1.0) q.z =  0.99;
 					if (q.z <= -1.0) q.z = -0.99;
-					grid.nattoglobal(inter, q, elem_num);
+					inter = grid.nattoglobal(q, elem_num);
 					elem = grid.GetElement(neighbor_num);
 
 					return true;}}}}
@@ -776,7 +783,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 					if (q.y <= -1.0) q.y = -0.99;
 					if (q.z >=  1.0) q.z =  0.99;
 					if (q.z <= -1.0) q.z = -0.99;
-					grid.nattoglobal(inter, q, elem_num);
+					inter = grid.nattoglobal(q, elem_num);
 					elem = grid.GetElement(neighbor_num);
 
 					return true;}}}}
@@ -844,7 +851,7 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 					if (q.y <= -1.0) q.y = -0.99;
 					if (q.z >=  1.0) q.z =  0.99;
 					if (q.z <= -1.0) q.z = -0.99;
-					grid.nattoglobal(inter, q, elem_num);
+					inter = grid.nattoglobal(q, elem_num);
 					elem = grid.GetElement(neighbor_num);
 
 					return true;}}}}
@@ -912,16 +919,13 @@ bool BC::search_neighbors_4_intersect(Elem &elem, int face, double &lam, double 
 					if (q.y <= -1.0) q.y = -0.99;
 					if (q.z >=  1.0) q.z =  0.99;
 					if (q.z <= -1.0) q.z = -0.99;
-					grid.nattoglobal(inter, q, elem_num);
+					inter = grid.nattoglobal(q, elem_num);
 					elem = grid.GetElement(neighbor_num);
 					return true;}}}}
 
 	return false;
-	
+*/
 }
-
-
-
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -1330,6 +1334,10 @@ void BC::collfibwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int 
 
 Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k)
 {
+	assert(false);
+	return seg;
+
+/*
 	Culture& cult = m_angio.GetCulture();
 
     BC_bouncy = true;
@@ -1494,8 +1502,8 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
 
 //	seg2.m_length = remain_length;
 	seg2.SetFlagOn(Segment::BC_DEAD);
-    /*data.num_vessel++; 
-	seg2.line_num = seg.line_num;*/
+//    data.num_vessel++; 
+//	seg2.line_num = seg.line_num;
 
 	// TODO: I don't think I want to copy all the flags. Maybe I don't need to copy anything.
 	if (seg.GetFlag(Segment::INIT_SPROUT) == false)
@@ -1506,6 +1514,7 @@ Segment BC::inplanewallBC(vec3d i_point, int face, Segment &seg, int elem_num, i
     seg2.tip(k).bdyf_id = seg.tip(k).bdyf_id; 
 
 	return seg2;
+*/
 }
 
 

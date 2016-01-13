@@ -80,6 +80,7 @@ bool Filein::set_param(FEAngio& angio, char* buffer, char* pname)
 {
 	Grid& grid = angio.GetGrid();
 	Culture& cult = angio.GetCulture();
+	SimulationTime& sim_time = angio.CurrentSimTime();
 
     //// Parameters for angio3d (In paratheneses, string identifying the parameter and an example value):
 	// Branching Probability (brnch_ch 0.1)
@@ -104,12 +105,12 @@ bool Filein::set_param(FEAngio& angio, char* buffer, char* pname)
     
 	// End of culture period (max_time 6.0) days
     if (!strcmp(pname,"max_time")){
-        sscanf(buffer,"%*s %*s %lf",&angio.m_time.maxt);
+        sscanf(buffer,"%*s %*s %lf",&sim_time.maxt);
         return true;}  
     
 	// Initial time step (dt 0.25) days
     if (!strcmp(pname,"dt")){
-        sscanf(buffer,"%*s %*s %lf",&angio.m_time.dt);
+        sscanf(buffer,"%*s %*s %lf",&sim_time.dt);
         return true;}  
     
 	// Anastomosis distance (anst_dst 25.0) um 

@@ -2,6 +2,9 @@
 #include <FECore\vec3d.h>
 
 //-----------------------------------------------------------------------------
+class Grid;
+
+//-----------------------------------------------------------------------------
 // Represents a node on the grid
 class Node
 {
@@ -93,7 +96,16 @@ public:
 };
 
 //-----------------------------------------------------------------------------
-// Represents an element of the grid
+// Represents an element of the grid. 
+// Node numbering:
+// 1 = Bottom, lower, left node
+// 2 = Bottom, lower, right node
+// 3 = Bottom, upper, left node
+// 4 = Bottom, upper, right node
+// 5 = Top, lower, left node 
+// 6 = Top, lower, right node    
+// 7 = Top, upper, left node
+// 8 = Top, upper, right node
 class Elem
 {
 public:
@@ -102,45 +114,31 @@ public:
 	// get the bounding box of this element
 	BBOX GetBoundingBox();
 
+	// get the node numbers of a face
 	void GetFace(int n, int* fn);
 
-	Node* GetNode(int i)
-	{
-		switch(i)
-		{
-		case 0: return n1; break;
-		case 1: return n2; break;
-		case 2: return n3; break;
-		case 3: return n4; break;
-		case 4: return n5; break;
-		case 5: return n6; break;
-		case 6: return n7; break;
-		case 7: return n8; break;
-		}
-		return 0;
-	}
+	// get a node
+	Node& GetNode(int i) { return *m_pnode[i]; }
 
 	// get a face
-	Face* GetFace(int i) { return pface[i]; }
+	Face* GetFace(int i) { return m_pface[i]; }
+
+	// get neighbor
+	int Neighbor(int i) { return m_nbr[i]; }
 
 public:
 	int elem_num;       // Element Identifier
     
-	double volume;
-	double volume0;
+	double m_volume0;	// initial (approximate) element volume
+	double m_volume;	// current (approximate) element volume
 
 	double alpha;
 	vec3d fiber_orient;
 
-    Node * n1;            // Bottom, lower, left node
-    Node * n2;            // Bottom, lower, right node
-    Node * n3;            // Bottom, upper, left node
-    Node * n4;            // Bottom, upper, right node
-    Node * n5;            // Top, lower, left node 
-    Node * n6;            // Top, lower, right node    
-    Node * n7;            // Top, upper, left node
-    Node * n8;            // Top, upper, right node
-    
-    Face*	pface[6];		// pointer to faces
-	int		m_nbr[6];	// list of indices to neighbor elements (-1 if no neighbor)
+private:
+	Node*	m_pnode[8];		// pointer to nodes
+    Face*	m_pface[6];		// pointer to boundar faces (null if face is not on the boundary)
+	int		m_nbr[6];		// list of indices to neighbor elements (-1 if no neighbor)
+
+	friend class Grid;
 };

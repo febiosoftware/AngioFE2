@@ -63,8 +63,6 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem), m_grid(fem.GetMesh())
 	// vessel_width - Diameter of microvessels (Default: 7 um)
 	m_vessel_width = 7;
 
-    m_total_length = 0.;
-    
 	m_bsprout_verify = 0;				// Sprout verification problem flag
 
 	// boundary conditions
@@ -81,8 +79,6 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem), m_grid(fem.GetMesh())
 	m_tip_range = 250.;		// Sprout force range
 	m_spfactor = 0.;		// Sprout force directional factor
 	m_bsp_sphere = 0;		// Switch between local directional (0), local isotropic (1), and global isotropic (2) sprout froce representations
-
-	kill_off = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -143,6 +139,14 @@ bool FEAngio::Init()
 	time(&m_start);
 
 	return true;
+}
+
+//-----------------------------------------------------------------------------
+double FEAngio::RunTime()
+{
+	time_t stop;
+    time(&stop);
+	return (double) difftime(stop, m_start);
 }
 
 //-----------------------------------------------------------------------------
@@ -357,16 +361,17 @@ bool FEAngio::Run()
 // after each successful FE run.
 void FEAngio::Output()
 {
-	//// ANGIO3D - Generate output files
-	output_params();										// Output parameters for simulation (sproutf, tip_range, phi_stiff_factor)
+	// Output parameters for simulation (sproutf, tip_range, phi_stiff_factor)
+	output_params();
 	
-	//feangio.fileout.printsproutnodes(feangio.sprout_nodes);		// Output the sprout locations
-	
-	fileout.dataout(*this);								// Output data file
+	// Output data file
+	fileout.dataout(*this);
 		
-	fileout.writeCollFib(GetGrid(), false);				// Output final collagen fiber orientation
+	// Output final collagen fiber orientation
+	fileout.writeCollFib(GetGrid(), false);
 
-	fileout.writeECMDen(GetGrid());						// Output final matrix density
+	// Output final matrix density
+	fileout.writeECMDen(GetGrid());
 }
 
 //-----------------------------------------------------------------------------
@@ -387,9 +392,11 @@ bool FEAngio::RunFEM()
 	// Solve the FE problem
 	if (m_fem.Solve() == false) return false;
 
-	// Update the position of grid nodes using the solution from FEBio.
-	// and dependent variables.
-	UpdateGrid();
+	// update the grid data
+	m_grid.Update();
+
+	// update the culture
+	m_pCult->Update();
 
 	// Save the current vessel state
 	fileout.save_vessel_state(*this);
@@ -419,38 +426,8 @@ bool FEAngio::Subgrowth(int sub_steps)
 		if (RunFEM() == false) return false;
 	}
 	
-	// Remove bad segments
-//	removeErrors();
-
 	return true;
 }
-
-//-----------------------------------------------------------------------------
-// Use the displacement field from the FE solution to update microvessels into the current configuration
-void FEAngio::DisplaceVessels()
-{
-	// loop over all fragments
-	for (SegIter it = m_pCult->SegmentBegin(); it != m_pCult->SegmentEnd(); ++it)             // Iterate through all segments in frag list container (it)                               
-	{
-		// Iterate through both segment tips
-		for (int k=0; k<2; ++k)
-		{
-			// get the tip
-			Segment::TIP& tip = it->tip(k);
-
-			// Update position
-			assert(tip.pt.nelem >= 0);
-			tip.rt = m_grid.Position(tip.pt);
-		}
-		
-		// Recalculate the segment's length and unit vector based on it's new position
-		it->Update();
-	}
-
-	// Update the total vascular length within the simulation   
-    UpdateTotalLength();
-}   
-
 
 /*
 //-----------------------------------------------------------------------------
@@ -663,108 +640,6 @@ void FEAngio::update_angio_sprout(int id, bool bactive, const vec3d& rc, const v
 	}
 }
 
-//-----------------------------------------------------------------------------
-// Update the grid after a deformation using the FE mesh
-void FEAngio::UpdateGrid()
-{
-	FEMesh& mesh = m_fem.GetMesh();
-
-	// loop over all nodes
-	int NN = m_grid.Nodes();
-	for (int i = 0; i < NN; ++i)
-	{
-		// Update the grid node to the current position of the FE mesh
-		m_grid.GetNode(i).rt = mesh.Node(i).m_rt;
-	}
-
-	// Update the volume for each element in the grid
-	m_grid.update_grid_volume();
-
-	// Update the ECM based on the solution from FEBio (collagen fiber orientation and matrix density)
-	update_ECM();
-
-	// Displace the microvessels using the solution from FEBio
-	DisplaceVessels();
-}
-
-//-----------------------------------------------------------------------------
-// Update the ECM field after a deformation
-void FEAngio::update_ECM()
-{
-	// Natural coordinates of each node within the element
-	double LUT[8][3] = {
-		{-1., -1. ,-1.},
-		{ 1., -1. ,-1.},
-		{-1.,  1. ,-1.},
-		{ 1.,  1. ,-1.},
-		{-1., -1. , 1.},
-		{ 1., -1. , 1.},
-		{-1.,  1. , 1.},
-		{ 1.,  1. , 1.}
-	};
-
-	// reset nodal data
-	int NN = m_grid.Nodes();
-	for (int i=0; i<NN; ++i)
-	{
-		Node& ni = m_grid.GetNode(i);
-		ni.m_ntag = 0;
-		ni.m_collfib = vec3d(0,0,0);
-		ni.m_ecm_den = 0.0;
-	}
-
-	// For each element within the grid...
-	int NE = m_grid.Elems();
-	for (int i = 0; i < NE; ++i)
-	{
-		// Obtain the element
-		Elem& elem = m_grid.GetElement(i);
-		
-		// For each node in the element...
-		for (int j=0; j<8; j++)
-		{
-			// get the node
-			Node* nj = elem.GetNode(j);
-
-			// get the ecm density and collagen fiber
-			double ecm_den  = nj->m_ecm_den0;
-			vec3d coll_fib = nj->m_collfib0;
-			
-			// Calculate the deformation gradient tensor and jacobian at the node
-			mat3d F = m_grid.calculate_deform_tensor(elem, LUT[j][0], LUT[j][1], LUT[j][2]);
-			double Jacob = F.det();
-			assert(Jacob > 0.0);
-			
-			// Update the collagen fiber orientation vector into the current configuration using F		
-			coll_fib = F*coll_fib;
-			coll_fib.unit();
-
-			// Update matrix density using the Jacobian
-			ecm_den = ecm_den/Jacob;
-
-			// accumulate fiber directions and densities
-			nj->m_collfib += coll_fib;
-			nj->m_ecm_den += ecm_den;
-
-			// increment counter
-			nj->m_ntag++;
-		}
-	}
-
-	// normalize fiber vector and average ecm density
-	for (int i = 0; i < NN; ++i)
-	{
-		Node& ni = m_grid.GetNode(i);
-		assert(ni.m_ntag > 0);
-		ni.m_ecm_den /= (double) ni.m_ntag;
-		ni.m_collfib.unit();
-	}
-	
-	//update_ecm_den_grad();										  // Update the ECM density gradient based on the solution from FEBio
-		
-	return;
-}
-
 ///////////////////////////////////////////////////////////////////////
 // FEAngio - adjust_mesh_stiffness
 //		Adjust the stiffness of the mesh based on the microvessel population
@@ -842,7 +717,7 @@ void FEAngio::adjust_mesh_stiffness()
 			{
 				Elem& el = m_grid.GetElement(elem_num);
 
-				elem_volume = el.volume;					// Calculate the volume of the element
+				elem_volume = el.m_volume;					// Calculate the volume of the element
 
 				subunit_volume = pi*(m_vessel_width/2.)*(m_vessel_width/2.)*fabs(subunit.length());		// Find the volume of the subdivision
 				volume_fraction = subunit_volume/elem_volume;				// Calculate the volume fraction
@@ -1190,41 +1065,4 @@ void FEAngio::updateTime()
 	// Update time
 	m_time.dt = dt;
     m_time.t += dt; 
-}
-
-//-----------------------------------------------------------------------------
-// Calculates and stores the total length of all vessels.
-void FEAngio::UpdateTotalLength()
-{
-    m_total_length = 0.;
-    for (SegIter it = m_pCult->SegmentBegin(); it != m_pCult->SegmentEnd(); ++it)
-    {
-        m_total_length += it->length();
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// removeErrors
-///////////////////////////////////////////////////////////////////////
-
-void FEAngio::removeErrors()
-{
-	if (kill_off == false){
-		double length_limit = m_pCult->m_d;
-    
-		for (SegIter it = m_pCult->SegmentBegin(); it != m_pCult->SegmentEnd(); ++it){
-			if (fabs(it->length()) >= 2.0*length_limit){
-				it->death_label = -7;
-				vec3d& r0 = it->tip(0).rt;
-				vec3d& r1 = it->tip(1).rt;
-//				fprintf(killed_segs_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i\n",it->TofBirth,r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length,it->death_label);
-//				it = m_pCult->m_frag.erase(it);
-				assert(false);
-			}
-			if (it == m_pCult->SegmentEnd())
-				return;
-		}
-                
-		return;
-	}
 }
