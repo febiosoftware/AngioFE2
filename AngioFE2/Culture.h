@@ -47,15 +47,9 @@ public:
 	// Determine the orientation vector of a newly created segment
 	vec3d FindDirection(Segment& it, GridPoint& pt);
 	
-	// find the unit direction vector of the collagen
-	vec3d CollagenDirection(GridPoint& pt);
-	
 	// Find the density-based length scale factor at a point of the grid
 	double FindDensityScale(const GridPoint& pt);
 
-	// scales the density
-	double ScaleDensity(double coll_den);
-	
 	// Check a newly created segment to see if it physically intersections with any existing segments
 	void CheckForIntersection(Segment &seg, Segment& it);
 	
@@ -83,14 +77,17 @@ private:
     // Seed an initial fragment within the grid
 	Segment createInitFrag();
 
+	// grow vessels
+	void GrowVessels();
+
 	// branching phase
-	void Branch(SimulationTime& time);
+	void BranchVessels(SimulationTime& time);
 
 	// create a branch
 	void BranchSegment(Segment& it, int k);
 
 	// fuse segments (i.e. anastomosis)
-	void Fuse(SimulationTime& time);
+	void FuseVessels(SimulationTime& time);
 
 	// Grow a segment
 	Segment GrowSegment(Segment& it, int k, bool branch = false, bool bnew_vessel = false);

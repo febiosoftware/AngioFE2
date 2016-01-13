@@ -85,7 +85,7 @@ void Culture::SeedFragments(SimulationTime& time)
 		AddSegment(seg);
 	}
 
-	// set the number of vessels
+	// init vessel counter
     m_num_vessel = m_ninit_frags;
 
 	// Update the active tip container
@@ -121,13 +121,13 @@ Segment Culture::createInitFrag()
 
 		// set the position of the first tip
 		seg.tip(0).pt = GridPoint(elem_num, q);
-		seg.tip(0).rt = grid.Position(seg.tip(0).pt);
+		seg.tip(0).pt.r = grid.Position(seg.tip(0).pt);
     
 		// Determine vessel orientation based off of collagen fiber orientation
-		vec3d seg_vec = CollagenDirection(seg.tip(0).pt);
+		vec3d seg_vec = grid.CollagenDirection(seg.tip(0).pt);
 
 		// End of new segment is origin plus length component in each direction	
-		vec3d r1 = seg.tip(0).rt + seg_vec*seg_length;
+		vec3d r1 = seg.tip(0).pos() + seg_vec*seg_length;
 
 		// find the element where the second tip is
 		grid.FindGridPoint(r1, p1);
@@ -136,7 +136,6 @@ Segment Culture::createInitFrag()
 
 	// assign the grid point to the end tip
 	seg.tip(1).pt = p1;
-	seg.tip(1).rt = grid.Position(p1);
 	
 	// update length and unit vector
 	seg.Update();
@@ -163,44 +162,16 @@ void Culture::Grow(SimulationTime& time)
 	UpdateNewVesselLength(time);
 
 	// Elongate the active vessel tips
-	for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
-	{
-		for (int k=0; k<2; ++k)
-		{
-			// only grow active tips
-			if (it->tip(k).bactive)
-			{
-				// Create new vessel segment at the current tip existing segment
-				Segment seg = GrowSegment(*it, k);
+	GrowVessels();
+	
+	// Branching phase
+	if (yes_branching) BranchVessels(time);
 
-				// Add the segment to the network
-				AddNewSegment(seg, k);
-			}
-	    }
-    }
+	// Anastomosis phase
+	if (yes_anast) FuseVessels(time);
 
-	if (yes_branching) Branch(time);
-
-	// If anatomosis is turned on determine which segments form anatomoses
-	if (yes_anast) Fuse(time);										
-
-	// Locate all active growth tips
+	// Update all active growth tips
 	FindActiveTips();
-}
-
-//-----------------------------------------------------------------------------
-void Culture::SubGrowth(double scale)
-{
-	// Iterator through the list of active segment tips
-	for (list<SegIter>::iterator tip_it = m_active_tips.begin(); tip_it != m_active_tips.end(); ++tip_it)
-	{
-		// Dereference the tip iterator to obtain the active segment
-		Segment& seg = (*(*tip_it));
-
-		// Step growth for the active segments
-		if (seg.tip(0).bactive) seg.tip(0).rt = seg.tip(1).rt - seg.uvect()*(scale*seg.length());
-		if (seg.tip(1).bactive) seg.tip(1).rt = seg.tip(0).rt + seg.uvect()*(scale*seg.length());
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -216,9 +187,47 @@ void Culture::UpdateNewVesselLength(SimulationTime& time)
 }
 
 //-----------------------------------------------------------------------------
-// Create a new segment at the tip of an existing segment
+// Grow phase
+void Culture::GrowVessels()
+{
+	for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
+	{
+		for (int k=0; k<2; ++k)
+		{
+			// only grow active tips
+			if (it->tip(k).bactive)
+			{
+				// Create new vessel segment at the current tip existing segment
+				Segment seg = GrowSegment(*it, k);
+
+				// Add the segment to the network
+				AddNewSegment(seg, k);
+			}
+	    }
+    }
+}
+
+//-----------------------------------------------------------------------------
+void Culture::SubGrowth(double scale)
+{
+	// Iterator through the list of active segment tips
+	for (list<SegIter>::iterator tip_it = m_active_tips.begin(); tip_it != m_active_tips.end(); ++tip_it)
+	{
+		// Dereference the tip iterator to obtain the active segment
+		Segment& seg = (*(*tip_it));
+
+		// Step growth for the active segments
+		if (seg.tip(0).bactive) seg.tip(0).pt.r = seg.tip(1).pos() - seg.uvect()*(scale*seg.length());
+		if (seg.tip(1).bactive) seg.tip(1).pt.r = seg.tip(0).pos() + seg.uvect()*(scale*seg.length());
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Create a new segment at the (active) tip of an existing segment
 Segment Culture::GrowSegment(Segment& it, int k, bool branch, bool bnew_vessel)
 {
+	Grid& grid = m_angio.GetGrid();
+
 	// Make sure the tip is active
 	assert(it.tip(k).bactive);
 
@@ -234,7 +243,7 @@ Segment Culture::GrowSegment(Segment& it, int k, bool branch, bool bnew_vessel)
 	// If new segment is a branch we modify the grow direction a bit
 	if (branch)
 	{
-		vec3d coll_fib = CollagenDirection(it.tip(k).pt);
+		vec3d coll_fib = grid.CollagenDirection(it.tip(k).pt);
 		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
 		seg_vec.unit();
 	}
@@ -257,11 +266,10 @@ Segment Culture::GrowSegment(Segment& it, int k, bool branch, bool bnew_vessel)
 	if (k == 1)
 	{
 		// the first point is a copy of the last point of the source segment
-		seg.tip(0).rt = it.tip(1).rt;
 		seg.tip(0).pt = it.tip(1).pt;
 
 		// position the end point
-		seg.tip(1).rt = seg.tip(0).rt + seg_vec*seg_length;
+		seg.tip(1).pt.r = seg.tip(0).pos() + seg_vec*seg_length;
 
         seg.tip(1).bactive = true;		// Turn on end tip of new segment
 		seg.tip(0).bactive = false;		// Turn off origin tip of new segment
@@ -269,11 +277,10 @@ Segment Culture::GrowSegment(Segment& it, int k, bool branch, bool bnew_vessel)
 	else // grow from the start point
 	{
 		// the first point is a copy of the last point of the source segment
-		seg.tip(1).rt = it.tip(0).rt;
 		seg.tip(1).pt = it.tip(0).pt;
 		
 		// position the end point (notice negative sign)
-		seg.tip(0).rt = seg.tip(1).rt - seg_vec*seg_length;
+		seg.tip(0).pt.r = seg.tip(1).pos() - seg_vec*seg_length;
 
 		seg.tip(0).bactive = true;		// Turn on end tip of new segment
 		seg.tip(1).bactive = false;		// Turn off origin tip of new segment
@@ -293,7 +300,7 @@ Segment Culture::GrowSegment(Segment& it, int k, bool branch, bool bnew_vessel)
 
 //-----------------------------------------------------------------------------
 // Branching phase of the growth step.
-void Culture::Branch(SimulationTime& time)
+void Culture::BranchVessels(SimulationTime& time)
 {
 	// Elongate the active vessel tips
 	for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
@@ -361,14 +368,14 @@ void Culture::CreateBranchingForce(Segment& seg)
 	
 	if (seg.tip(0).bactive)
 	{
-		tip = seg.tip(0).rt;															// Obtain the position of the new tip
+		tip = seg.tip(0).pos();															// Obtain the position of the new tip
 		sprout_vect = -seg.uvect();	// notice negative sign
 		seg.tip(0).bdyf_id = m_angio.total_bdyf - 1;											// Assign the body force ID
 	}
 		
 	if (seg.tip(1).bactive)
 	{
-		vec3d tip = seg.tip(1).rt;
+		vec3d tip = seg.tip(1).pos();
 		sprout_vect = seg.uvect();
 		seg.tip(1).bdyf_id = m_angio.total_bdyf - 1;
 	}
@@ -387,7 +394,7 @@ void Culture::CreateBranchingForce(Segment& seg)
 
 //-----------------------------------------------------------------------------
 // Fuse
-void Culture::Fuse(SimulationTime& time)
+void Culture::FuseVessels(SimulationTime& time)
 {
     for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
 	{
@@ -406,8 +413,8 @@ void Culture::check4anast(Segment& it, int k, SimulationTime& time)
 	
     for (SegIter it2 = m_frag.begin(); it2 != m_frag.end(); ++it2)
 	{                                                           
-	    double dist0 = (it.tip(k).rt - it2->tip(0).rt).norm(); dist0 *= dist0;
-		double dist1 = (it.tip(k).rt - it2->tip(1).rt).norm(); dist1 *= dist1;
+	    double dist0 = (it.tip(k).pos() - it2->tip(0).pos()).norm(); dist0 *= dist0;
+		double dist1 = (it.tip(k).pos() - it2->tip(1).pos()).norm(); dist1 *= dist1;
         anastomose(dist0, dist1, k, it, *it2, time);
     } 
 }
@@ -431,9 +438,10 @@ void Culture::anastomose(double dist0, double dist1, int k, Segment& it1, Segmen
   
     if (kk == -1) return;
                                                 
-	Segment seg = ConnectSegment(it1,it2,k,kk, time);      // CULTURE.connectSegment(segment 1, segment 2, tip 1, tip 2, grid, data, frag list container)
-					                                            // This function will create a segment between to two segments to complete the anastomosis
-	AddSegment(seg);                                      // Append new segment at the top of the list 'frag'                  
+	// This function will create a segment between to two segments to complete the anastomosis
+	Segment seg = ConnectSegment(it1,it2,k,kk, time);
+
+	AddSegment(seg);
 	it1.tip(k ).bactive = false;		// Deactivate tip of segment 1 after anastomosis
 	it2.tip(kk).bactive = false;		// Deactivate tip of segment 2 after anastomosis (tip-tip anastomosis only)
 }
@@ -453,7 +461,7 @@ void Culture::AddNewSegment(Segment& seg, int k)
 
 	// Find the position of the new end point
 	Grid& grid = m_angio.GetGrid();
-	if (grid.FindGridPoint(new_tip.rt, new_tip.pt) == false)
+	if (grid.FindGridPoint(new_tip.pos(), new_tip.pt) == false)
 	{
 		// If we get here, the new end point lies outside the grid
 		// In that case, we apply boundary conditions
@@ -490,8 +498,10 @@ void Culture::AddSegment(Segment& seg)
 // Determine the orientation of a newly created segment
 vec3d Culture::FindDirection(Segment& it, GridPoint& pt)
 {
+	Grid& grid = m_angio.GetGrid();
+
     // Find the component of the new vessel direction determined by collagen fiber orientation    
-    vec3d coll_dir = CollagenDirection(pt);
+    vec3d coll_dir = grid.CollagenDirection(pt);
 
 	// Component of new vessel orientation resulting from previous vessel direction        
 	vec3d per_dir = it.uvect();
@@ -503,63 +513,13 @@ vec3d Culture::FindDirection(Segment& it, GridPoint& pt)
 }
 
 //-----------------------------------------------------------------------------
-// Calculates the unit direction vector of the collagen fibers at a grid point.
-vec3d Culture::CollagenDirection(GridPoint& pt)
-{   
-	// get the element
-	Grid& grid = m_angio.GetGrid();
-	Elem& elem = grid.GetElement(pt.nelem);
-        
-    // Obtain shape function weights
-    double shapeF[8];
-    grid.shapefunctions(shapeF, pt.q.x, pt.q.y, pt.q.z);
-    
-    // Determine component of new vessel direction due to nodal collagen fiber orientation
-	vec3d coll_angle(0,0,0);
-	for (int i=0; i<8; ++i)
-	{
-		Node& n = elem.GetNode(i);
-		coll_angle += n.m_collfib*shapeF[i];
-	}
-
-	// make unit vector
-	coll_angle.unit();
-
-    return coll_angle;
-}
-
-//-----------------------------------------------------------------------------
-// Calculates the density scale factor at a grid point.
+// Find the density-based length scale factor at a point of the grid
+// TODO: Make a,b,c user settings.
 double Culture::FindDensityScale(const GridPoint& pt)
 {
 	Grid& grid = m_angio.GetGrid();
-
-	// get the element
-	Elem& elem = grid.GetElement(pt.nelem);
-        
-    // Obtain shape function weights
-    double shapeF[8];
-    grid.shapefunctions(shapeF, pt.q.x, pt.q.y, pt.q.z);
-
-	// evaluate the collagen density
-	double coll_den = 0.0;
-	for (int i=0; i<8; ++i)
-	{
-		Node& n = elem.GetNode(i);
-		coll_den += n.m_ecm_den*shapeF[i];
-	}
+	double coll_den = grid.FindECMDensity(pt);
     
-	// scale the density
-	double den_scale = ScaleDensity(coll_den);
-	
-	// all done
-	return den_scale;
-}
-
-//-----------------------------------------------------------------------------
-// TODO: Make a,b,c user settings.
-double Culture::ScaleDensity(double coll_den)
-{
 	if (coll_den == 3.0) return 1.0;
 
 	// Determine the density scaling factor using the function defined by a, b, c
@@ -582,13 +542,10 @@ Segment Culture::ConnectSegment(Segment& it1, Segment& it2, int k, int kk, Simul
  	seg.m_nseed   = it1.m_nseed;
  	seg.m_nvessel = it1.m_nvessel;
  	
- 	seg.tip(0).rt = it1.tip(k).rt;
 	seg.tip(0).pt = it1.tip(k).pt;
-	seg.tip(1).rt = it2.tip(kk).rt;
 	seg.tip(1).pt = it2.tip(kk).pt;
 	seg.Update();
  	
-
  	seg.tip(0).bactive = false;
  	seg.tip(1).bactive = false;
 	seg.SetFlagOn(Segment::ANAST);
@@ -599,8 +556,6 @@ Segment Culture::ConnectSegment(Segment& it1, Segment& it2, int k, int kk, Simul
  	
 	return seg;
  }
-
-
 
 //-----------------------------------------------------------------------------
 // Helper function for finding the intersection between two lines.
@@ -633,37 +588,28 @@ Segment Culture::ConnectSegment(Segment& it1, Segment& it2, int k, int kk, Simul
 // mu = (2*A*D + B*C)/(C^2 - 4*A*E) 
 
 
-double findIntersect(double a[3], double b[3], double c[3], double d[3], double intersectpt[3])
+double findIntersect(vec3d& a, vec3d& b, vec3d& c, vec3d& d, vec3d& intersectpt)
 {
-	double t1[3], t2[3];
-	double A, B, C, D, E, F, min_dist;
-	double lambda, mu;
+	double lambda;
 	
-	t1[0] = b[0] - a[0];
-	t1[1] = b[1] - a[1];
-	t1[2] = b[2] - a[2];
+	vec3d t1 = b - a;
+	vec3d t2 = d - c;
 
-	t2[0] = d[0] - c[0];
-	t2[1] = d[1] - c[1];
-	t2[2] = d[2] - c[2];
-
-	A = vec_dot(t1,t1);
-	B = 2*(vec_dot(a,t1) - vec_dot(t1,c));
-	C = 2*(vec_dot(t1,t2));
-	D = 2*(vec_dot(t2,c) - vec_dot(t2,a));
-	E = vec_dot(t2,t2);
-	F = vec_dot(a,a)+ vec_dot(c,c);
+	double A = t1* t1;
+	double B = 2*(t1*a) - t1*c;
+	double C = 2*(t1*t2);
+	double D = 2*(t2*c - t2*a);
+	double E = t2*t2;
+	double F = a*a+ c*c;
 
 	if (4*A*E-C*C != 0)
 	{
-		min_dist = (B*C*D + B*B*E + C*C*F + A*(D*D-4*E*F))/(C*C - 4*A*E);
+		double min_dist = (B*C*D + B*B*E + C*C*F + A*(D*D-4*E*F))/(C*C - 4*A*E);
 		if (min_dist <= 7)
 		{
-			mu = (2*A*D + B*C)/(C*C - 4*A*E);
+			double mu = (2*A*D + B*C)/(C*C - 4*A*E);
 			lambda = (C*mu - B)/(2*A);
-			intersectpt[0] = a[0] + lambda*t1[0];
-			intersectpt[1] = a[1] + lambda*t1[1];
-			intersectpt[2] = a[2] + lambda*t1[2];
+			intersectpt = a + t1*lambda;
 		}
 		else
 		{
@@ -679,68 +625,45 @@ double findIntersect(double a[3], double b[3], double c[3], double d[3], double 
 }
 
 //-----------------------------------------------------------------------------
-// Description: checks for intersection between a passed segment and all other existing segments that are not members
+// Checks for intersection between a passed segment and all other existing segments that are not members
 // of vessel containing the segment
 void Culture::CheckForIntersection(Segment &seg, Segment& it)
 {
-	double p1[3], p2[3], pp1[3], pp2[3]; //tip points for segment to check intersection
-	list<Segment>::iterator it2; //loop over segments in list
-	double intersectpt[3]; //the intersection pt of vectors
+	vec3d p1, p2, pp1, pp2; //tip points for segment to check intersection
+	vec3d intersectpt; //the intersection pt of vectors
 	
-	intersectpt[0] = 0;
-	intersectpt[1] = 0;
-	
-	double lambda;
-
-	vec3d& r0 = seg.tip(0).rt;
-	vec3d& r1 = seg.tip(1).rt;
+	const vec3d& r0 = seg.tip(0).pos();
+	const vec3d& r1 = seg.tip(1).pos();
 	
 	if (seg.tip(1).bactive)
 	{
-		p1[0] = r0.x;
-		p2[0] = r1.x;
-		p1[1] = r0.y;
-		p2[1] = r1.y;
-		p1[2] = r0.z;
-		p2[2] = r1.z;
+		p1 = r0;
+		p2 = r1;
 	}
 	else if (seg.tip(0).bactive)
 	{
-		p1[0] = r1.x;
-		p2[0] = r0.x;
-		p1[1] = r1.y;
-		p2[1] = r0.y;
-		p1[2] = r1.z;
-		p2[2] = r0.z;
+		p1 = r1;
+		p2 = r0;
 	}
 
-	Culture& cult = m_angio.GetCulture();
-	for (it2 = cult.m_frag.begin(); it2 != cult.m_frag.end(); ++it2)
+	for (SegIter it2 = m_frag.begin(); it2 != m_frag.end(); ++it2)
 	{
 		if (it.m_nseed!=it2->m_nseed)
 		{
-			pp1[0] = r0.x;
-			pp1[1] = r0.y;
-			pp1[2] = r0.z;
-			pp2[0] = r1.x;
-			pp2[1] = r1.y;
-			pp2[2] = r1.z;
+			pp1 = r0;
+			pp2 = r1;
 
-			lambda = findIntersect(p1,p2,pp1,pp2,intersectpt);
+			double lambda = findIntersect(p1,p2,pp1,pp2,intersectpt);
 			if (lambda >=0 && lambda <=1)
 			{
 				if (seg.tip(1).bactive)
 				{
-					seg.tip(1).rt.x = intersectpt[0];
-					seg.tip(1).rt.y = intersectpt[1];
-					seg.tip(1).rt.z = intersectpt[2];
+					seg.tip(1).pt.r = intersectpt;
 					seg.tip(1).bactive = false;
 				}
 				else if (seg.tip(0).bactive)
 				{
-					seg.tip(0).rt.x = intersectpt[0];
-					seg.tip(0).rt.y = intersectpt[1];
-					seg.tip(0).rt.z = intersectpt[2];
+					seg.tip(0).pt.r = intersectpt;
 					seg.tip(0).bactive = false;
 				}
 				cout << "3D intersection" << endl;
@@ -748,9 +671,6 @@ void Culture::CheckForIntersection(Segment &seg, Segment& it)
 			}
 		}
 	}
-
-
-	return;
 }
 
 //-----------------------------------------------------------------------------
@@ -791,7 +711,7 @@ void Culture::Update()
 
 			// Update position
 			assert(tip.pt.nelem >= 0);
-			tip.rt = grid.Position(tip.pt);
+			tip.pt.r = grid.Position(tip.pt);
 		}
 		
 		// Recalculate the segment's length and unit vector based on it's new position

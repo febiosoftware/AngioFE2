@@ -26,8 +26,8 @@ void BC::checkBC(Segment &seg, int k)
 	Grid& grid = m_angio.GetGrid();
 
 	// get the end-points and reference element
-	vec3d r0 = (k==0? seg.tip(1).rt : seg.tip(0).rt);
-	vec3d r1 = (k==0? seg.tip(0).rt : seg.tip(1).rt);
+	vec3d r0 = (k==0? seg.tip(1).pos() : seg.tip(0).pos());
+	vec3d r1 = (k==0? seg.tip(0).pos() : seg.tip(1).pos());
 	int elem_num = (k==0? seg.tip(1).pt.nelem : seg.tip(0).pt.nelem);
 	assert(elem_num >= 0);
 
@@ -170,7 +170,7 @@ void BC::BCStop(Segment &seg, int k, FACE_INTERSECTION& ic)
 	tip.pt.nelem = ic.nelem;
 	vec3d p = ic.q;
 	grid.natcoord(tip.pt.q, p, ic.nelem);
-	seg.tip(k).rt = ic.q;
+	seg.tip(k).pt.r = ic.q;
 	seg.Update();
 
 	// turn the tip off
@@ -195,8 +195,8 @@ void BC::BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic)
 	Culture& cult = m_angio.GetCulture();
 
 	// get the original tip positions
-	vec3d r0 = seg.tip(0).rt;
-	vec3d r1 = seg.tip(1).rt;
+	vec3d r0 = seg.tip(0).pos();
+	vec3d r1 = seg.tip(1).pos();
 	vec3d q = ic.q;	// intersection point
 
 	// get the old length
@@ -209,7 +209,7 @@ void BC::BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic)
 
 	// break the first segment
 	Segment::TIP& tip = seg.tip(k);
-	tip.rt = q;
+	tip.pt.r = q;
 	tip.pt.nelem = ic.nelem;
 	grid.natcoord(tip.pt.q, q, ic.nelem);
 	seg.Update();
@@ -230,13 +230,11 @@ void BC::BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic)
 	// set the starting point at the intersection point
 	if (k==1)
 	{
-		seg2.tip(0).rt = q;
 		seg2.tip(0).pt = tip.pt;
 		seg2.tip(0).bactive = false;
 	}
 	else
 	{
-		seg2.tip(1).rt = q;
 		seg2.tip(1).pt = tip.pt;
 		seg2.tip(1).bactive = false;
 	}
@@ -252,9 +250,9 @@ void BC::BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic)
 	assert(remain_length > 0.0);
 
 	if (k == 1)
-		seg2.tip(1).rt = q + new_vec*remain_length;
+		seg2.tip(1).pt.r = q + new_vec*remain_length;
     else if (k == 0)
-        seg2.tip(0).rt = q - new_vec*remain_length;
+        seg2.tip(0).pt.r = q - new_vec*remain_length;
 
 	// activate the new tip
 	seg2.tip(k).bactive = true;
@@ -1535,12 +1533,14 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	double old_length = 0.;
 	double remain_length = 0.;
 
-    xpt_0 = seg.tip(0).rt.x;
-    ypt_0 = seg.tip(0).rt.y;
-    zpt_0 = seg.tip(0).rt.z;
-    xpt_1 = seg.tip(1).rt.x;
-    ypt_1 = seg.tip(1).rt.y;
-    zpt_1 = seg.tip(1).rt.z;
+	vec3d r0 = seg.tip(0).pos();
+	vec3d r1 = seg.tip(1).pos();
+    xpt_0 = r0.x;
+    ypt_0 = r0.y;
+    zpt_0 = r0.z;
+    xpt_1 = r1.x;
+    ypt_1 = r1.y;
+    zpt_1 = r1.z;
  
 	xpt_i = i_point.x;
 	ypt_i = i_point.y;
@@ -1567,17 +1567,13 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
     seg2.m_nseed = seg.m_nseed;
 
     if (k == 1){
-        seg.tip(1).rt.x = xpt_i;
-        seg.tip(1).rt.y = ypt_i;
-        seg.tip(1).rt.z = zpt_i;
+        seg.tip(1).pt.r = vec3d(xpt_i, ypt_i, zpt_i);
         seg.Update();
         seg.tip(1).bactive = false;
 		seg2.tip(0).pt = seg.tip(1).pt;
 	}
     else if (k == 0){
-        seg.tip(0).rt.x = xpt_i;
-        seg.tip(0).rt.y = ypt_i;
-        seg.tip(0).rt.z = zpt_i;
+        seg.tip(0).pt.r = vec3d(xpt_i, ypt_i, zpt_i);
         seg.Update();
         seg2.tip(0).bactive = true;
 		seg2.tip(1).pt = seg.tip(0).pt;
@@ -1620,12 +1616,10 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	new_ypt = ypt_i + rand_disp.y; 
 	new_zpt = zpt_i + rand_disp.z;
 
-    seg2.tip(0).rt.x = new_xpt;
-    seg2.tip(0).rt.y = new_ypt;
-    seg2.tip(0).rt.z = new_zpt;
-	seg2.tip(1).rt.x = new_xpt + remain_length*new_uvect.x;
-    seg2.tip(1).rt.y = new_ypt + remain_length*new_uvect.y;
-    seg2.tip(1).rt.z = new_zpt + remain_length*new_uvect.z;
+    seg2.tip(0).pt.r = vec3d(new_xpt, new_ypt, new_zpt);
+	seg2.tip(1).pt.r.x = new_xpt + remain_length*new_uvect.x;
+    seg2.tip(1).pt.r.y = new_ypt + remain_length*new_uvect.y;
+    seg2.tip(1).pt.r.z = new_zpt + remain_length*new_uvect.z;
 
 	seg2.tip(1).bactive = true;
 //	seg2.m_length = remain_length;

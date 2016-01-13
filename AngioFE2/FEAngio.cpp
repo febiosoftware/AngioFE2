@@ -510,7 +510,7 @@ void FEAngio::apply_sprout_forces(int load_curve, double scale)
 
 		if (seg.tip(0).bactive)
 		{
-			vec3d tip = seg.tip(0).rt;												// Obtain the position of the active tip
+			vec3d tip = seg.tip(0).pos();												// Obtain the position of the active tip
 			
 			// Calculate the directional unit vector of the sprout (notice negative sign)
 			vec3d sprout_vect = -seg.uvect();
@@ -520,7 +520,7 @@ void FEAngio::apply_sprout_forces(int load_curve, double scale)
 		
 		if (seg.tip(1).bactive)
 		{	
-			vec3d tip = seg.tip(1).rt;												// Obtain the position of the active tip
+			vec3d tip = seg.tip(1).pos();												// Obtain the position of the active tip
 			
 			// Calculate the directional unit vector of the sprout
 			vec3d sprout_vect = seg.uvect();
@@ -600,9 +600,9 @@ void FEAngio::update_body_forces(double scale)
 
 		if (((seg.tip(0).bactive) || (seg.tip(0).BC == 1)) && (seg.tip(0).bdyf_id >= 0)){		  // Turn on the body force for any active -1 segment OR -1 segment that has encountered a boundary and stopped growing...
 		//if ((seg.tip[0] == -1) && (seg.bdyf_id[0] >= 0)){									// Turn on the body force for any active -1 segment
-			tip = seg.tip(0).rt;																	// Obtain the tip position
+			tip = seg.tip(0).pos();																	// Obtain the tip position
 
-			sprout_vect = seg.tip(0).rt - seg.tip(1).rt;												// Calculate the sprout directional vector
+			sprout_vect = seg.tip(0).pos() - seg.tip(1).pos();												// Calculate the sprout directional vector
 			sprout_vect = sprout_vect/sprout_vect.norm();			
 
 			update_angio_sprout(seg.tip(0).bdyf_id, true, tip, sprout_vect);
@@ -610,9 +610,9 @@ void FEAngio::update_body_forces(double scale)
 		
 		if (((seg.tip(1).bactive) || (seg.tip(1).BC == 1)) && (seg.tip(1).bdyf_id >= 0)){		  // Turn on the body force for any active +1 segment OR +1 segment that has encountered a boundary and stopped growing...
 		//if ((seg.tip[1] == 1) && (seg.bdyf_id[1] >= 0)){									// Turn on the body force for any active +1 segment
-			tip = seg.tip(1).rt;																	// Obtain the tip position
+			tip = seg.tip(1).pos();																	// Obtain the tip position
 			
-			sprout_vect = seg.tip(1).rt - seg.tip(0).rt;												// Calculate the sprout directional vector
+			sprout_vect = seg.tip(1).pos() - seg.tip(0).pos();												// Calculate the sprout directional vector
 			sprout_vect.unit();
 			update_angio_sprout(seg.tip(1).bdyf_id, true, tip, sprout_vect);
 			}
@@ -680,34 +680,34 @@ void FEAngio::adjust_mesh_stiffness()
 		{
 			if (k == 1){													// If this is the first subdivision, find the origin of the segment
 				if (seg.length() > 0.){											// If it's a +1 segment...
-					subunit.tip(0).rt = seg.tip(0).rt;
+					subunit.tip(0).pt.r = seg.tip(0).pos();
 				}
 				else{															// If it's a -1 segment...
-					subunit.tip(1).rt = seg.tip(1).rt;
+					subunit.tip(1).pt.r = seg.tip(1).pos();
 //					subunit.m_length = -1.;
 				}
 		}
 			
 			// Calculate the subdivision
 			if (seg.length() > 0.){										// If it's a +1 segment...			
-				subunit.tip(1).rt = subunit.tip(0).rt + seg.uvect()*(sub_scale*seg.length());     
+				subunit.tip(1).pt.r = subunit.tip(0).pos() + seg.uvect()*(sub_scale*seg.length());     
 			}
 			else{														// If it's a -1 segment...
-				subunit.tip(0).rt = subunit.tip(1).rt + seg.uvect()*(sub_scale*seg.length());     
+				subunit.tip(0).pt.r = subunit.tip(1).pos() + seg.uvect()*(sub_scale*seg.length());     
 			}
 
 			subunit.Update();										// Find the length of the subdivision
 			
-			mid = (subunit.tip(1).rt + subunit.tip(0).rt)*0.5;
+			mid = (subunit.tip(1).pos() + subunit.tip(0).pos())*0.5;
 
 			elem_num = m_grid.findelem(mid);				// Find the element that the midpoint is within
 
 			// Calculate the orientation of the subdivision
 			if (seg.length() > 0.){										// If it's a +1 segment...
-				vess_vect = subunit.tip(1).rt - subunit.tip(0).rt;
+				vess_vect = subunit.tip(1).pos() - subunit.tip(0).pos();
 			}
 			else{														// If it's a -1 segment...
-				vess_vect = subunit.tip(0).rt - subunit.tip(1).rt;
+				vess_vect = subunit.tip(0).pos() - subunit.tip(1).pos();
 			}
 
 			if (vess_vect.norm() != 0.)									// Normalize to find the unit vector
@@ -737,10 +737,10 @@ void FEAngio::adjust_mesh_stiffness()
 			
 			// Set the origin of the next subdivision to the end of the current one
 			if (seg.length() > 0.){
-				subunit.tip(0).rt = subunit.tip(1).rt;
+				subunit.tip(0).pt.r = subunit.tip(1).pos();
 			}
 			else{
-				subunit.tip(1).rt = subunit.tip(0).rt;
+				subunit.tip(1).pt.r = subunit.tip(0).pos();
 			}
 		}
 	}

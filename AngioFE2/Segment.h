@@ -9,10 +9,11 @@ class GridPoint
 public:
 	int		nelem;		// element number
 	vec3d	q;			// natural coordinates
+	vec3d	r;			// spatial position
 
 public:
 	GridPoint() { nelem = -1; }
-	GridPoint(int ne, vec3d& r) { nelem = ne; q = r; }
+	GridPoint(int ne, vec3d& k) { nelem = ne; q = k; }
 };
 
 //-----------------------------------------------------------------------------
@@ -35,11 +36,12 @@ public:
 	class TIP
 	{
 	public:
-		vec3d		rt;			// current position of segment tip
 		bool		bactive;	// flag if tip is active
 		int			bdyf_id;	// ID of the body force
 		int			BC;			// something to do with body forces?
 		GridPoint	pt;			// point in grid where this tip lies
+
+		const vec3d& pos() const { return pt.r; }
 
 	public:
 		TIP();
@@ -87,11 +89,6 @@ public:
 	int m_nseed;		// Label that indicates which initial fragment the segment orginated from
 	int m_nvessel;		// Label that indicates which vessel the segment belongs to
 	int m_nid;			// segment id (unique zero-based ID)
-
-	// TODO: I don't think there is any reason why segments should be killed and this
-	//       is probably a way to clean up after bugs. Better solution: fix bugs and remove this.
-	bool mark_of_death;			// this flag marks the segment as dead and should be removed.
-	int death_label;			// cause of death
 
 private:
 	TIP				m_tip[2];		// the two end tips

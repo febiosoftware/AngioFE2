@@ -78,6 +78,12 @@ public:
 
 	// evaluate the spatial position of a grid point
 	vec3d Position(const GridPoint& pt);
+
+	// find the unit direction vector of the collagen
+	vec3d CollagenDirection(GridPoint& pt);
+	
+	// Find the ecm density
+	double FindECMDensity(const GridPoint& pt);
 	
 private:
 	// Find the neighbors of all elements

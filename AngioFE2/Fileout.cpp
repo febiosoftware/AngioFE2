@@ -113,8 +113,8 @@ void Fileout::writeData(FEAngio &angio)
 	SegIter it;
 	for (it = cult.SegmentBegin(); it != cult.SegmentEnd(); ++it)
 	{
-		vec3d& r0 = it->tip(0).rt;
-		vec3d& r1 = it->tip(1).rt;
+		const vec3d& r0 = it->tip(0).pos();
+		const vec3d& r1 = it->tip(1).pos();
 		fprintf(m_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i %-5.2i\n",it->GetTimeOfBirth(),r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length(),it->m_nid,it->m_nseed);
 	}
 	fclose(m_stream);                                                         // Close stream to 'data.ang' (stream)
@@ -232,8 +232,8 @@ void Fileout::save_vessel_state(FEAngio& angio)
 	Culture& cult = angio.GetCulture();
 	for (SegIter it = cult.SegmentBegin(); it != cult.SegmentEnd(); ++it)	// Iterate through all segments in frag list container (it)
 	{
-		vec3d& r0 = it->tip(0).rt;
-		vec3d& r1 = it->tip(1).rt;
+		const vec3d& r0 = it->tip(0).pos();
+		const vec3d& r1 = it->tip(1).pos();
 		fprintf(m_stream2,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n",angio.FE_state,it->GetTimeOfBirth(),r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length());  // Write to out_vess_state.ang
 	}
 	

@@ -279,6 +279,7 @@ bool Grid::FindGridPoint(const vec3d& r, GridPoint& p)
 			{
 				p.q = q;
 				p.nelem = i;
+				p.r = Position(p);
 				return true;
 			}
 		}
@@ -708,4 +709,51 @@ void Grid::update_ECM()
 	}
 	
 	//update_ecm_den_grad();										  // Update the ECM density gradient based on the solution from FEBio
+}
+
+//-----------------------------------------------------------------------------
+// Calculates the unit direction vector of the collagen fibers at a grid point.
+vec3d Grid::CollagenDirection(GridPoint& pt)
+{   
+	// get the element
+	Elem& elem = GetElement(pt.nelem);
+        
+    // Obtain shape function weights
+    double shapeF[8];
+    shapefunctions(shapeF, pt.q.x, pt.q.y, pt.q.z);
+    
+    // Determine component of new vessel direction due to nodal collagen fiber orientation
+	vec3d coll_angle(0,0,0);
+	for (int i=0; i<8; ++i)
+	{
+		Node& n = elem.GetNode(i);
+		coll_angle += n.m_collfib*shapeF[i];
+	}
+
+	// make unit vector
+	coll_angle.unit();
+
+    return coll_angle;
+}
+
+//-----------------------------------------------------------------------------
+// Calculates the ecm density
+double Grid::FindECMDensity(const GridPoint& pt)
+{
+	// get the element
+	Elem& elem = GetElement(pt.nelem);
+        
+    // Obtain shape function weights
+    double shapeF[8];
+    shapefunctions(shapeF, pt.q.x, pt.q.y, pt.q.z);
+
+	// evaluate the collagen density
+	double coll_den = 0.0;
+	for (int i=0; i<8; ++i)
+	{
+		Node& n = elem.GetNode(i);
+		coll_den += n.m_ecm_den*shapeF[i];
+	}
+
+	return coll_den;
 }
