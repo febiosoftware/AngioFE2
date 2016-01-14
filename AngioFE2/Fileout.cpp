@@ -281,3 +281,19 @@ void Fileout::save_time(FEAngio& angio)
 	
 	return;
 }
+
+//-----------------------------------------------------------------------------
+// Output parameter values after the simulation ends
+void Fileout::output_params(FEAngio& angio)
+{
+	FILE *param_stream;													// Parameter output file stream                                                                                                                     
+	param_stream = fopen("out_params.ang","wt");						// Output the parameter output file
+	
+	fprintf(param_stream,"a = %5.5f \n", angio.m_sproutf);						// Print the sprout force magnitude
+	fprintf(param_stream,"tip range = %5.5f \n",angio.m_tip_range);				// Print the sprout force range
+	fprintf(param_stream,"phi_stiff_factor = %5.5f \n",angio.phi_stiff_factor);	// Print the displacement stiffness factor
+	fprintf(param_stream,"total_body_force = %10.5i \n",angio.total_bdyf);		// Print the total number of body forces
+	fclose(param_stream);												// Close the parameter output file
+
+	return;
+}

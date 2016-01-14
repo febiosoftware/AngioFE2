@@ -41,6 +41,7 @@ public:
 	void save_vessel_state(FEAngio& angio);
 	void save_bdy_forces(FEAngio& angio);
 	void save_time(FEAngio& angio);
+	void output_params(FEAngio& angio);
 
 private:
 	ofstream logstream;

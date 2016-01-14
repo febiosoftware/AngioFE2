@@ -367,7 +367,7 @@ bool FEAngio::Run()
 void FEAngio::Output()
 {
 	// Output parameters for simulation (sproutf, tip_range, phi_stiff_factor)
-	output_params();
+	fileout.output_params(*this);
 	
 	// Output data file
 	fileout.dataout(*this);
@@ -721,25 +721,6 @@ void FEAngio::adjust_mesh_stiffness()
 			num_elem++;
 		}
 	}
-
-	return;
-}
-
-///////////////////////////////////////////////////////////////////////
-// FEAngio - output_params
-//		Output parameter values after the simulation ends
-///////////////////////////////////////////////////////////////////////
-
-void FEAngio::output_params()
-{
-	FILE *param_stream;													// Parameter output file stream                                                                                                                     
-	param_stream = fopen("out_params.ang","wt");						// Output the parameter output file
-	
-	fprintf(param_stream,"a = %5.5f \n",m_sproutf);						// Print the sprout force magnitude
-	fprintf(param_stream,"tip range = %5.5f \n",m_tip_range);				// Print the sprout force range
-	fprintf(param_stream,"phi_stiff_factor = %5.5f \n",phi_stiff_factor);	// Print the displacement stiffness factor
-	fprintf(param_stream,"total_body_force = %10.5i \n",total_bdyf);		// Print the total number of body forces
-	fclose(param_stream);												// Close the parameter output file
 
 	return;
 }
