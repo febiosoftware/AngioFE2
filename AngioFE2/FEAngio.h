@@ -76,9 +76,6 @@ private:
 	// do the final output (called at the end of Run())
 	void Output();
 
-	// do sub-growth steps
-	bool Subgrowth(int sub_steps);
-
 	// update time parameters
 	void updateTime();
 
@@ -106,7 +103,6 @@ public:	// parameters read directly from file
 	int				m_bzfibflat;		// flatten fiber option
 
     double	half_cell_l;			// Half the length of one grid element in the x direction, use in determining variable time step
-	int		m_sub_cycles;			// number of FE steps per growth step
     int		m_ntime;				// number of total time steps ?
 	double	m_dtA, m_dtB, m_dtC;	// Time step parameters. TODO: make these user variables.
     

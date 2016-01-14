@@ -43,7 +43,6 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem), m_grid(fem.GetMesh())
 	m_pmat = 0;
 
 	phi_stiff_factor = 1.0;
-	m_sub_cycles = 2;
     m_ntime = 1;
 
 	// flag for generating fibers (0 = random, 3 = element orientation)
@@ -339,8 +338,14 @@ bool FEAngio::Run()
 		// This will update the stiffness of any element that contains microvessel segements 
 //		adjust_mesh_stiffness();
 		
-		// Discretize the growth step over N steps in quasi-time to produce smoother results (default N = 2)
-		if (Subgrowth(m_sub_cycles) == false) break;
+		// update sprout stress scaling
+		update_sprout_stress_scaling();
+
+		// Update the positions of the body forces
+		update_body_forces(1.0);
+
+		// Run the FE analysis
+		if (RunFEM() == false) return false;
 		
 		// Output time information	
 		fileout.save_time(*this);
@@ -403,93 +408,6 @@ bool FEAngio::RunFEM()
 
 	return true;
 }
-
-//-----------------------------------------------------------------------------
-// Step growth through a series of sub-steps to produce smoother model results.
-bool FEAngio::Subgrowth(int sub_steps)
-{
-	update_sprout_stress_scaling();
-
-	// Iterate through the number of substeps...
-	for (int k = 1; k <= sub_steps; k++)
-	{
-		// Update the value of the subgrowth scaling factor
-		double subgrowth_scale = ((double)k/(double)sub_steps);
-
-		// do the sub-growth step
-		m_pCult->SubGrowth(subgrowth_scale);
-
-		// Update the positions of the body forces
-		update_body_forces(1.0);
-
-		// Run the FE analysis
-		if (RunFEM() == false) return false;
-	}
-	
-	return true;
-}
-
-/*
-//-----------------------------------------------------------------------------
-// Use the displacement field from the FE solution to update microvessels into the current configuration
-void FEAngio::DisplaceVessels()
-{
-	double xix = 0.; double xiy = 0.; double xiz = 0.;			// Position in the element's natural coordinates		
-	double shapeF[8] = {0.};									// Array containing the shape function values at the segment's position
-
-	// loop over all fragments
-	for (SegIter it = m_pCult->SegmentBegin(); it != m_pCult->SegmentEnd(); ++it)             // Iterate through all segments in frag list container (it)                               
-	{
-		// Iterate through both segment tips
-		for (int k=0; k<2; ++k)
-		{
-			// get the tip
-			Segment::TIP& tip = it->tip(k);
-
-			// get the element number
-			int elem_num = tip.pt.nelem;								// Find the element that contains the segment tip
-			assert(elem_num >= 0);
-
-			// get the element this tip is in
-			Elem& elem = m_grid.ebin[elem_num];
-
-			// Get position to the current segment tip
-			vec3d rt_old = tip.rt;
-		    
-			// Convert the position to natural coordinates
-			m_grid.natcoord(xix, xiy, xiz, rt_old.x, rt_old.y, rt_old.z, elem_num);
-		    
-			// Obtain the values of the shape functions at this position
-			m_grid.shapefunctions(shapeF, xix, xiy, xiz);
-		    
-			// Calculate the displacement vector by interpolating nodal displacement to the segment tip
-			vec3d disp;
-			disp.x = shapeF[0]*(*elem.n1).u.x + shapeF[1]*(*elem.n2).u.x + shapeF[2]*(*elem.n3).u.x + shapeF[3]*(*elem.n4).u.x + shapeF[4]*(*elem.n5).u.x + shapeF[5]*(*elem.n6).u.x + shapeF[6]*(*elem.n7).u.x + shapeF[7]*(*elem.n8).u.x;
-			disp.y = shapeF[0]*(*elem.n1).u.y + shapeF[1]*(*elem.n2).u.y + shapeF[2]*(*elem.n3).u.y + shapeF[3]*(*elem.n4).u.y + shapeF[4]*(*elem.n5).u.y + shapeF[5]*(*elem.n6).u.y + shapeF[6]*(*elem.n7).u.y + shapeF[7]*(*elem.n8).u.y;
-			disp.z = shapeF[0]*(*elem.n1).u.z + shapeF[1]*(*elem.n2).u.z + shapeF[2]*(*elem.n3).u.z + shapeF[3]*(*elem.n4).u.z + shapeF[4]*(*elem.n5).u.z + shapeF[5]*(*elem.n6).u.z + shapeF[6]*(*elem.n7).u.z + shapeF[7]*(*elem.n8).u.z;
-		    		    
-			// Calculate the weighted displacement vector
-			vec3d weighted_disp = disp*phi_stiff_factor;
-		
-			// Update the segment tip position using the new weighted displacement vector
-			tip.rt += rt_old + weighted_disp;
-			
-			// If using the weighted displacement vector causes the segment to move outside the mesh...
-			if (m_grid.findelem(tip.rt) == -1)
-			{	
-				// Update using the full displacement vector instead
-				tip.rt = rt_old + disp;
-			}
-		}
-		
-		// Recalculate the segment's length and unit vector based on it's new position
-		it->Update();
-	}
-
-	// Update the total vascular length within the simulation   
-    UpdateTotalLength();
-}   
-*/
 
 //-----------------------------------------------------------------------------
 // Apply sprout forces to the mesh for each active vessel tip

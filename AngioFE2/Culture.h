@@ -34,9 +34,6 @@ public:
 	// Perform a growth step
 	void Grow(SimulationTime& time);
 
-	// perform a sub-growth step
-	void SubGrowth(double scale);
-
 	// Reposition the vessels based on the FE solution
 	void Update();
 

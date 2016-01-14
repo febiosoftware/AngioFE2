@@ -209,22 +209,6 @@ void Culture::GrowVessels()
 }
 
 //-----------------------------------------------------------------------------
-// TODO: This does not update the grid-point structure yet.
-void Culture::SubGrowth(double scale)
-{
-	// Iterator through the list of active segment tips
-	for (list<SegIter>::iterator tip_it = m_active_tips.begin(); tip_it != m_active_tips.end(); ++tip_it)
-	{
-		// Dereference the tip iterator to obtain the active segment
-		Segment& seg = (*(*tip_it));
-
-		// Step growth for the active segments
-		if (seg.tip(0).bactive) seg.tip(0).pt.r = seg.tip(1).pos() - seg.uvect()*(scale*seg.length());
-		if (seg.tip(1).bactive) seg.tip(1).pt.r = seg.tip(0).pos() + seg.uvect()*(scale*seg.length());
-	}
-}
-
-//-----------------------------------------------------------------------------
 // Create a new segment at the (active) tip of an existing segment
 Segment Culture::GrowSegment(Segment& it, int k, bool branch, bool bnew_vessel)
 {
