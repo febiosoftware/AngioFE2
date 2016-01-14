@@ -98,9 +98,6 @@ Segment Culture::createInitFrag()
 {
 	Grid& grid = m_angio.GetGrid();
 
-	// Create a segment
-    Segment seg;
-
 	// Set seg length to value of growth function at t = 0
 	double seg_length = m_vess_length;
     
@@ -108,7 +105,7 @@ Segment Culture::createInitFrag()
 	// Since the creation of such a segment may fail (i.e. too close to boundary)
 	// we loop until we find one.
 	// TODO: This could potentially create an infinite loop so I should probably safeguard against it.
-	GridPoint p1;
+	GridPoint p0, p1;
 	do
 	{
 		// pick a random element
@@ -120,21 +117,24 @@ Segment Culture::createInitFrag()
 		vec3d q = vrand();
 
 		// set the position of the first tip
-		seg.tip(0).pt = GridPoint(elem_num, q);
-		seg.tip(0).pt.r = grid.Position(seg.tip(0).pt);
+		p0 = grid.FindGridPoint(elem_num, q);
     
 		// Determine vessel orientation based off of collagen fiber orientation
-		vec3d seg_vec = grid.CollagenDirection(seg.tip(0).pt);
+		vec3d seg_vec = grid.CollagenDirection(p0);
 
 		// End of new segment is origin plus length component in each direction	
-		vec3d r1 = seg.tip(0).pos() + seg_vec*seg_length;
+		vec3d r1 = p0.r + seg_vec*seg_length;
 
 		// find the element where the second tip is
 		grid.FindGridPoint(r1, p1);
 	}
 	while (p1.nelem == -1);
 
-	// assign the grid point to the end tip
+	// Create a segment
+    Segment seg;
+
+	// assign the grid points
+	seg.tip(0).pt = p0;
 	seg.tip(1).pt = p1;
 	
 	// update length and unit vector
@@ -201,6 +201,7 @@ void Culture::GrowVessels()
 				Segment seg = GrowSegment(*it, k);
 
 				// Add the segment to the network
+				// This will also enforce the boundary conditions
 				AddNewSegment(seg, k);
 			}
 	    }
@@ -208,6 +209,7 @@ void Culture::GrowVessels()
 }
 
 //-----------------------------------------------------------------------------
+// TODO: This does not update the grid-point structure yet.
 void Culture::SubGrowth(double scale)
 {
 	// Iterator through the list of active segment tips
@@ -458,6 +460,7 @@ void Culture::AddNewSegment(Segment& seg, int k)
 	// get the new tip
 	Segment::TIP& new_tip = seg.tip(k);
 	assert(new_tip.pt.nelem == -1);
+	assert(new_tip.bactive);
 
 	// Find the position of the new end point
 	Grid& grid = m_angio.GetGrid();

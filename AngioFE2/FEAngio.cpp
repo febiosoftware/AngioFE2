@@ -416,7 +416,7 @@ bool FEAngio::Subgrowth(int sub_steps)
 		// Update the value of the subgrowth scaling factor
 		double subgrowth_scale = ((double)k/(double)sub_steps);
 
-		// do the sub-growht step
+		// do the sub-growth step
 		m_pCult->SubGrowth(subgrowth_scale);
 
 		// Update the positions of the body forces

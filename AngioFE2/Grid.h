@@ -12,11 +12,15 @@ class FEMesh;
 // utility class for defining an intersection of a face
 struct FACE_INTERSECTION 
 {
+public:
 	int		nelem;	// element number
 	int		nface;	// face number
 	double	r[2];	// natural coordinates
 	vec3d	q;		// intersection point (global coordinates)
 	vec3d	norm;	// noram at intersection point
+
+public:
+	FACE_INTERSECTION() { nelem = nface = -1; }
 };
 
 //-----------------------------------------------------------------------------
@@ -49,10 +53,16 @@ public:
 	// get element
 	Elem& GetElement(int i) { return m_Elem[i]; }
 
+	// number of faces
+	int Faces() { return (int) m_Face.size(); }
+
+	// get a face
+	Face& GetFace(int i) { return m_Face[i]; }
+
 public:
 	// find an intersection of a segment with an element
 	// The intersection point is returned in q.
-	bool FindIntersection(vec3d& r0, vec3d& r1, int elem, FACE_INTERSECTION& ic);
+	bool FindIntersection(vec3d& r0, vec3d& r1, FACE_INTERSECTION& ic);
 
 	// Accepts a position in global coordinates and determines the position in natural coorindates for the particular grid element
     void natcoord(vec3d& q, const vec3d& pt, int elem_num);
@@ -66,6 +76,9 @@ public:
 	// return a GridPoint variable from a global point
 	// If the point lies outside the grid, GridPoint::nelem = -1.
 	bool FindGridPoint(const vec3d& r, GridPoint& p);
+
+	// setup a grid point structure
+	GridPoint FindGridPoint(int nelem, vec3d& q);
 
     // Determine the shape function values for a given position in natural coorindates
     void shapefunctions(double (&shapeF)[8], double r, double s, double t);
@@ -97,6 +110,9 @@ private:
 
 	// update ECM data (after grid deformation).
 	void update_ECM();
+
+	// find the intersection with a face
+	bool FindIntersection(vec3d& r0, vec3d& r1, int nface, FACE_INTERSECTION& ic);
     
 public: // user parameters
 

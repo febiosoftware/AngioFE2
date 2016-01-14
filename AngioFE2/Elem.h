@@ -35,8 +35,10 @@ public:
 	Face();
 
 public:
+	int				id;				// face id (zero-based)
 	unsigned int	bc_type;		// boundary condition type for this face
 	int				m_nelem;		// element number that this face belongs to.
+	int				m_node[4];		// nodal IDs
 };
 
 //-----------------------------------------------------------------------------

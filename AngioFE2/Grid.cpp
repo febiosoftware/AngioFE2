@@ -189,11 +189,17 @@ void Grid::BuildFaces()
 		{
 			if (el.m_nbr[j] == -1)
 			{
-				Face& f = m_Face[NF++];
+				Face& f = m_Face[NF];
 				assert(f.m_nelem == -1);
 				f.m_nelem = i;
 				assert(el.m_pface[j]==0);
 				el.m_pface[j] = &f;
+
+				// assign ID
+				f.id = NF++;
+
+				// assign node numbers
+				el.GetFace(j, f.m_node);
 
 				// set the default bc type
 				f.bc_type = m_bc_type;
@@ -240,6 +246,14 @@ int Grid::findelem(const vec3d& pt)
 }
 
 //-----------------------------------------------------------------------------
+GridPoint Grid::FindGridPoint(int nelem, vec3d& q)
+{
+	GridPoint pt(nelem, q);
+	pt.r = Position(pt);
+	return pt;
+}
+
+//-----------------------------------------------------------------------------
 // Find the GridPoint where the point pt lies. 
 // This effectively finds the element number and the natural coordinates of 
 // point pt inside the element.
@@ -280,6 +294,7 @@ bool Grid::FindGridPoint(const vec3d& r, GridPoint& p)
 				p.q = q;
 				p.nelem = i;
 				p.r = Position(p);
+				assert((p.r - r).norm() < 1e-9);
 				return true;
 			}
 		}
@@ -581,58 +596,70 @@ vec3d FindFaceNormal(vec3d y[4], double r, double s)
 // It assumes that point1 (r0) of the segment is inside the element, whereas point2 (r1) does not.
 // The intersection point is returned int q and the facet number in face.
 // The function returns false if the intersection search fails.
-bool Grid::FindIntersection(vec3d& r0, vec3d& r1, int elem, FACE_INTERSECTION& ic)
+bool Grid::FindIntersection(vec3d& r0, vec3d& r1, int nface, FACE_INTERSECTION& ic)
 {
-	double lam_min = 1e99;
+	// get the face
+	Face& face = m_Face[nface];
 
-	ic.nelem = elem;
-	ic.nface = -1;
-	Elem& el = m_Elem[elem];
-
-	vec3d d = r1 - r0;
-	int nf[4];
+	// get the face nodal coordinates
 	vec3d y[4];
-	for (int i=0; i<6; ++i)
-	{
-		// we only search open faces
-		if (el.m_nbr[i] == -1)
-		{
-			el.GetFace(i, nf);
-			y[0] = m_Node[nf[0]].rt;
-			y[1] = m_Node[nf[1]].rt;
-			y[2] = m_Node[nf[2]].rt;
-			y[3] = m_Node[nf[3]].rt;
+	y[0] = m_Node[face.m_node[0]].rt;
+	y[1] = m_Node[face.m_node[1]].rt;
+	y[2] = m_Node[face.m_node[2]].rt;
+	y[3] = m_Node[face.m_node[3]].rt;
 
-			double lam = 0.5, r = 0.0, s = 0.0;
-			if (IntersectFace(y, r0, r1, lam, r, s))
+	// find the intersection with this face
+	double lam = 0.5, r = 0.0, s = 0.0;
+	if (IntersectFace(y, r0, r1, lam, r, s))
+	{
+		if ((lam <= 1.0001) && (lam >= 0.0))
+		{
+			ic.q = r0 + (r1 - r0)*(0.95*lam);
+			ic.nface = nface;
+			ic.nelem = face.m_nelem;
+			ic.r[0] = r;
+			ic.r[1] = s;
+			ic.norm = FindFaceNormal(y, ic.r[0], ic.r[1]);
+			return true;
+		}
+	}
+	return false;
+}
+
+//-----------------------------------------------------------------------------
+// This function tries to find the face of an element that intersects the segment.
+// It assumes that point1 (r0) of the segment is inside the element, whereas point2 (r1) does not.
+// The intersection point is returned int q and the facet number in face.
+// The function returns false if the intersection search fails.
+bool Grid::FindIntersection(vec3d& r0, vec3d& r1, FACE_INTERSECTION& ic)
+{
+	// let's try the element's faces first
+	if (ic.nelem >= 0)
+	{
+		Elem& el = m_Elem[ic.nelem];
+		for (int i=0; i<6; ++i)
+		{
+			Face* pf = el.GetFace(i);
+			if (pf)
 			{
-				if ((lam <= 1.0001) && (lam >= 0.0) && (lam < lam_min))
-				{
-					ic.q = r0 + d*(0.95*lam);
-					ic.nface = i;
-					ic.r[0] = r;
-					ic.r[1] = s;
-					lam_min = lam;
-				}
+				if (FindIntersection(r0, r1, pf->id, ic)) return true;
 			}
 		}
 	}
 
-	assert(ic.nface!=-1);
-	assert(m_Elem[elem].m_nbr[ic.nface] == -1);
-
-	// calculate face normal
-	if (ic.nface != -1)
+	
+	// we do an expensive search over all faces.
+	// TODO: set up a neighbor structure for faces 
+	//       and use this to speed this up.
+	int NF = Faces();
+	for (int i=0; i<NF; ++i)
 	{
-		el.GetFace(ic.nface, nf);
-		y[0] = m_Node[nf[0]].rt;
-		y[1] = m_Node[nf[1]].rt;
-		y[2] = m_Node[nf[2]].rt;
-		y[3] = m_Node[nf[3]].rt;
-		ic.norm = FindFaceNormal(y, ic.r[0], ic.r[1]);
+		if (FindIntersection(r0, r1, i, ic)) return true;
 	}
 
-	return (ic.nface!=-1);
+	assert(false);
+
+	return false;
 }
 
 //-----------------------------------------------------------------------------

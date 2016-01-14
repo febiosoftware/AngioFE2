@@ -170,6 +170,7 @@ void FEAngioMaterial::UpdateSprout(SPROUT& s, const vec3d& r)
 	
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(mesh.Domain(0));
 	s.pel = dom.FindElement(r, s.r);
+//	assert(s.pel);
 }
 
 //-----------------------------------------------------------------------------
@@ -239,7 +240,8 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 			s += si;
 		}
 	}
-	return s;}
+	return s;
+}
 
 //-----------------------------------------------------------------------------
 tens4ds FEAngioMaterial::Tangent(FEMaterialPoint& mp)

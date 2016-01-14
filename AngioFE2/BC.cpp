@@ -33,10 +33,9 @@ void BC::checkBC(Segment &seg, int k)
 
 	// find the intersection with the element's boundary
 	FACE_INTERSECTION ic;
-	if (grid.FindIntersection(r0, r1, elem_num, ic))
+	ic.nelem = elem_num;
+	if (grid.FindIntersection(r0, r1, ic))
 	{
-		Elem& elem = grid.GetElement(elem_num);
-
 		// enforce the BC
 		enforceBC(seg, k, ic);
 	}
@@ -57,7 +56,7 @@ void BC::enforceBC(Segment &seg, int k, FACE_INTERSECTION& ic)
 	Elem& elem = grid.GetElement(ic.nelem);
 
 	// get the BC type
-	unsigned int bctype = elem.GetFace(ic.nface)->bc_type;
+	unsigned int bctype = grid.GetFace(ic.nface).bc_type;
 	
 	// vessel stops growing
     if (bctype == BC::STOP){
@@ -238,6 +237,7 @@ void BC::BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic)
 		seg2.tip(1).pt = tip.pt;
 		seg2.tip(1).bactive = false;
 	}
+	seg2.Update();
 
 	// calculate the recoil vector
 	vec3d t = r1 - r0; t.unit();
