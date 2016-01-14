@@ -225,6 +225,8 @@ void BC::BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic)
 
 	// create a new segment
 	Segment seg2;
+	seg2.m_nseed = seg.m_nseed;
+	seg2.m_nvessel = seg.m_nvessel;
 
 	// set the starting point at the intersection point
 	if (k==1)

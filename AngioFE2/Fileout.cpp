@@ -67,17 +67,19 @@ void Fileout::printStatus(FEAngio& angio)
     
 	cout << endl << "Time: " << t.t << endl;                             // Print out current time to user
 	//cout << "dt: " << data.dt << endl;
-    cout << "Segments: " << cult.Segments() << endl;                             // Print out current number of segments to user
-	cout << "Total Length: " << cult.TotalVesselLength() << endl;                  // Print out the current total length to user
+    cout << "Segments     : " << cult.Segments() << endl;                             // Print out current number of segments to user
+	cout << "Total Length : " << cult.TotalVesselLength() << endl;                  // Print out the current total length to user
+	cout << "Vessels      : " << cult.m_num_vessel << endl;
 	cout << "Branch Points: " << cult.m_num_branches << endl;                 // Print out the current number of branches to user
-	cout << "Anastomoses: " << cult.m_num_anastom << endl << endl;            // Print out the current number of anastomoses to user
+	cout << "Anastomoses  : " << cult.m_num_anastom << endl << endl;            // Print out the current number of anastomoses to user
     
     logstream << endl << "Time: " << t.t << endl;                        // Print out current time to log file
 	//logstream << "dt: " << data.dt << endl;
-    logstream << "Segments: " << cult.Segments() << endl;                        // Print out current number of segments to log file
-	logstream << "Total Length: " << cult.TotalVesselLength() << endl;             // Print out the current total length to log file
+    logstream << "Segments     : " << cult.Segments() << endl;                        // Print out current number of segments to log file
+	logstream << "Total Length : " << cult.TotalVesselLength() << endl;             // Print out the current total length to log file
+	logstream << "Vessels      : " << cult.m_num_vessel << endl;
 	logstream << "Branch Points: " << cult.m_num_branches << endl;            // Print out the current number of branches to log file
-	logstream << "Anastomoses: " << cult.m_num_anastom << endl << endl;       // Print out the current number of anastomoses to log file
+	logstream << "Anastomoses  : " << cult.m_num_anastom << endl << endl;       // Print out the current number of anastomoses to log file
         
     return;
 }

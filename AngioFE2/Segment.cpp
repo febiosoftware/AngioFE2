@@ -20,8 +20,8 @@ Segment::Segment()
 	
 	// initialize IDs
 	m_nid = 0;
-	m_nseed = 0;
-    m_nvessel = 0;
+	m_nseed   = -1;
+    m_nvessel = -1;
     
 	// initialize status flags
 	m_nflag = 0;

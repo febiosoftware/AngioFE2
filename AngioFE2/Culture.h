@@ -84,13 +84,13 @@ private:
 	void BranchSegment(Segment& it, int k);
 
 	// fuse segments (i.e. anastomosis)
-	void FuseVessels(SimulationTime& time);
+	void FuseVessels();
 
 	// Grow a segment
 	Segment GrowSegment(Segment& it, int k, bool branch = false, bool bnew_vessel = false);
 
 	// Create a new segment connecting two existing segments that are fusing through anastomosis
-	Segment ConnectSegment(Segment& it, Segment& it2, int k, int kk, SimulationTime& time);
+	Segment ConnectSegment(Segment& it, Segment& it2, int k, int kk);
 
 	// Update the new vessel length 
 	void UpdateNewVesselLength(SimulationTime& time);
@@ -99,8 +99,6 @@ private:
 	void FindActiveTips();
 
 	void CreateBranchingForce(Segment& seg);
-    void check4anast(Segment& it, int k, SimulationTime& time);
-    void anastomose(double dist0, double dist1, int k, Segment& it, Segment& it2, SimulationTime& time);
 
 public: // TODO: make private
 	list<SegIter> m_active_tips;		// list of active segments

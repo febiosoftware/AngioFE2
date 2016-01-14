@@ -20,11 +20,11 @@ Culture::Culture(FEAngio& angio) : bc(angio), m_angio(angio)
 	m_num_branches = 0;		// Initialize branching counter
 
 	m_num_zdead = 0;
-	m_anast_dist = 75.0;
+	m_anast_dist = 8.6;
 
     m_total_length = 0.;
     
-	// parameter for growth curve (TODO: Maybe move all this to Culture?)
+	// parameter for growth curve
     m_a = 1900.0;
     m_b = 1.4549;
     m_x0 = 4.9474;
@@ -168,7 +168,7 @@ void Culture::Grow(SimulationTime& time)
 	if (yes_branching) BranchVessels(time);
 
 	// Anastomosis phase
-	if (yes_anast) FuseVessels(time);
+	if (yes_anast) FuseVessels();
 
 	// Update all active growth tips
 	FindActiveTips();
@@ -379,57 +379,67 @@ void Culture::CreateBranchingForce(Segment& seg)
 }
 
 //-----------------------------------------------------------------------------
-// Fuse
-void Culture::FuseVessels(SimulationTime& time)
+// Anastimoses phase.
+// TODO: This only implements fusing at tips. Maybe we should extend this to do line-line intersections.
+void Culture::FuseVessels()
 {
-    for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
+	// loop over all segments
+    for (SegIter it1 = m_frag.begin(); it1 != m_frag.end(); ++it1)
 	{
-		check4anast(*it, 0, time);
-        check4anast(*it, 1, time);
+		// Make sure the vessels has not fused yet
+		if (it1->GetFlag(Segment::ANAST) == false)
+		{
+			// loop over tips
+			for (int k1=0; k1<2; ++k1)
+			{
+				// Make sure the tip is active
+				if (it1->tip(k1).bactive)
+				{
+					for (SegIter it2 = m_frag.begin(); it2 != m_frag.end(); ++it2)
+					{
+						// make sure neither segments sprout from the same initial fragment
+						// TODO: why is this not allowed? I think this might be to prevent
+						//       anastimoses after branching since the branched vessels can be small. Find a better way!
+						if (it1->m_nseed != it2->m_nseed)
+						{
+							double dist0 = (it1->tip(k1).pos() - it2->tip(0).pos()).norm();
+							double dist1 = (it1->tip(k1).pos() - it2->tip(1).pos()).norm();
+
+							// pick the closest tip
+							double dist = dist0;
+							int k2 = 0;
+							if (dist1 < dist0) { k2 = 1; dist = dist1; }
+
+							// see if we can fuse
+							if (dist < m_anast_dist)
+							{
+								// create a segment between the two segments to complete the anastomosis
+								Segment seg = ConnectSegment(*it1, *it2, k1, k2);
+
+								// mark segments
+								seg.SetFlagOn(Segment::ANAST);
+								it1->SetFlagOn(Segment::ANAST);
+								it2->SetFlagOn(Segment::ANAST);
+
+								// add it to the list
+								AddSegment(seg);
+
+								// deactivate tips
+								it1->tip(k1).bactive = false;
+								it2->tip(k2).bactive = false;	// for end-to-end anastimoses.
+							
+								// increment counter
+								++m_num_anastom;
+
+								// break it2 loop since tip(k1) is no longer active
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
 	} 
-}
-
-//-----------------------------------------------------------------------------
-// check4anast
-void Culture::check4anast(Segment& it, int k, SimulationTime& time)
-{
-    if (it.tip(k).bactive == false) return;
-	
-	if (it.GetFlag(Segment::ANAST)) return;
-	
-    for (SegIter it2 = m_frag.begin(); it2 != m_frag.end(); ++it2)
-	{                                                           
-	    double dist0 = (it.tip(k).pos() - it2->tip(0).pos()).norm(); dist0 *= dist0;
-		double dist1 = (it.tip(k).pos() - it2->tip(1).pos()).norm(); dist1 *= dist1;
-        anastomose(dist0, dist1, k, it, *it2, time);
-    } 
-}
-
-//-----------------------------------------------------------------------------
-// anastomose
-void Culture::anastomose(double dist0, double dist1, int k, Segment& it1, Segment& it2, SimulationTime& time)
-{
-	// make sure neither segments are anastomosed.
-	if ((it1.GetFlag(Segment::ANAST)) || (it2.GetFlag(Segment::ANAST))) return;
-    
-	// make sure neither segments sprout from the same initial fragment
-	// TODO: why is this not allowed?
-    if (it1.m_nseed == it2.m_nseed) return;
-
-    int kk = -1;
-    if (dist0 <= m_anast_dist)
-        kk = 0;
-    else if (dist1 <= m_anast_dist)
-        kk = 1;
-  
-    if (kk == -1) return;
-                                                
-	// This function will create a segment between to two segments to complete the anastomosis
-	Segment seg = ConnectSegment(it1,it2,k,kk, time);
-
-	AddSegment(seg);
-	it1.tip(k ).bactive = false;		// Deactivate tip of segment 1 after anastomosis
-	it2.tip(kk).bactive = false;		// Deactivate tip of segment 2 after anastomosis (tip-tip anastomosis only)
 }
 
 //-----------------------------------------------------------------------------
@@ -472,6 +482,9 @@ void Culture::AddSegment(Segment& seg)
 	// let's check a few things
 	assert(seg.tip(0).pt.nelem >= 0);
 	assert(seg.tip(1).pt.nelem >= 0);
+
+	assert(seg.m_nseed >= 0);
+	assert(seg.m_nvessel >= 0);
 
 	seg.m_nid = m_nsegs;
 	SimulationTime& sim_time = m_angio.CurrentSimTime();
@@ -523,24 +536,19 @@ double Culture::FindDensityScale(const GridPoint& pt)
 
 //-----------------------------------------------------------------------------
 // creates a new segment to connect close segments
-Segment Culture::ConnectSegment(Segment& it1, Segment& it2, int k, int kk, SimulationTime& time)
+Segment Culture::ConnectSegment(Segment& it1, Segment& it2, int k1, int k2)
 {
  	Segment seg;
  	seg.m_nseed   = it1.m_nseed;
  	seg.m_nvessel = it1.m_nvessel;
  	
-	seg.tip(0).pt = it1.tip(k).pt;
-	seg.tip(1).pt = it2.tip(kk).pt;
+	seg.tip(0).pt = it1.tip(k1).pt;
+	seg.tip(1).pt = it2.tip(k2).pt;
 	seg.Update();
  	
  	seg.tip(0).bactive = false;
  	seg.tip(1).bactive = false;
-	seg.SetFlagOn(Segment::ANAST);
-	it1.SetFlagOn(Segment::ANAST);
-	it2.SetFlagOn(Segment::ANAST);
 
- 	++m_num_anastom;
- 	
 	return seg;
  }
 
@@ -614,6 +622,7 @@ double findIntersect(vec3d& a, vec3d& b, vec3d& c, vec3d& d, vec3d& intersectpt)
 //-----------------------------------------------------------------------------
 // Checks for intersection between a passed segment and all other existing segments that are not members
 // of vessel containing the segment
+// TODO: This is currently not used but might be useful for doing segment-segment intersections.
 void Culture::CheckForIntersection(Segment &seg, Segment& it)
 {
 	vec3d p1, p2, pp1, pp2; //tip points for segment to check intersection
