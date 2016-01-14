@@ -5,6 +5,7 @@
 #include "FEAngio.h"
 #include "Filein.h"
 #include <iostream>
+#include <FECore/FEModel.h>
 using namespace std;
 
 //-----------------------------------------------------------------------------
@@ -46,8 +47,8 @@ bool AngioFETask::Init(const char* inpfile)
 
 //-----------------------------------------------------------------------------
 // This runs the actual simulation.
-// This just calls the FEAngio::Run function.
+// This just calls the FEModel::Run function.
 bool AngioFETask::Run()
 {
-	return m_pangio->Run();
+	return GetFEModel()->Solve();
 }

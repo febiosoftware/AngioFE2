@@ -32,9 +32,6 @@ public:
 	// initialize the FEAnio class
 	bool Init();
 
-	// run the simulation
-	bool Run();
-
 	// Get the FE model
 	FEModel& GetFEModel();
 
@@ -69,14 +66,17 @@ private:
 	// Init FE stuff
 	bool InitFEM();
 
-	// Run the FE model
-	bool RunFEM();
-
-	// do the final output (called at the end of Run())
+	// do the final output
 	void Output();
 
-	// update time parameters
-	void updateTime();
+private:
+	static void feangio_callback(FEModel* pfem, unsigned int nwhen, void* pd)
+	{
+		FEAngio* pfa = (FEAngio*)(pd);
+		pfa->OnCallback(pfem, nwhen);
+	}
+
+	void OnCallback(FEModel* pfem, unsigned int nwhen);
 
 public:	// parameters read directly from file
 

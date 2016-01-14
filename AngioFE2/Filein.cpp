@@ -103,16 +103,6 @@ bool Filein::set_param(FEAngio& angio, char* buffer, char* pname)
         sscanf(buffer,"%*s %*s %i",&cult.m_ninit_frags);
         return true;}        
     
-	// End of culture period (max_time 6.0) days
-    if (!strcmp(pname,"max_time")){
-        sscanf(buffer,"%*s %*s %lf",&sim_time.maxt);
-        return true;}  
-    
-	// Initial time step (dt 0.25) days
-    if (!strcmp(pname,"dt")){
-        sscanf(buffer,"%*s %*s %lf",&sim_time.dt);
-        return true;}  
-    
 	// Anastomosis distance (anst_dst 25.0) um 
     if (!strcmp(pname,"anst_dst")){
 		sscanf(buffer,"%*s %*s %lf",&cult.m_anast_dist);

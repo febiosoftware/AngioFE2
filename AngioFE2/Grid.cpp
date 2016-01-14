@@ -225,7 +225,7 @@ int Grid::findelem(const vec3d& pt)
 		BBOX b = elem.GetBoundingBox();
 
 		// inflate it a bit
-		double inf = b.Size();
+		double inf = 0.01*b.Size();
 		b.Inflate(inf);
 
 		// Do a quick check to see if the point lies inside the bounding box

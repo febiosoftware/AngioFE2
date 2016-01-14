@@ -486,6 +486,8 @@ void Culture::AddSegment(Segment& seg)
 	assert(seg.m_nseed >= 0);
 	assert(seg.m_nvessel >= 0);
 
+	assert(seg.length() < 1.1*m_vess_length);
+
 	seg.m_nid = m_nsegs;
 	SimulationTime& sim_time = m_angio.CurrentSimTime();
 	seg.SetTimeOfBirth(sim_time.t);

@@ -207,8 +207,17 @@ bool FEAngio::InitFEM()
 	else
 		felog.printf("Angio materia NOT found. Body-force appraoch will be used.");
 
+	// register the callback
+	m_fem.AddCallback(FEAngio::feangio_callback, CB_UPDATE_TIME | CB_MAJOR_ITERS | CB_SOLVED, this);
+
 	// Do the model initialization
 	if (m_fem.Init() == false) return false;
+
+	// apply the intial sprout forces
+	apply_sprout_forces(1, 0.5);
+
+	// Adjust the stiffness of the mesh based on microvessel volume
+	adjust_mesh_stiffness();
 
 	// only output to the logfile (not to the screen)
 	felog.SetMode(Logfile::FILE_ONLY);
@@ -313,51 +322,49 @@ bool FEAngio::InitCollagenFibers()
 }
 
 //-----------------------------------------------------------------------------
-// This function runs the angiongenesis simulation code. 
-// It basically repeats for each time step the following: first it does a growth step
-// followed by an FE simulation (i.e. FEBio solve). 
-bool FEAngio::Run()
+void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 {
-	// Solve for initial step
-	if (RunFEM() == false) return false;
+	FEModel& fem = *pfem;
 
-	// Apply sprout forces at active growth tips
-	apply_sprout_forces(1, 0.5);						// Apply sprout forces to the mesh
-	adjust_mesh_stiffness();							// Adjust the stiffness of the mesh based on microvessel volume
+	if (nwhen == CB_UPDATE_TIME)
+	{
+		// grab the time information
+		m_time.t = fem.m_ftime;
+		m_time.dt = fem.GetCurrentStep()->m_dt;
 
-	// This is the main time loop
-	while (m_time.t < m_time.maxt)
-	{	
-		// Determine the current time step and update time
-		updateTime();
-
-		// Grow the culture (Elongation, Branching, and Anastomosis)
+		// do a growth step
 		m_pCult->Grow(m_time);
-    	
-		// Uncomment this if not using a composite material model.
-		// This will update the stiffness of any element that contains microvessel segements 
-//		adjust_mesh_stiffness();
-		
+
 		// update sprout stress scaling
 		update_sprout_stress_scaling();
 
 		// Update the positions of the body forces
 		update_body_forces(1.0);
+	}
+	else if (nwhen == CB_MAJOR_ITERS)
+	{
+		// update the grid data
+		m_grid.Update();
 
-		// Run the FE analysis
-		if (RunFEM() == false) return false;
-		
+		// update the culture
+		m_pCult->Update();
+
+		++FE_state;
+
+		// Save the current vessel state
+		fileout.save_vessel_state(*this);
+
 		// Output time information	
 		fileout.save_time(*this);
 		
 		// Print the status of angio3d to the user    
 		fileout.printStatus(*this);
 	}
-
-	// generate all output
-	Output();
-
-	return true;
+	else if (nwhen == CB_SOLVED)
+	{
+		// do the final output
+		Output();
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -377,36 +384,6 @@ void FEAngio::Output()
 
 	// Output final matrix density
 	fileout.writeECMDen(GetGrid());
-}
-
-//-----------------------------------------------------------------------------
-// This runs the FE model and updates the grid and other data that depends on
-// the FE solution.
-bool FEAngio::RunFEM()
-{
-	// increase the FE_state counter
-	FE_state++;
-
-	// Reset some parameters for FEBio
-	FEAnalysis* pstep = m_fem.GetCurrentStep();
-	pstep->m_dt         = pstep->m_dt0;
-	pstep->m_ntimesteps = 0;
-	pstep->m_iteopt     = 100;
-	pstep->m_maxretries = 10;
-
-	// Solve the FE problem
-	if (m_fem.Solve() == false) return false;
-
-	// update the grid data
-	m_grid.Update();
-
-	// update the culture
-	m_pCult->Update();
-
-	// Save the current vessel state
-	fileout.save_vessel_state(*this);
-
-	return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -949,19 +926,4 @@ bool CreateDensityMap(vector<double>& density, FEMaterial* pmat)
 
 	// If we get here, all is well.
 	return true;
-}
-
-//-----------------------------------------------------------------------------
-// Update the time step size and current time value.
-void FEAngio::updateTime()
-{
-	double dt = m_dtA*exp(m_dtB/(m_ntime + m_dtC));
-    m_ntime += 1;
-
-    if (dt > (m_time.maxt - m_time.t) && (m_time.maxt - m_time.t) > 0)       // If dt is bigger than the amount of time left...
-		dt = m_time.maxt - m_time.t;                                       // then just set dt equal to the amount of time left (maxt-t)
-
-	// Update time
-	m_time.dt = dt;
-    m_time.t += dt; 
 }

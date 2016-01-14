@@ -255,6 +255,7 @@ void BC::BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic)
 		seg2.tip(1).pt.r = q + new_vec*remain_length;
     else if (k == 0)
         seg2.tip(0).pt.r = q - new_vec*remain_length;
+	seg2.Update();
 
 	// activate the new tip
 	seg2.tip(k).bactive = true;
