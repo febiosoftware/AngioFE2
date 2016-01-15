@@ -61,8 +61,6 @@ FESproutBodyForce::FESproutBodyForce(FEModel* pfem) : FEBodyForce(pfem)
 
 vec3d FESproutBodyForce::force(FEMaterialPoint& mp)
 {
-	//profiler.time_in(2);
-	
 	FEElasticMaterialPoint& pt = *mp.ExtractData<FEElasticMaterialPoint>();		// Get the material point data
 	vec3d x = pt.m_rt;															// Get the position of the material point 
 
@@ -75,26 +73,21 @@ vec3d FESproutBodyForce::force(FEMaterialPoint& mp)
 	{
 		SPROUT& sp = m_sp[i];														// Get the sprout
 		
-		if (sp.active)																// If the sprout is active...
-		{
-			vec3d r = sp.rc - x;														// Calculate the vector r between x and the sprout position				
-			double l = r.unit();														// Get the length of r
-			sp.sprout.unit();															// Normalize the sprout direction vector
-			double theta = acos(sp.sprout*r);											// Calculate theta, the angle between r and the sprout vector
+		vec3d r = sp.rc - x;														// Calculate the vector r between x and the sprout position				
+		double l = r.unit();														// Get the length of r
+		sp.sprout.unit();															// Normalize the sprout direction vector
+		double theta = acos(sp.sprout*r);											// Calculate theta, the angle between r and the sprout vector
 
-			double g = m_a*(pow(cos(theta/2),m_factor))*exp(-m_b*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
-			//double g = m_a*exp(-m_b*l);
+		double g = m_a*(pow(cos(theta/2),m_factor))*exp(-m_b*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
+		//double g = m_a*exp(-m_b*l);
 
-			vec3d fi = -r*g;
-			if (sym_on == true)															// If symmetry is turned on, apply symmetry
-				MirrorSym(x, fi, sp);
+		vec3d fi = -r*g;
+		if (sym_on == true)															// If symmetry is turned on, apply symmetry
+			MirrorSym(x, fi, sp);
 
 #pragma omp critical
- 			f += fi;																	// Add results to the force vector
-		}
+			f += fi;																	// Add results to the force vector
 	}
-	
-	//profiler.time_out();
 
 	return f;
 }

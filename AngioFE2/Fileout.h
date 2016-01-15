@@ -39,16 +39,18 @@ public:
 	void printtime(FEAngio& angio);
 	void printrandseed(int randseed);
 	void save_vessel_state(FEAngio& angio);
+	void save_active_tips(FEAngio& angio);
 	void save_bdy_forces(FEAngio& angio);
 	void save_time(FEAngio& angio);
 	void output_params(FEAngio& angio);
 
 private:
 	ofstream logstream;
-    FILE*	m_stream3;      
-	FILE*	m_stream;     // Open stream to 'data.ang' (stream)
-	FILE*	m_stream2; 
+	FILE*	m_stream;	// Open stream to 'data.ang' (stream)
+	FILE*	m_stream2;	// vessel state 
+    FILE*	m_stream3;
 	FILE*	bf_stream;
+	FILE*	m_stream4;	// active tips
 
 	FILE *time_stream;
 	bool time_write_headers;

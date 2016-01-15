@@ -37,11 +37,9 @@ class FEAngioMaterial : public FEElasticMaterial
 public:
 	struct SPROUT
 	{
-		bool	bactive;
-		vec3d	sprout;
-
-		FEElement*	pel;
-		double	r[3];	// iso-parameteric elements
+		vec3d		sprout;	// sprout direction
+		FEElement*	pel;	// element in which this sprout lies
+		double		r[3];	// iso-parameteric elements
 	};
 
 public:
@@ -61,11 +59,12 @@ public:
 	FEMaterialPoint* CreateMaterialPointData();
 
 public:
-	// add a sprout force
-	void AddSprout(const vec3d& r, const vec3d& n);
+	// clear all sprouts
+	void ClearSprouts();
 
-	// update the sprout position
-	void UpdateSprout(SPROUT& s, const vec3d& r);
+	// add a sprout force
+	// at position r with directional vector n
+	void AddSprout(const vec3d& r, const vec3d& n);
 
 	// return number of sprouts
 	int Sprouts() { return (int) m_spr.size(); }

@@ -13,6 +13,7 @@ class GridPoint;
 
 //-----------------------------------------------------------------------------
 typedef list<Segment>::iterator SegIter;
+typedef list<Segment::TIP*>::iterator TipIter;
 
 //-----------------------------------------------------------------------------
 // The CULTURE class contains all the functions that describe how the 
@@ -101,7 +102,7 @@ private:
 	void CreateBranchingForce(Segment& seg);
 
 public: // TODO: make private
-	list<SegIter> m_active_tips;		// list of active segments
+	list<Segment::TIP*> m_active_tips;		// list of active tips
 
 private:
 	int				m_nsegs;			// Counter that stores in current number of Segments within the simulation domain

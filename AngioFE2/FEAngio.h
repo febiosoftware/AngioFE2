@@ -47,14 +47,13 @@ public:
 	// get the simulation time
 	SimulationTime& CurrentSimTime() { return m_time; }
 
+	// Total number of sprouts
+	int Sprouts();
+
 public:
-	void apply_sprout_forces(int load_curve, double scale);
-	int create_body_force(vec3d sprout_vect, double xpt, double ypt, double zpt, double mag, double range, int load_curve);
-	void update_body_forces(double scale);
 	void adjust_mesh_stiffness();
 	void update_ecm_den_grad();
 	void update_sprout_stress_scaling();
-	void update_angio_sprout(int i, bool bactive, const vec3d& rc, const vec3d& sprout_vect);
 
 private:
 	// Initialize the nodal ECM values
@@ -68,6 +67,12 @@ private:
 
 	// do the final output
 	void Output();
+
+	// create the sprouts
+	void CreateSprouts(double scale);
+
+	// update sprouts
+	void UpdateSprouts(double scale);
 
 private:
 	static void feangio_callback(FEModel* pfem, unsigned int nwhen, void* pd)

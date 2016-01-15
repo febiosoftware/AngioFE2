@@ -12,6 +12,7 @@
 #include "FEAngio.h"
 #include <iostream>
 #include <FECore/FEModel.h>
+#include "FEAngioMaterial.h"
 
 #include "FEAngio.h"
 
@@ -29,6 +30,8 @@ Fileout::Fileout()
 
 	time_stream = fopen("out_time.ang","wt");						// Open the stream for the time and state data file
 	time_write_headers = true;										// Set the time and state data file to write the headers on its first output
+
+	m_stream4 = fopen("out_active_tips.txt", "wt");		// active tips
 }
 
 //-----------------------------------------------------------------------------
@@ -71,7 +74,10 @@ void Fileout::printStatus(FEAngio& angio)
 	cout << "Total Length : " << cult.TotalVesselLength() << endl;                  // Print out the current total length to user
 	cout << "Vessels      : " << cult.m_num_vessel << endl;
 	cout << "Branch Points: " << cult.m_num_branches << endl;                 // Print out the current number of branches to user
-	cout << "Anastomoses  : " << cult.m_num_anastom << endl << endl;            // Print out the current number of anastomoses to user
+	cout << "Anastomoses  : " << cult.m_num_anastom << endl;            // Print out the current number of anastomoses to user
+	cout << "Active tips  : " << cult.m_active_tips.size() << endl;
+	cout << "Sprouts      : " << angio.Sprouts() << endl;
+	cout << endl;
     
     logstream << endl << "Time: " << t.t << endl;                        // Print out current time to log file
 	//logstream << "dt: " << data.dt << endl;
@@ -80,6 +86,10 @@ void Fileout::printStatus(FEAngio& angio)
 	logstream << "Vessels      : " << cult.m_num_vessel << endl;
 	logstream << "Branch Points: " << cult.m_num_branches << endl;            // Print out the current number of branches to log file
 	logstream << "Anastomoses  : " << cult.m_num_anastom << endl << endl;       // Print out the current number of anastomoses to log file
+	logstream << "Anastomoses  : " << cult.m_num_anastom << endl;            // Print out the current number of anastomoses to user
+	logstream << "Active tips  : " << cult.m_active_tips.size() << endl;
+	logstream << "Sprouts      : " << angio.Sprouts() << endl;
+	logstream << endl;
         
     return;
 }
@@ -238,8 +248,39 @@ void Fileout::save_vessel_state(FEAngio& angio)
 		const vec3d& r1 = it->tip(1).pos();
 		fprintf(m_stream2,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n",angio.FE_state,it->GetTimeOfBirth(),r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length());  // Write to out_vess_state.ang
 	}
+}
+
+//-----------------------------------------------------------------------------
+// Save active points
+void Fileout::save_active_tips(FEAngio& angio)
+{
+	fprintf(m_stream4,"%-5s %-12s %-12s %-12s %-12s\n","State","Time","X","Y","Z");
+
+	double t = angio.CurrentSimTime().t;
 	
-	return;
+	Culture& cult = angio.GetCulture();
+	for (TipIter it = cult.m_active_tips.begin(); it != cult.m_active_tips.end(); ++it)
+	{
+		Segment::TIP& tip = *(*it);
+		if (tip.bactive)
+		{
+			const vec3d& r = tip.pos();
+			fprintf(m_stream4,"%-5.2d %-5.2d %-12.7f %-12.7f %-12.7f\n",angio.FE_state, 0, r.x,r.y,r.z);
+		}
+	}
+
+	if (angio.m_pmat)
+	{
+		FEAngioMaterial* pm = angio.m_pmat;
+		int N = pm->Sprouts();
+		for (int i=0; i<N; ++i)
+		{
+			FEAngioMaterial::SPROUT& si = pm->GetSprout(i);
+
+			vec3d r = pm->CurrentPosition(si.pel, si.r[0], si.r[1], si.r[2]);
+			fprintf(m_stream4,"%-5.2d %-5.2d %-12.7f %-12.7f %-12.7f\n",angio.FE_state, 1, r.x,r.y,r.z);
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------

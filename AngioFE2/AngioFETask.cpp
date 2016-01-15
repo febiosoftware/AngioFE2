@@ -8,6 +8,8 @@
 #include <FECore/FEModel.h>
 using namespace std;
 
+FEAngio* pfeangio = 0;
+
 //-----------------------------------------------------------------------------
 AngioFETask::AngioFETask(FEModel* pfem) : FECoreTask(pfem)
 {
@@ -33,6 +35,7 @@ bool AngioFETask::Init(const char* inpfile)
 
 	// Create the FEAngio class
 	m_pangio = new FEAngio(fem);
+	pfeangio = m_pangio;
 
 	// Read the angio3d input file
 	Filein filein;

@@ -154,23 +154,24 @@ void FEAngioMaterial::SetParameter(FEParam& p)
 }
 
 //-----------------------------------------------------------------------------
-void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t)
+void FEAngioMaterial::ClearSprouts()
 {
-	SPROUT s;
-	s.bactive = true;
-	s.sprout = t;
-	UpdateSprout(s, r);
-	m_spr.push_back(s);
+	m_spr.clear();
 }
 
 //-----------------------------------------------------------------------------
-void FEAngioMaterial::UpdateSprout(SPROUT& s, const vec3d& r)
+void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t)
 {
 	FEMesh& mesh = GetFEModel()->GetMesh();
-	
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(mesh.Domain(0));
+
+	SPROUT s;
 	s.pel = dom.FindElement(r, s.r);
-//	assert(s.pel);
+	s.sprout = t;
+
+	assert(s.pel);
+
+	m_spr.push_back(s);
 }
 
 //-----------------------------------------------------------------------------
@@ -212,33 +213,30 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 	{
 		SPROUT& sp = m_spr[i];
 		
-		if (sp.pel && sp.bactive)
-		{
-			// current position of sprout force
-			vec3d x = CurrentPosition(sp.pel, sp.r[0], sp.r[1], sp.r[2]);
+		// current position of sprout force
+		vec3d x = CurrentPosition(sp.pel, sp.r[0], sp.r[1], sp.r[2]);
 
-			// current position of integration point
-			vec3d y = ep.m_rt;
+		// current position of integration point
+		vec3d y = ep.m_rt;
 
-			vec3d r = y - x;
-			double l = r.unit();
+		vec3d r = y - x;
+		double l = r.unit();
 
-			sp.sprout.unit();															// Normalize the sprout direction vector
+		sp.sprout.unit();															// Normalize the sprout direction vector
 			
-			double theta = acos(sp.sprout*r);											// Calculate theta, the angle between r and the sprout vector
+		double theta = acos(sp.sprout*r);											// Calculate theta, the angle between r and the sprout vector
 
-			double p = den_scale*scale*m_a*(pow(cos(theta/2),m_N))*exp(-m_b*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
+		double p = den_scale*scale*m_a*(pow(cos(theta/2),m_N))*exp(-m_b*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
 
-			//double p = m_a*exp(-m_b*l);
+		//double p = m_a*exp(-m_b*l);
 
-			mat3ds si = dyad(r)*p;
+		mat3ds si = dyad(r)*p;
 
-			if (sym_on == true)															// If symmetry is turned on, apply symmetry
-				MirrorSym(y, si, sp, den_scale);
+		if (sym_on == true)															// If symmetry is turned on, apply symmetry
+			MirrorSym(y, si, sp, den_scale);
 
 //#pragma omp critical
-			s += si;
-		}
+		s += si;
 	}
 	return s;
 }

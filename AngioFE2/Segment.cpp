@@ -40,4 +40,7 @@ void Segment::Update()
 {	
 	m_uvect = m_tip[1].pos() - m_tip[0].pos();
 	m_length = m_uvect.unit();
+
+	m_tip[0].u = -m_uvect;
+	m_tip[1].u =  m_uvect;
 }

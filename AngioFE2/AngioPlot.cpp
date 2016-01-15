@@ -3,6 +3,9 @@
 #include "FEAngio.h"
 #include <FECore/FESolidDomain.h>
 #include "FEAngioMaterial.h"
+#include "Grid.h"
+
+extern FEAngio* pfeangio;
 
 //-----------------------------------------------------------------------------
 bool FEPlotAngioStress::Save(FEDomain& d, FEDataStream& str)
@@ -56,3 +59,31 @@ bool FEPlotAngioEffectiveStress::Save(FEDomain& d, FEDataStream& str)
 	}
 	return true;
 };
+
+//-----------------------------------------------------------------------------
+bool FEPlotAngioCollagenFibers::Save(FEMesh& m, FEDataStream& a)
+{
+	if (pfeangio == 0) return false;
+
+	Grid& grid = pfeangio->GetGrid();
+	assert(grid.Nodes() == m.Nodes());
+
+	int NN = grid.Nodes();
+	for (int i=0; i<NN; ++i) a << grid.GetNode(i).m_collfib;
+
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+bool FEPlotAngioECMDensity::Save(FEMesh& m, FEDataStream& a)
+{
+	if (pfeangio == 0) return false;
+
+	Grid& grid = pfeangio->GetGrid();
+	assert(grid.Nodes() == m.Nodes());
+
+	int NN = grid.Nodes();
+	for (int i=0; i<NN; ++i) a << grid.GetNode(i).m_ecm_den;
+
+	return true;
+}

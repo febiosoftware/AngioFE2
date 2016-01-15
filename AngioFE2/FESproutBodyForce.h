@@ -20,7 +20,6 @@ public:
 	{
 		vec3d	rc;			// center of sprout force
 		vec3d	sprout;		// sprout direction
-		bool	active;		// active flag
 	};
 
 // Public functions:
@@ -43,7 +42,6 @@ public:
 		SPROUT sp;
 		sp.rc = r;
 		sp.sprout = s;
-		sp.active = true;
 		m_sp.push_back(sp);
 	}
 

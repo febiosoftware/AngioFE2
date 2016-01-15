@@ -213,8 +213,8 @@ bool FEAngio::InitFEM()
 	// Do the model initialization
 	if (m_fem.Init() == false) return false;
 
-	// apply the intial sprout forces
-	apply_sprout_forces(1, 0.5);
+	// apply the intial sprouts
+	CreateSprouts(0.5);
 
 	// Adjust the stiffness of the mesh based on microvessel volume
 	adjust_mesh_stiffness();
@@ -226,6 +226,9 @@ bool FEAngio::InitFEM()
 
 	// Output initial microvessel state
 	fileout.save_vessel_state(*this);
+
+	// save active tips
+	fileout.save_active_tips(*this);
 
 	// Output time information
 	fileout.save_time(*this);
@@ -339,7 +342,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		update_sprout_stress_scaling();
 
 		// Update the positions of the body forces
-		update_body_forces(1.0);
+		UpdateSprouts(1.0);
 	}
 	else if (nwhen == CB_MAJOR_ITERS)
 	{
@@ -353,6 +356,9 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 
 		// Save the current vessel state
 		fileout.save_vessel_state(*this);
+
+		// save active tips
+		fileout.save_active_tips(*this);
 
 		// Output time information	
 		fileout.save_time(*this);
@@ -387,8 +393,19 @@ void FEAngio::Output()
 }
 
 //-----------------------------------------------------------------------------
+int FEAngio::Sprouts()
+{
+	if (m_pmat) return m_pmat->Sprouts();
+	else
+	{
+		FESproutBodyForce* pbf = dynamic_cast<FESproutBodyForce*>(m_fem.GetBodyLoad(0));
+		return pbf->Sprouts();
+	}
+}
+
+//-----------------------------------------------------------------------------
 // Apply sprout forces to the mesh for each active vessel tip
-void FEAngio::apply_sprout_forces(int load_curve, double scale)
+void FEAngio::CreateSprouts(double scale)
 {
 	double magnitude = scale*m_sproutf;								// Scale the sprout magnitude
 
@@ -399,63 +416,37 @@ void FEAngio::apply_sprout_forces(int load_curve, double scale)
 		magnitude = (1.0/4.0)*m_time.t*scale;
 
 	//#pragma omp parallel for
-	for (list<SegIter>::iterator tip_it = m_pCult->m_active_tips.begin(); tip_it != m_pCult->m_active_tips.end(); ++tip_it)		// For each active growth tip...
+	for (TipIter tip_it = m_pCult->m_active_tips.begin(); tip_it != m_pCult->m_active_tips.end(); ++tip_it)
 	{
-		Segment& seg = (*(*tip_it));												// Obtain the growth tip
-
-		if (seg.tip(0).bactive)
+		Segment::TIP& tip = *(*tip_it);
+		if (tip.bactive)
 		{
-			vec3d tip = seg.tip(0).pos();												// Obtain the position of the active tip
+			// get the tip
+			const vec3d& r = tip.pos();
 			
-			// Calculate the directional unit vector of the sprout (notice negative sign)
-			vec3d sprout_vect = -seg.uvect();
+			// get the directional unit vector of the tip
+			const vec3d& u = tip.u;
 
-			(*tip_it)->tip(0).bdyf_id = create_body_force(sprout_vect, tip.x, tip.y, tip.z, magnitude, 1.0/m_tip_range, load_curve);				// Create a new body force, set the tips body force ID
+			if (m_pmat)
+			{
+				m_pmat->AddSprout(r, u);
+				tip.bdyf_id = m_pmat->Sprouts() - 1;
+			}
+			else
+			{
+				FESproutBodyForce* pbf = dynamic_cast<FESproutBodyForce*>(m_fem.GetBodyLoad(0));
+				pbf->AddSprout(r, u);
+				tip.bdyf_id = pbf->Sprouts() - 1;
+			}
 		}
-		
-		if (seg.tip(1).bactive)
-		{	
-			vec3d tip = seg.tip(1).pos();												// Obtain the position of the active tip
-			
-			// Calculate the directional unit vector of the sprout
-			vec3d sprout_vect = seg.uvect();
-
-			(*tip_it)->tip(1).bdyf_id = create_body_force(sprout_vect, tip.x, tip.y, tip.z, magnitude, 1.0/m_tip_range, load_curve);				// Create a new body force, set the tips body force ID
-		}
-	}
-
-	return;
-}
-
-//-----------------------------------------------------------------------------
-// Add a new body force entry into the body force field applyied to the mesh
-int FEAngio::create_body_force(vec3d sprout_vect, double xpt, double ypt, double zpt, double mag, double range, int load_curve)
-{
-	total_bdyf++;							// Iterate the total body force counter							
-
-	if (m_pmat)
-	{
-		m_pmat->AddSprout(vec3d(xpt, ypt, zpt), sprout_vect);
-		return m_pmat->Sprouts() - 1;
-	}
-	else
-	{
-		FESproutBodyForce* pbf = dynamic_cast<FESproutBodyForce*>(m_fem.GetBodyLoad(0));					// Obtain the body force class
-		pbf->AddSprout(vec3d(xpt, ypt, zpt),sprout_vect);												// Add a new component to the body force for this active sprout tip
-		return pbf->Sprouts() - 1;																		// Return the ID number for the body force
 	}
 }
-
 
 //-----------------------------------------------------------------------------
 // Update the sprout forces after a deformation
-void FEAngio::update_body_forces(double scale)
+void FEAngio::UpdateSprouts(double scale)
 {
-	vec3d sprout_vect;												// Sprout direction vector
-
-	vec3d tip(0,0,0);
 	double magnitude = scale*m_sproutf;								// Magnitude of the sprout force
-
 	// Ramp up the sprout force magnitude up to time t = 4.0 days
 	if (m_time.t == 0.0)
 		magnitude = (1.0/4.0)*0.001*scale; 
@@ -464,74 +455,31 @@ void FEAngio::update_body_forces(double scale)
 
 	if (m_pmat)
 	{
-		//m_pmat->scale = magnitude;
-		int NSP = m_pmat->Sprouts();
-		for (int i=0; i<NSP; ++i)
-		{
-			FEAngioMaterial::SPROUT& sp = m_pmat->GetSprout(i);
-			sp.bactive = false;
-		}
+		m_pmat->ClearSprouts();
 	}
 	else
 	{
 		FESproutBodyForce* pbf = dynamic_cast<FESproutBodyForce*>(m_fem.GetBodyLoad(0));			// Obtain the sprout body force field
-		int NSP = pbf->Sprouts();										// Obtain the number of sprouts
-		for (int i = 0; i < NSP; i++)									// Deactivate all sprout force components
-		{
-			FESproutBodyForce::SPROUT& sp = pbf->GetSprout(i);				// Obtain the sprout force component
-			sp.active = false;												// Deactive the sprout force component
-		}
+		pbf->ClearSprouts();
 		FEParameterList& pl = pbf->GetParameterList();										// Get the body force's parameter list
 		FEParam* pa = pl.Find("a"); assert(pa);												// Get the sprout force magnitude parameter
 		pa->value<double>() = magnitude*m_sproutf;													// Set the sprout force magnitude parameter
 	}
 
-	FEMesh& mesh = m_fem.GetMesh();									// Obtain the FE mesh
+	// Obtain the FE mesh
+	FEMesh& mesh = m_fem.GetMesh();
 
 	//#pragma omp parallel for
-	for (SegIter frag_it = m_pCult->SegmentBegin(); frag_it != m_pCult->SegmentEnd(); ++frag_it)		// Iterate through each segment in the model...
+	for (TipIter tip_it = m_pCult->m_active_tips.begin(); tip_it != m_pCult->m_active_tips.end(); ++tip_it)		// Iterate through each segment in the model...
 	{
-		const Segment& seg = (*frag_it);								// Obtain the segment, keep it constant to prevent changes
+		const Segment::TIP& tip= *(*tip_it);
+		assert(tip.bactive);
+		assert(tip.bdyf_id >= 0);
 
-		if (((seg.tip(0).bactive) || (seg.tip(0).BC == 1)) && (seg.tip(0).bdyf_id >= 0)){		  // Turn on the body force for any active -1 segment OR -1 segment that has encountered a boundary and stopped growing...
-		//if ((seg.tip[0] == -1) && (seg.bdyf_id[0] >= 0)){									// Turn on the body force for any active -1 segment
-			tip = seg.tip(0).pos();																	// Obtain the tip position
-
-			sprout_vect = seg.tip(0).pos() - seg.tip(1).pos();												// Calculate the sprout directional vector
-			sprout_vect = sprout_vect/sprout_vect.norm();			
-
-			update_angio_sprout(seg.tip(0).bdyf_id, true, tip, sprout_vect);
-			}
-		
-		if (((seg.tip(1).bactive) || (seg.tip(1).BC == 1)) && (seg.tip(1).bdyf_id >= 0)){		  // Turn on the body force for any active +1 segment OR +1 segment that has encountered a boundary and stopped growing...
-		//if ((seg.tip[1] == 1) && (seg.bdyf_id[1] >= 0)){									// Turn on the body force for any active +1 segment
-			tip = seg.tip(1).pos();																	// Obtain the tip position
-			
-			sprout_vect = seg.tip(1).pos() - seg.tip(0).pos();												// Calculate the sprout directional vector
-			sprout_vect.unit();
-			update_angio_sprout(seg.tip(1).bdyf_id, true, tip, sprout_vect);
-			}
-	}
-	
-	return;
-}
-
-//-----------------------------------------------------------------------------
-void FEAngio::update_angio_sprout(int id, bool bactive, const vec3d& rc, const vec3d& sprout_vect)
-{
-	if (m_pmat)
-	{
-		FEAngioMaterial::SPROUT& sp = m_pmat->GetSprout(id);
-		sp.bactive = true;
-		sp.sprout = sprout_vect;
-		m_pmat->UpdateSprout(sp, rc);
-	}
-	else
-	{
-		FESproutBodyForce::SPROUT& sp = m_pbf->GetSprout(id);		// Obtain the sprout component 
-		sp.active = true;											// Set the sprout component to active
-		sp.rc = rc;													// Set the tip position
-		sp.sprout = sprout_vect;									// Set the sprout force directional vector
+		// TODO: What to do with BC==1? Currently, tips that stop growing after hitting boundary
+		//       are no longer active. We should still add a sprout for those
+		if      (m_pmat) m_pmat->AddSprout(tip.pos(), tip.u);
+		else if (m_pbf ) m_pbf->AddSprout (tip.pos(), tip.u);
 	}
 }
 

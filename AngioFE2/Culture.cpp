@@ -673,23 +673,14 @@ void Culture::CheckForIntersection(Segment &seg, Segment& it)
 
 //-----------------------------------------------------------------------------
 // Updates the list of active tips.
-// TODO: I think this logic is flawed. This presumes that only one tip is active
-//       yet the initial fragments have both tips active.
 void Culture::FindActiveTips()
 {
-	list<Segment>::iterator it;
-           
 	m_active_tips.clear();
-	
-	for (it = m_frag.begin(); it != m_frag.end(); ++it)             // Iterate through all segments in frag list container (it)                               
+	for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
 	{
-		if (it->tip(0).bactive)
-			m_active_tips.push_back(it);
-		else if (it->tip(1).bactive)
-			m_active_tips.push_back(it);
+		if (it->tip(0).bactive) m_active_tips.push_back(&it->tip(0));
+		if (it->tip(1).bactive) m_active_tips.push_back(&it->tip(1));
 	} 
-			
-    return;
 }
 
 //-----------------------------------------------------------------------------

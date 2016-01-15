@@ -16,7 +16,9 @@ FEPluginFactory_T<FESproutBodyForce         , FEBODYLOAD_ID> angio_sprout_factor
 FEPluginFactory_T<FEAngioMaterial           , FEMATERIAL_ID> angio_mat_factory    ("angio" );
 FEPluginFactory_T<FEPressureMaterial        , FEMATERIAL_ID> pressure_mat_factory ("pressure" );
 FEPluginFactory_T<FEPlotAngioStress         , FEPLOTDATA_ID> plot_angio_stress    ("angio stress");
-FEPluginFactory_T<FEPlotAngioEffectiveStress, FEPLOTDATA_ID> plot_angio_eff_stress("angio effective stress" );
+FEPluginFactory_T<FEPlotAngioEffectiveStress, FEPLOTDATA_ID> plot_angio_eff_stress("angio effective stress");
+FEPluginFactory_T<FEPlotAngioCollagenFibers , FEPLOTDATA_ID> plot_angio_fibers    ("angio collagen fiber"  );
+FEPluginFactory_T<FEPlotAngioECMDensity     , FEPLOTDATA_ID> plot_angio_ecm       ("angio ECM density"     );
 
 //-----------------------------------------------------------------------------
 FECORE_EXPORT unsigned int GetSDKVersion()
@@ -33,7 +35,7 @@ FECORE_EXPORT  void PluginInitialize(FECoreKernel& febio)
 //-----------------------------------------------------------------------------
 FECORE_EXPORT int PluginNumClasses()
 {
-	return 6;
+	return 8;
 }
 
 //-----------------------------------------------------------------------------
@@ -45,6 +47,8 @@ FECORE_EXPORT FECoreFactory * PluginGetFactory(int i)
 	else if (i==3) return &pressure_mat_factory;
 	else if (i==4) return &plot_angio_stress;
 	else if (i==5) return &plot_angio_eff_stress;
+	else if (i==6) return &plot_angio_fibers;
+	else if (i==7) return &plot_angio_ecm;
 	else return 0;
 }
 
