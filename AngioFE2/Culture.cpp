@@ -29,12 +29,14 @@ Culture::Culture(FEAngio& angio) : bc(angio), m_angio(angio)
     m_b = 1.4549;
     m_x0 = 4.9474;
     m_y0 = -19.1278;
-    m_d = m_y0 + m_a/(1.0 + exp(m_x0/m_b)); // Initial value of growth curve (t = 0)
+    double d = m_y0 + m_a/(1.0 + exp(m_x0/m_b)); // Initial value of growth curve (t = 0)
+
+	m_vess_length = d;
+
+	m_init_length = 0.0;
 
 	// Probability that initial fragments form branches
 	m_init_branch_prob = 0.2697;
-
-	m_vess_length = m_d;
 
 	m_length_adjust = 1.0;
 
@@ -62,6 +64,9 @@ bool Culture::Init()
 {
 	// If branching is turned off, we set the branching chance to zero
 	if (yes_branching == false) m_branch_chance = 0.0;
+
+	// make sure the initial length is initialized 
+	if (m_init_length <= 0.0) m_init_length = m_vess_length;
 
 	return true;
 }
@@ -99,7 +104,7 @@ Segment Culture::createInitFrag()
 	Grid& grid = m_angio.GetGrid();
 
 	// Set seg length to value of growth function at t = 0
-	double seg_length = m_vess_length;
+	double seg_length = m_init_length;
     
 	// We create only segments that lie inside the grid.
 	// Since the creation of such a segment may fail (i.e. too close to boundary)

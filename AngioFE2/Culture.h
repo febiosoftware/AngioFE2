@@ -128,8 +128,9 @@ public:
 	double	m_a;    // Distance between top and bottom of the curve (a + y0 = top of curve)
 	double	m_x0;   // Time point at which t is halfway between top & bottom
 	double	m_b;    // Steepness of the curve
-	double	m_d;    // Initial value of the curve (t = 0)
-	double	m_vess_length;		// new segment length
+
+	double	m_init_length;	// initial vessel length
+	double	m_vess_length;	// new segment length
 
     double	m_init_branch_prob;     // Probability that initial segments will branch (TODO: Make this a user parameter)
 

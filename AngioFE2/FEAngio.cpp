@@ -65,7 +65,6 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem), m_grid(fem.GetMesh())
 	m_bsprout_verify = 0;				// Sprout verification problem flag
 
 	// boundary conditions
-	m_cgelbc = 'u';					// Gel boundary conditions ('u' unconstrained)
 	m_Sx = 0.;						// Location of the x-symmetry plane
 	m_Sy = 0.;						// Location of the y-symmetry plane
 	m_Sz = 0.;						// Location of the z-symmetry plane

@@ -88,6 +88,12 @@ bool Filein::set_param(FEAngio& angio, char* buffer, char* pname)
 		sscanf(buffer,"%*s %*s %f",&cult.m_branch_chance);
         return true;}
 
+	// initial vessel length (set to 0 in order to use the initial value of the grow curve)
+	if (!strcmp(pname,"init_length")){
+		sscanf(buffer,"%*s %*s %f",&cult.m_init_length);
+		return true;
+	}
+
     //  Matrix conditions (matx_cnd 0) random
 	if (!strcmp(pname,"matx_cnd")){
         sscanf(buffer,"%*s %*s %i",&angio.m_matrix_cond);
@@ -126,11 +132,6 @@ bool Filein::set_param(FEAngio& angio, char* buffer, char* pname)
 	// Specify if a composite material model is being using 
 	if (!strcmp(pname,"tip_range")){
         sscanf(buffer,"%*s %*s %lf",&angio.m_tip_range);
-        return true;}
-
-	// Specify which type of boundary condition to enforces at the faces of the domain normal to the y-axis (y_bc w) flat wall BC
-	if (!strcmp(pname,"gelbc")){
-        sscanf(buffer,"%*s %*s %c",&angio.m_cgelbc);
         return true;}
 
 	// Specify which type of boundary condition to enforces at the faces of the domain normal to the y-axis (y_bc w) flat wall BC

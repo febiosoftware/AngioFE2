@@ -92,7 +92,6 @@ public:	// parameters read directly from file
     int		m_bsp_sphere;		// Flag for sprout force representations
 
 	// boundary conditions
-	char m_cgelbc;					// Boundary conditions for the gel (LAC, SAC, UNC)
 	double m_Sx;						// Location of the symmetry plane along the x-direction
 	double m_Sy;						// Location of the symmetry plane along the y-direction
 	double m_Sz;						// Location of the symmetry plane along the z-direction
