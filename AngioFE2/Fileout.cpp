@@ -75,7 +75,7 @@ void Fileout::printStatus(FEAngio& angio)
 	cout << "Vessels      : " << cult.m_num_vessel << endl;
 	cout << "Branch Points: " << cult.m_num_branches << endl;                 // Print out the current number of branches to user
 	cout << "Anastomoses  : " << cult.m_num_anastom << endl;            // Print out the current number of anastomoses to user
-	cout << "Active tips  : " << cult.m_active_tips.size() << endl;
+	cout << "Active tips  : " << cult.ActiveTips() << endl;
 	cout << "Sprouts      : " << angio.Sprouts() << endl;
 	cout << endl;
     
@@ -87,7 +87,7 @@ void Fileout::printStatus(FEAngio& angio)
 	logstream << "Branch Points: " << cult.m_num_branches << endl;            // Print out the current number of branches to log file
 	logstream << "Anastomoses  : " << cult.m_num_anastom << endl << endl;       // Print out the current number of anastomoses to log file
 	logstream << "Anastomoses  : " << cult.m_num_anastom << endl;            // Print out the current number of anastomoses to user
-	logstream << "Active tips  : " << cult.m_active_tips.size() << endl;
+	logstream << "Active tips  : " << cult.ActiveTips() << endl;
 	logstream << "Sprouts      : " << angio.Sprouts() << endl;
 	logstream << endl;
         
@@ -117,19 +117,20 @@ void Fileout::dataout(FEAngio &feangio)
 }
 
 //-----------------------------------------------------------------------------
+// Will be written to data.ang
 void Fileout::writeData(FEAngio &angio)
 {
-	fprintf(m_stream,"%-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-5s %-5s\n","Time","X1","Y1","Z1","X2","Y2","Z2","Length","Vess","Label");  // Write column labels to data.ang
+	fprintf(m_stream,"%-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-5s %-5s\n","Time","X1","Y1","Z1","X2","Y2","Z2","Length","Vess","Label");
 	
 	Culture& cult = angio.GetCulture();
-	SegIter it;
-	for (it = cult.SegmentBegin(); it != cult.SegmentEnd(); ++it)
+	const SegmentList& seg_list = cult.GetSegmentList();
+	for (ConstSegIter it = seg_list.begin(); it != seg_list.end(); ++it)
 	{
 		const vec3d& r0 = it->tip(0).pos();
 		const vec3d& r1 = it->tip(1).pos();
-		fprintf(m_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i %-5.2i\n",it->GetTimeOfBirth(),r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length(),it->m_nid,it->m_nseed);
+		fprintf(m_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i %-5.2i\n",it->GetTimeOfBirth(),r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length(),it->m_nid,it->seed());
 	}
-	fclose(m_stream);                                                         // Close stream to 'data.ang' (stream)
+	fclose(m_stream);
 	
 	return;
 }
@@ -242,7 +243,8 @@ void Fileout::save_vessel_state(FEAngio& angio)
 	fprintf(m_stream2,"%-5s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n","State","Time","X1","Y1","Z1","X2","Y2","Z2","Length");  // Write column labels to out_vess_state.ang
 	
 	Culture& cult = angio.GetCulture();
-	for (SegIter it = cult.SegmentBegin(); it != cult.SegmentEnd(); ++it)	// Iterate through all segments in frag list container (it)
+	const SegmentList& seg_list = cult.GetSegmentList();
+	for (ConstSegIter it = seg_list.begin(); it != seg_list.end(); ++it)	// Iterate through all segments in frag list container (it)
 	{
 		const vec3d& r0 = it->tip(0).pos();
 		const vec3d& r1 = it->tip(1).pos();
@@ -259,7 +261,8 @@ void Fileout::save_active_tips(FEAngio& angio)
 	double t = angio.CurrentSimTime().t;
 	
 	Culture& cult = angio.GetCulture();
-	for (TipIter it = cult.m_active_tips.begin(); it != cult.m_active_tips.end(); ++it)
+	const SegmentTipList& tips = cult.GetActiveTipList();
+	for (ConstTipIter it = tips.begin(); it != tips.end(); ++it)
 	{
 		Segment::TIP& tip = *(*it);
 		if (tip.bactive)

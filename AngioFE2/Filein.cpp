@@ -85,12 +85,13 @@ bool Filein::set_param(FEAngio& angio, char* buffer, char* pname)
     //// Parameters for angio3d (In paratheneses, string identifying the parameter and an example value):
 	// Branching Probability (brnch_ch 0.1)
 	if (!strcmp(pname,"brnch_ch")){
-		sscanf(buffer,"%*s %*s %f",&cult.m_branch_chance);
-        return true;}
+		sscanf(buffer,"%*s %*s %lg",&cult.m_branch_chance);
+        return true;
+	}
 
 	// initial vessel length (set to 0 in order to use the initial value of the grow curve)
 	if (!strcmp(pname,"init_length")){
-		sscanf(buffer,"%*s %*s %f",&cult.m_init_length);
+		sscanf(buffer,"%*s %*s %lg",&cult.m_init_length);
 		return true;
 	}
 
@@ -101,7 +102,7 @@ bool Filein::set_param(FEAngio& angio, char* buffer, char* pname)
     
 	// Initial matrix density (matx_den 3.0) mg/mL
     if (!strcmp(pname,"matx_den")){
-        sscanf(buffer,"%*s %*s %lf",&grid.m_coll_den);
+        sscanf(buffer,"%*s %*s %lg",&grid.m_coll_den);
         return true;}  
         
 	// Number of initial fragments (nfrag 70, based on 30K frags/mL)
@@ -111,12 +112,12 @@ bool Filein::set_param(FEAngio& angio, char* buffer, char* pname)
     
 	// Anastomosis distance (anst_dst 25.0) um 
     if (!strcmp(pname,"anst_dst")){
-		sscanf(buffer,"%*s %*s %lf",&cult.m_anast_dist);
+		sscanf(buffer,"%*s %*s %lg",&cult.m_anast_dist);
         return true;}  
         
     // Segment length adjustment scale (lngth_adj 1.0) 
 	if (!strcmp(pname,"lngth_adj")){
-		sscanf(buffer,"%*s %*s %lf",&cult.m_length_adjust);
+		sscanf(buffer,"%*s %*s %lg",&cult.m_length_adjust);
         return true;}
     
 	// Specify if a composite material model is being using 
@@ -126,17 +127,17 @@ bool Filein::set_param(FEAngio& angio, char* buffer, char* pname)
     
 	// Specify if a composite material model is being using 
 	if (!strcmp(pname,"sproutf")){
-        sscanf(buffer,"%*s %*s %lf",&angio.m_sproutf);
+        sscanf(buffer,"%*s %*s %lg",&angio.m_sproutf);
         return true;}
 
 	// Specify if a composite material model is being using 
 	if (!strcmp(pname,"tip_range")){
-        sscanf(buffer,"%*s %*s %lf",&angio.m_tip_range);
+        sscanf(buffer,"%*s %*s %lg",&angio.m_tip_range);
         return true;}
 
 	// Specify which type of boundary condition to enforces at the faces of the domain normal to the y-axis (y_bc w) flat wall BC
 	if (!strcmp(pname,"stiff_fact")){
-		sscanf(buffer,"%*s %*s %lf",&angio.phi_stiff_factor);
+		sscanf(buffer,"%*s %*s %lg",&angio.phi_stiff_factor);
         return true;}
 
 	// Specify which type of boundary condition to enforces at the faces of the domain normal to the y-axis (y_bc w) flat wall BC
@@ -160,17 +161,17 @@ bool Filein::set_param(FEAngio& angio, char* buffer, char* pname)
 
 	// Specify the location of the x symmetry panel
 	if (!strcmp(pname,"Sx")){
-        sscanf(buffer,"%*s %*s %lf",&angio.m_Sx);
+        sscanf(buffer,"%*s %*s %lg",&angio.m_Sx);
         return true;}
 
 	// Specify the location of the y symmetry panel
 	if (!strcmp(pname,"Sy")){
-        sscanf(buffer,"%*s %*s %lf",&angio.m_Sy);
+        sscanf(buffer,"%*s %*s %lg",&angio.m_Sy);
         return true;}
 
 	// Specify the location of the z symmetry panel
 	if (!strcmp(pname,"Sz")){
-        sscanf(buffer,"%*s %*s %lf",&angio.m_Sz);
+        sscanf(buffer,"%*s %*s %lg",&angio.m_Sz);
         return true;}
 
 	// Specify the seed number for the random generator
@@ -192,17 +193,17 @@ bool Filein::set_param(FEAngio& angio, char* buffer, char* pname)
 
 	// Specify the factor for the directional sprout force
 	if (!strcmp(pname,"spfact")){
-        sscanf(buffer,"%*s %*s %lf",&angio.m_spfactor);
+        sscanf(buffer,"%*s %*s %lg",&angio.m_spfactor);
         return true;}
 
 	// Specify to 'flatten' fibers in z
 	if (!strcmp(pname,"zfibflat")){
-        sscanf(buffer,"%*s %*s %lf",&angio.m_bzfibflat);
+        sscanf(buffer,"%*s %*s %lg",&angio.m_bzfibflat);
         return true;}
 
 	// Read in weights for determing the direction of growth
     	if (!strcmp(pname,"weights")){
-        sscanf(buffer,"%*s %*s %lf %lf %lf %lf",&cult.m_W[0], &cult.m_W[1], &cult.m_W[2], &cult.m_W[3]);
+        sscanf(buffer,"%*s %*s %lg %lg %lg %lg",&cult.m_W[0], &cult.m_W[1], &cult.m_W[2], &cult.m_W[3]);
         return true;}
 
     return false;

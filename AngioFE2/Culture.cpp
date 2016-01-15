@@ -20,6 +20,9 @@ Culture::Culture(FEAngio& angio) : bc(angio), m_angio(angio)
 	m_num_branches = 0;		// Initialize branching counter
 
 	m_num_zdead = 0;
+
+	// TODO: I think it would make sense to tie the anastomosis distance 
+	//       to the vessel diameter.
 	m_anast_dist = 8.6;
 
     m_total_length = 0.;
@@ -68,23 +71,25 @@ bool Culture::Init()
 	// make sure the initial length is initialized 
 	if (m_init_length <= 0.0) m_init_length = m_vess_length;
 
-	return true;
+	// do the initial seeding
+	return SeedFragments(m_angio.CurrentSimTime());
 }
 
 //-----------------------------------------------------------------------------
 // Create initial fragments
-void Culture::SeedFragments(SimulationTime& time)
+bool Culture::SeedFragments(SimulationTime& time)
 {
 	for (int i=0; i < m_ninit_frags; ++i)
 	{
 		// Create an initial segment
-		Segment seg = createInitFrag();
+		Segment seg;
+		if (createInitFrag(seg) == false) return false;
 
 		// Give the segment the appropriate label
-		seg.m_nseed = i;
+		seg.seed(i);
 
 		// Set the segment vessel as the segment label
-		seg.m_nvessel = seg.m_nseed;
+		seg.vessel(seg.seed());
 
 		// add it to the list
 		AddSegment(seg);
@@ -95,11 +100,13 @@ void Culture::SeedFragments(SimulationTime& time)
 
 	// Update the active tip container
 	FindActiveTips();
+
+	return true;
 }
 
 //-----------------------------------------------------------------------------
 // Generates an initial fragment that lies inside the grid.
-Segment Culture::createInitFrag()
+bool Culture::createInitFrag(Segment& seg)
 {
 	Grid& grid = m_angio.GetGrid();
 
@@ -109,7 +116,8 @@ Segment Culture::createInitFrag()
 	// We create only segments that lie inside the grid.
 	// Since the creation of such a segment may fail (i.e. too close to boundary)
 	// we loop until we find one.
-	// TODO: This could potentially create an infinite loop so I should probably safeguard against it.
+	const int MAX_TRIES = 10;
+	int ntries = 0;
 	GridPoint p0, p1;
 	do
 	{
@@ -132,11 +140,12 @@ Segment Culture::createInitFrag()
 
 		// find the element where the second tip is
 		grid.FindGridPoint(r1, p1);
-	}
-	while (p1.nelem == -1);
 
-	// Create a segment
-    Segment seg;
+		ntries++;
+	}
+	while ((p1.nelem == -1) && (ntries < MAX_TRIES));
+
+	if (p1.nelem == -1)  return false;
 
 	// assign the grid points
 	seg.tip(0).pt = p0;
@@ -156,7 +165,7 @@ Segment Culture::createInitFrag()
 	seg.SetFlagOn(Segment::INIT_SPROUT);
 
 	// all good
-	return seg;
+	return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -195,47 +204,52 @@ void Culture::UpdateNewVesselLength(SimulationTime& time)
 // Grow phase
 void Culture::GrowVessels()
 {
-	for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
+	for (TipIter it = m_active_tips.begin(); it != m_active_tips.end(); ++it)
 	{
-		for (int k=0; k<2; ++k)
-		{
-			// only grow active tips
-			if (it->tip(k).bactive)
-			{
-				// Create new vessel segment at the current tip existing segment
-				Segment seg = GrowSegment(*it, k);
+		Segment::TIP& tip = *(*it);
 
-				// Add the segment to the network
-				// This will also enforce the boundary conditions
-				AddNewSegment(seg, k);
-			}
-	    }
+		// Create new vessel segment at the current tip existing segment
+		Segment seg = GrowSegment(tip);
+
+		// Add the segment to the network
+		// This will also enforce the boundary conditions
+		AddNewSegment(seg);
     }
 }
 
 //-----------------------------------------------------------------------------
 // Create a new segment at the (active) tip of an existing segment
-Segment Culture::GrowSegment(Segment& it, int k, bool branch, bool bnew_vessel)
+Segment Culture::GrowSegment(Segment::TIP& tip, bool branch, bool bnew_vessel)
 {
 	Grid& grid = m_angio.GetGrid();
 
 	// Make sure the tip is active
-	assert(it.tip(k).bactive);
+	assert(tip.bactive);
 
 	// calculate the length scale factor based on collagen density
-	double den_scale = FindDensityScale(it.tip(k).pt);
+	double den_scale = FindDensityScale(tip.pt);
 
 	// this is the new segment length
 	double seg_length = den_scale*m_vess_length;
 
 	// determine the growth direction
-	vec3d seg_vec = FindDirection(it, it.tip(k).pt);
+	vec3d seg_vec = FindGrowDirection(tip);
 
 	// If new segment is a branch we modify the grow direction a bit
 	if (branch)
 	{
-		vec3d coll_fib = grid.CollagenDirection(it.tip(k).pt);
-		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
+		// TODO: what's the logic here? Why the 0.5 factor?
+		//      If the vessel is aligned with the collagen (and the initial fragments are)
+		//      then  the new branch will overlap the old segment. 
+//		vec3d coll_fib = grid.CollagenDirection(tip.pt);
+//		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
+//		seg_vec.unit();
+
+		// TODO: Trying something new here: grow perpendicular to segment.
+		vec3d e = vrand(); e.unit();
+		double d = e*seg_vec;
+		assert(d != 0.0);
+		seg_vec = e - seg_vec*d;
 		seg_vec.unit();
 	}
 
@@ -243,45 +257,30 @@ Segment Culture::GrowSegment(Segment& it, int k, bool branch, bool bnew_vessel)
 	Segment seg;
 
 	// transer seed label
-	seg.m_nseed  = it.m_nseed;
+	seg.seed(tip.nseed);
 
 	// assign vessel ID
 	if (bnew_vessel)
 	{
-		seg.m_nvessel = m_num_vessel++;
-		assert(seg.m_nvessel > it.m_nvessel);
+		seg.vessel(m_num_vessel++);
 	}
-	else seg.m_nvessel = it.m_nvessel;
+	else seg.vessel(tip.nvessel);
 
-	// grow from the end point
-	if (k == 1)
-	{
-		// the first point is a copy of the last point of the source segment
-		seg.tip(0).pt = it.tip(1).pt;
+	// create a new vessel
+	// the first point is a copy of the last point of the source segment
+	seg.tip(0).pt = tip.pt;
 
-		// position the end point
-		seg.tip(1).pt.r = seg.tip(0).pos() + seg_vec*seg_length;
+	// position the end point
+	seg.tip(1).pt.r = seg.tip(0).pos() + seg_vec*seg_length;
 
-        seg.tip(1).bactive = true;		// Turn on end tip of new segment
-		seg.tip(0).bactive = false;		// Turn off origin tip of new segment
-	}
-	else // grow from the start point
-	{
-		// the first point is a copy of the last point of the source segment
-		seg.tip(1).pt = it.tip(0).pt;
-		
-		// position the end point (notice negative sign)
-		seg.tip(0).pt.r = seg.tip(1).pos() - seg_vec*seg_length;
-
-		seg.tip(0).bactive = true;		// Turn on end tip of new segment
-		seg.tip(1).bactive = false;		// Turn off origin tip of new segment
-	}
-
-	// Turn off previous segment tip
-	it.tip(k).bactive = false;
+	seg.tip(0).bactive = false;		// Turn off origin tip of new segment
+    seg.tip(1).bactive = true;		// Turn on end tip of new segment
 
 	// move the body force to the new tip
-	seg.tip(k).bdyf_id = it.tip(k).bdyf_id;
+	seg.tip(1).bdyf_id = tip.bdyf_id;
+
+	// Turn off previous segment tip
+	tip.bactive = false;
 
 	// update length and unit vector
 	seg.Update();
@@ -296,10 +295,13 @@ void Culture::BranchVessels(SimulationTime& time)
 	// Elongate the active vessel tips
 	for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
 	{
-		// Make sure segment has not reached a boundary
-		// and has not undegone anastimoses.
-		if ((it->GetFlag(Segment::BC_DEAD)==false)&&
-			(it->GetFlag(Segment::ANAST  )==false))
+		// decide if this segment can branch
+		bool branch = true;
+		if (it->GetFlag(Segment::BC_DEAD)) branch = false;	// Make sure segment has not reached a boundary
+		if (it->GetFlag(Segment::ANAST  )) branch = false;	// and has not undegone anastimoses.
+		if (it->tip(0).bactive || it->tip(1).bactive) branch = false;	// don't branch segments that are actively growing
+
+		if (branch || it->GetFlag(Segment::INIT_BRANCH))
 		{
 			// pick an end randomly
 			int k = ( frand() < 0.5 ? k = 0 : k = 1);
@@ -314,36 +316,36 @@ void Culture::BranchVessels(SimulationTime& time)
 			double bprob = den_scale*dt*m_branch_chance/t;
 			assert(bprob < 1.0);
 
-//			fprintf(stdout, "branching probability: %lg\n", bprob);
-
 			// If branching is turned on determine if the segment forms a new branch
-			if ((frand() < bprob) || it->GetFlag(Segment::INIT_BRANCH)) BranchSegment(*it, k);
+			if (frand() < bprob)
+			{
+				// Turn off the initial branch flag
+				it->SetFlagOff(Segment::INIT_BRANCH);
+				BranchSegment(it->tip(k));
+
+				// Increase the number of branches.
+				m_num_branches = m_num_branches + 1;
+			}
 		}
 	}
 }
 
 //-----------------------------------------------------------------------------
 // Branching is modeled as a random process, determine is the segment passed to this function forms a branch
-void Culture::BranchSegment(Segment& it, int k)
+void Culture::BranchSegment(Segment::TIP& tip)
 {
-	// Increase the number of branches.
-	m_num_branches = m_num_branches + 1;
-
-	// Turn off the initial branch flag
-	it.SetFlagOff(Segment::INIT_BRANCH);
-    			
 	// we must reactive the tip
-	// (it will be deactivated by CreateNewSeg)
-	it.tip(k).bactive = true;
+	// (it will be deactivated by GrowSegment)
+	tip.bactive = true;
 
 	// Create the new vessel segment (with branch flag and new_vessel flag to true)
-	Segment seg = GrowSegment(it,k, true, true);
+	Segment seg = GrowSegment(tip, true, true);
 
 	// Create a new sprout force for the branch
 	CreateBranchingForce(seg);
 
 	// Add it to the culture
-	AddNewSegment(seg, k);	                                                              
+	AddNewSegment(seg);
 }
 
 //-----------------------------------------------------------------------------
@@ -356,18 +358,19 @@ void Culture::CreateBranchingForce(Segment& seg)
 	else m_angio.total_bdyf = m_angio.m_pbf->Sprouts();
 
 	vec3d tip, sprout_vect;
+	vec3d seg_vec = seg.uvect();
 	
 	if (seg.tip(0).bactive)
 	{
 		tip = seg.tip(0).pos();															// Obtain the position of the new tip
-		sprout_vect = -seg.uvect();	// notice negative sign
+		sprout_vect = -seg_vec;	// notice negative sign
 		seg.tip(0).bdyf_id = m_angio.total_bdyf - 1;											// Assign the body force ID
 	}
 		
 	if (seg.tip(1).bactive)
 	{
 		vec3d tip = seg.tip(1).pos();
-		sprout_vect = seg.uvect();
+		sprout_vect = seg_vec;
 		seg.tip(1).bdyf_id = m_angio.total_bdyf - 1;
 	}
 
@@ -405,7 +408,7 @@ void Culture::FuseVessels()
 						// make sure neither segments sprout from the same initial fragment
 						// TODO: why is this not allowed? I think this might be to prevent
 						//       anastimoses after branching since the branched vessels can be small. Find a better way!
-						if (it1->m_nseed != it2->m_nseed)
+						if (it1->seed() != it2->seed())
 						{
 							double dist0 = (it1->tip(k1).pos() - it2->tip(0).pos()).norm();
 							double dist1 = (it1->tip(k1).pos() - it2->tip(1).pos()).norm();
@@ -451,13 +454,16 @@ void Culture::FuseVessels()
 // Add a new segment to the culture.
 // This will apply BCs to the new segment and may result in 
 // the addition of several new segments. 
-// k is the new tip
 // (it is assumed that the other tip was form at the end of 
 // another segment and is valid)
-void Culture::AddNewSegment(Segment& seg, int k)
+// we always assume that tip(0) is the "old" tip and tip(1)
+// is the new tip
+void Culture::AddNewSegment(Segment& seg)
 {
+	assert(seg.tip(0).pt.nelem >= 0);
+
 	// get the new tip
-	Segment::TIP& new_tip = seg.tip(k);
+	Segment::TIP& new_tip = seg.tip(1);
 	assert(new_tip.pt.nelem == -1);
 	assert(new_tip.bactive);
 
@@ -468,7 +474,7 @@ void Culture::AddNewSegment(Segment& seg, int k)
 		// If we get here, the new end point lies outside the grid
 		// In that case, we apply boundary conditions
 		// (Note that this may create additional segments)
-		bc.checkBC(seg, k);
+		bc.CheckBC(seg);
 	}
 	else
 	{
@@ -488,8 +494,14 @@ void Culture::AddSegment(Segment& seg)
 	assert(seg.tip(0).pt.nelem >= 0);
 	assert(seg.tip(1).pt.nelem >= 0);
 
-	assert(seg.m_nseed >= 0);
-	assert(seg.m_nvessel >= 0);
+	assert(seg.tip(0).nseed >= 0);
+	assert(seg.tip(1).nseed >= 0);
+
+	assert(seg.tip(0).nvessel >= 0);
+	assert(seg.tip(1).nvessel >= 0);
+
+	assert(seg.seed() >= 0);
+	assert(seg.vessel() >= 0);
 
 	assert(seg.length() < 1.1*m_vess_length);
 
@@ -503,15 +515,15 @@ void Culture::AddSegment(Segment& seg)
 
 //-----------------------------------------------------------------------------
 // Determine the orientation of a newly created segment
-vec3d Culture::FindDirection(Segment& it, GridPoint& pt)
+vec3d Culture::FindGrowDirection(Segment::TIP& tip)
 {
 	Grid& grid = m_angio.GetGrid();
 
     // Find the component of the new vessel direction determined by collagen fiber orientation    
-    vec3d coll_dir = grid.CollagenDirection(pt);
+    vec3d coll_dir = grid.CollagenDirection(tip.pt);
 
 	// Component of new vessel orientation resulting from previous vessel direction        
-	vec3d per_dir = it.uvect();
+	vec3d per_dir = tip.u;
 
 	vec3d new_dir = (coll_dir*m_W[0] + per_dir*m_W[3])/(m_W[0]+m_W[3]);
 	new_dir.unit();
@@ -546,8 +558,8 @@ double Culture::FindDensityScale(const GridPoint& pt)
 Segment Culture::ConnectSegment(Segment& it1, Segment& it2, int k1, int k2)
 {
  	Segment seg;
- 	seg.m_nseed   = it1.m_nseed;
- 	seg.m_nvessel = it1.m_nvessel;
+ 	seg.seed(it1.seed());
+	seg.vessel(it1.vessel());
  	
 	seg.tip(0).pt = it1.tip(k1).pt;
 	seg.tip(1).pt = it2.tip(k2).pt;
@@ -651,7 +663,7 @@ void Culture::CheckForIntersection(Segment &seg, Segment& it)
 
 	for (SegIter it2 = m_frag.begin(); it2 != m_frag.end(); ++it2)
 	{
-		if (it.m_nseed!=it2->m_nseed)
+		if (it.seed() !=it2->seed())
 		{
 			pp1 = r0;
 			pp2 = r1;
@@ -695,7 +707,7 @@ void Culture::Update()
 	Grid& grid = m_angio.GetGrid();
 
 	// loop over all fragments
-	for (SegIter it = SegmentBegin(); it != SegmentEnd(); ++it)             // Iterate through all segments in frag list container (it)                               
+	for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)             // Iterate through all segments in frag list container (it)                               
 	{
 		// Iterate through both segment tips
 		for (int k=0; k<2; ++k)
@@ -714,7 +726,7 @@ void Culture::Update()
 
 	// Update the total vascular length within the simulation   
     m_total_length = 0.;
-    for (SegIter it = SegmentBegin(); it != SegmentEnd(); ++it)
+    for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
     {
         m_total_length += it->length();
     }

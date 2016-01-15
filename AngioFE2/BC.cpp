@@ -21,14 +21,14 @@ BC::~BC()
 
 //-----------------------------------------------------------------------------
 // Checks if a newly-created segment violates the boundary faces of the element in which it occupies
-void BC::checkBC(Segment &seg, int k)
+void BC::CheckBC(Segment &seg)
 {
 	Grid& grid = m_angio.GetGrid();
 
 	// get the end-points and reference element
-	vec3d r0 = (k==0? seg.tip(1).pos() : seg.tip(0).pos());
-	vec3d r1 = (k==0? seg.tip(0).pos() : seg.tip(1).pos());
-	int elem_num = (k==0? seg.tip(1).pt.nelem : seg.tip(0).pt.nelem);
+	vec3d r0 = seg.tip(0).pos();
+	vec3d r1 = seg.tip(1).pos();
+	int elem_num = seg.tip(0).pt.nelem;
 	assert(elem_num >= 0);
 
 	// find the intersection with the element's boundary
@@ -37,7 +37,7 @@ void BC::checkBC(Segment &seg, int k)
 	if (grid.FindIntersection(r0, r1, ic))
 	{
 		// enforce the BC
-		enforceBC(seg, k, ic);
+		EnforceBC(seg, ic);
 	}
 	else
 	{
@@ -47,7 +47,7 @@ void BC::checkBC(Segment &seg, int k)
 
 //-----------------------------------------------------------------------------
 // This enforces a boundary condition on a new vessel.
-void BC::enforceBC(Segment &seg, int k, FACE_INTERSECTION& ic)
+void BC::EnforceBC(Segment &seg, FACE_INTERSECTION& ic)
 {
 	Grid& grid = m_angio.GetGrid();
 	Culture& cult = m_angio.GetCulture();
@@ -60,13 +60,13 @@ void BC::enforceBC(Segment &seg, int k, FACE_INTERSECTION& ic)
 	
 	// vessel stops growing
     if (bctype == BC::STOP){
-        BCStop(seg, k, ic);
+        BCStop(seg, ic);
 		return;
 	}
 
 	// vessl bounces off the wall
 	if (bctype == BC::BOUNCY){
-		BCBouncy(seg, k, ic);
+		BCBouncy(seg, ic);
 		return;
 	}
 
@@ -160,24 +160,25 @@ void BC::enforceBC(Segment &seg, int k, FACE_INTERSECTION& ic)
 
 //-----------------------------------------------------------------------------
 // Boundary condition where vessels stops growing after hitting boundary.
-void BC::BCStop(Segment &seg, int k, FACE_INTERSECTION& ic)
+void BC::BCStop(Segment &seg, FACE_INTERSECTION& ic)
 {
-	Segment::TIP& tip = seg.tip(k);
+	Segment::TIP& tip = seg.tip(1);
+	assert(tip.pt.nelem == -1);
 
 	// update position and grid point structure
 	Grid& grid = m_angio.GetGrid();
 	tip.pt.nelem = ic.nelem;
 	vec3d p = ic.q;
 	grid.natcoord(tip.pt.q, p, ic.nelem);
-	seg.tip(k).pt.r = ic.q;
+	tip.pt.r = ic.q;
 	seg.Update();
 
 	// turn the tip off
-	seg.tip(k).bactive = false;
+	tip.bactive = false;
 
 	// mark as dead
 	seg.SetFlagOn(Segment::BC_DEAD);
-	seg.tip(k).BC = 1;
+	tip.BC = 1;
 
 	// add the segment
 	Culture& cult = m_angio.GetCulture();
@@ -188,7 +189,7 @@ void BC::BCStop(Segment &seg, int k, FACE_INTERSECTION& ic)
 // Boundary condition where the vessel bounces off the wall.
 // This effectively creates another segment by breaking the current segment
 // in two at the intersection point and then creating a new segment that bounces of the wall.
-void BC::BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic)
+void BC::BCBouncy(Segment &seg, FACE_INTERSECTION& ic)
 {
 	Grid& grid = m_angio.GetGrid();
 	Culture& cult = m_angio.GetCulture();
@@ -207,7 +208,7 @@ void BC::BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic)
 	}
 
 	// break the first segment
-	Segment::TIP& tip = seg.tip(k);
+	Segment::TIP& tip = seg.tip(1);
 	tip.pt.r = q;
 	tip.pt.nelem = ic.nelem;
 	grid.natcoord(tip.pt.q, q, ic.nelem);
@@ -225,21 +226,12 @@ void BC::BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic)
 
 	// create a new segment
 	Segment seg2;
-	seg2.m_nseed = seg.m_nseed;
-	seg2.m_nvessel = seg.m_nvessel;
+	seg2.seed(seg.seed());
+	seg2.vessel(seg.vessel());
 
 	// set the starting point at the intersection point
-	if (k==1)
-	{
-		seg2.tip(0).pt = tip.pt;
-		seg2.tip(0).bactive = false;
-	}
-	else
-	{
-		seg2.tip(1).pt = tip.pt;
-		seg2.tip(1).bactive = false;
-	}
-	seg2.Update();
+	seg2.tip(0).pt = tip.pt;
+	seg2.tip(0).bactive = false;
 
 	// calculate the recoil vector
 	vec3d t = r1 - r0; t.unit();
@@ -251,20 +243,17 @@ void BC::BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic)
     double remain_length = old_length - seg.length();
 	assert(remain_length > 0.0);
 
-	if (k == 1)
-		seg2.tip(1).pt.r = q + new_vec*remain_length;
-    else if (k == 0)
-        seg2.tip(0).pt.r = q - new_vec*remain_length;
+	seg2.tip(1).pt.r = q + new_vec*remain_length;
 	seg2.Update();
 
 	// activate the new tip
-	seg2.tip(k).bactive = true;
+	seg2.tip(1).bactive = true;
 
 	// pass on body force ID
-	seg2.tip(k).bdyf_id = seg.tip(k).bdyf_id; 
+	seg2.tip(1).bdyf_id = seg.tip(1).bdyf_id; 
 
 	// Add the new segment to the culture
-	cult.AddNewSegment(seg2, k);
+	cult.AddNewSegment(seg2);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1567,7 +1556,7 @@ Segment BC::symplaneperiodicwallBC(vec3d i_point, int face, Segment &seg, int el
 	old_length = seg.length();
 	
 	Segment seg2;
-    seg2.m_nseed = seg.m_nseed;
+    seg2.seed(seg.seed());
 
     if (k == 1){
         seg.tip(1).pt.r = vec3d(xpt_i, ypt_i, zpt_i);

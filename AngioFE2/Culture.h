@@ -12,8 +12,12 @@ class SimulationTime;
 class GridPoint;
 
 //-----------------------------------------------------------------------------
+typedef list<Segment> SegmentList;
 typedef list<Segment>::iterator SegIter;
+typedef list<Segment>::const_iterator ConstSegIter;
+typedef list<Segment::TIP*>	SegmentTipList;
 typedef list<Segment::TIP*>::iterator TipIter;
+typedef list<Segment::TIP*>::const_iterator ConstTipIter;
 
 //-----------------------------------------------------------------------------
 // The CULTURE class contains all the functions that describe how the 
@@ -30,7 +34,7 @@ public:
 	bool Init();
 
 	// create initial segments
-	void SeedFragments(SimulationTime& time);
+	bool SeedFragments(SimulationTime& time);
 
 	// Perform a growth step
 	void Grow(SimulationTime& time);
@@ -43,7 +47,7 @@ public:
 
 public:
 	// Determine the orientation vector of a newly created segment
-	vec3d FindDirection(Segment& it, GridPoint& pt);
+	vec3d FindGrowDirection(Segment::TIP& tip);
 	
 	// Find the density-based length scale factor at a point of the grid
 	double FindDensityScale(const GridPoint& pt);
@@ -59,21 +63,25 @@ public:
 	// Add a new segment to the culture.
 	// This will apply BCs to the new segment and may result in 
 	// the addition of several new segments. 
-	void AddNewSegment(Segment& seg, int k);
+	void AddNewSegment(Segment& seg);
 
 	// return the number of segments
 	int Segments() { return m_nsegs; }
 
-	// get a segment iterator
-	SegIter SegmentBegin() { return m_frag.begin(); }
+	// get the segment list
+	const SegmentList& GetSegmentList() const { return m_frag; }
 
-	// get the end iterator
-	SegIter SegmentEnd() { return m_frag.end(); }
+public:
+	// return the active segment list
+	const SegmentTipList& GetActiveTipList() const { return m_active_tips; }
+
+	// get the total number of active tips
+	int ActiveTips() { return (int) m_active_tips.size(); }
 
 private:
 
     // Seed an initial fragment within the grid
-	Segment createInitFrag();
+	bool createInitFrag(Segment& Seg);
 
 	// grow vessels
 	void GrowVessels();
@@ -82,13 +90,13 @@ private:
 	void BranchVessels(SimulationTime& time);
 
 	// create a branch
-	void BranchSegment(Segment& it, int k);
+	void BranchSegment(Segment::TIP& it);
 
 	// fuse segments (i.e. anastomosis)
 	void FuseVessels();
 
 	// Grow a segment
-	Segment GrowSegment(Segment& it, int k, bool branch = false, bool bnew_vessel = false);
+	Segment GrowSegment(Segment::TIP& it, bool branch = false, bool bnew_vessel = false);
 
 	// Create a new segment connecting two existing segments that are fusing through anastomosis
 	Segment ConnectSegment(Segment& it, Segment& it2, int k, int kk);
@@ -101,13 +109,11 @@ private:
 
 	void CreateBranchingForce(Segment& seg);
 
-public: // TODO: make private
-	list<Segment::TIP*> m_active_tips;		// list of active tips
-
 private:
-	int				m_nsegs;			// Counter that stores in current number of Segments within the simulation domain
-	double			m_total_length;		// Total vascular length within the domain (sum of the length of all Segments) (in um)
-	list<Segment>	m_frag;				// vessel fragments
+	int					m_nsegs;				// Counter that stores in current number of Segments within the simulation domain
+	double				m_total_length;			// Total vascular length within the domain (sum of the length of all Segments) (in um)
+	list<Segment>		m_frag;					// vessel fragments
+	list<Segment::TIP*> m_active_tips;			// list of active tips
 
 public:
     BC		bc;

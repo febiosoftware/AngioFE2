@@ -26,17 +26,17 @@ public:
 	~BC();
 	
 	// checks if a new segment has cross the boundary
-	void checkBC(Segment &seg, int k);
+	void CheckBC(Segment &seg);
 
 private:
 	// enforces a boundary condition
-	void enforceBC(Segment &seg, int k, FACE_INTERSECTION& ic);
+	void EnforceBC(Segment &seg, FACE_INTERSECTION& ic);
 
 	// apply BC where vessel stops growing after hitting boundary
-	void BCStop(Segment &seg, int k, FACE_INTERSECTION& ic);
+	void BCStop(Segment &seg, FACE_INTERSECTION& ic);
 
 	// apply BC where the vessel bounces off the boundary
-	void BCBouncy(Segment &seg, int k, FACE_INTERSECTION& ic);
+	void BCBouncy(Segment &seg, FACE_INTERSECTION& ic);
 
 public:
 	void collfibwallBC(vec3d i_point, int face, Segment &seg, int elem_num, int k);

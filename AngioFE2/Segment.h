@@ -42,6 +42,9 @@ public:
 		GridPoint	pt;			// point in grid where this tip lies
 		vec3d		u;			// sprout force vector
 
+		int		nseed;		// seed where this tip started from (TODO: I want to remove this)
+		int		nvessel;	// vessel this seed is part of
+
 		const vec3d& pos() const { return pt.r; }
 
 	public:
@@ -60,7 +63,7 @@ public:
 	double length() const { return m_length; }
 
 	// get the unit vector
-	vec3d uvect() { return m_uvect; }
+	const vec3d& uvect() const { return m_uvect; }
 
 	// return one of the tip ends
 	TIP& tip(int i) { return m_tip[i]; }
@@ -84,11 +87,29 @@ public:
 	void SetTimeOfBirth(double t) { m_TofBirth = t; }
 
 	// get the time of birth
-	double GetTimeOfBirth() { return m_TofBirth; }
+	double GetTimeOfBirth() const { return m_TofBirth; }
+
+	// set the seed value
+	void seed(int n)
+	{
+		m_nseed = n;
+		m_tip[0].nseed = m_tip[1].nseed = n;
+	}
+
+	// get the seed value
+	int seed() const { return m_nseed; }
+
+	// set the vessel value
+	void vessel(int n)
+	{
+		m_nvessel = n;
+		m_tip[0].nvessel = m_tip[1].nvessel = n;
+	}
+
+	// get the vessel value
+	int vessel() const { return m_nvessel; }
 
 public:
-	int m_nseed;		// Label that indicates which initial fragment the segment orginated from
-	int m_nvessel;		// Label that indicates which vessel the segment belongs to
 	int m_nid;			// segment id (unique zero-based ID)
 
 private:
@@ -97,4 +118,7 @@ private:
     vec3d			m_uvect;		// unit direction vector
 	unsigned int	m_nflag;		// status flag
 	double			m_TofBirth;		// Time point at which the segment was created
+
+	int m_nseed;		// Label that indicates which initial fragment the segment orginated from
+	int m_nvessel;		// Label that indicates which vessel the segment belongs to
 };

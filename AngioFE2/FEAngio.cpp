@@ -114,9 +114,6 @@ bool FEAngio::Init()
 	// Print out the seed number for the random generator
 	fileout.printrandseed(m_irseed);					
 
-	// Initialize Culture class
-	if (m_pCult->Init() == false) return false;
-
 	// create the grid based on the FEBio mesh
 	if (m_grid.Init() == false) return false;
 
@@ -126,9 +123,10 @@ bool FEAngio::Init()
 	// assign collagen fibers to grid nodes
 	if (InitCollagenFibers() == false) return false;
 
-	// Seed initial fragments 
+	// initialize culture
 	// NOTE: must be done after InitECMDensity() and InitCollagenFibers().
-	m_pCult->SeedFragments(m_time);
+	// Initialize Culture class
+	if (m_pCult->Init() == false) return false;
 
 	// Init all the FE stuff
 	if (InitFEM() == false) return false;
@@ -415,7 +413,8 @@ void FEAngio::CreateSprouts(double scale)
 		magnitude = (1.0/4.0)*m_time.t*scale;
 
 	//#pragma omp parallel for
-	for (TipIter tip_it = m_pCult->m_active_tips.begin(); tip_it != m_pCult->m_active_tips.end(); ++tip_it)
+	const SegmentTipList& tip_list = m_pCult->GetActiveTipList();
+	for (ConstTipIter tip_it = tip_list.begin(); tip_it != tip_list.end(); ++tip_it)
 	{
 		Segment::TIP& tip = *(*tip_it);
 		if (tip.bactive)
@@ -469,7 +468,8 @@ void FEAngio::UpdateSprouts(double scale)
 	FEMesh& mesh = m_fem.GetMesh();
 
 	//#pragma omp parallel for
-	for (TipIter tip_it = m_pCult->m_active_tips.begin(); tip_it != m_pCult->m_active_tips.end(); ++tip_it)		// Iterate through each segment in the model...
+	const SegmentTipList& tip_list = m_pCult->GetActiveTipList();
+	for (ConstTipIter tip_it = tip_list.begin(); tip_it != tip_list.end(); ++tip_it)		// Iterate through each segment in the model...
 	{
 		const Segment::TIP& tip= *(*tip_it);
 		assert(tip.bactive);
@@ -512,11 +512,12 @@ void FEAngio::adjust_mesh_stiffness()
 	double subunit_volume = 0.;											// Subdivision volume
 	double volume_fraction = 0.;										// Volume fraction
 
-	for (SegIter frag_it = m_pCult->SegmentBegin(); frag_it != m_pCult->SegmentEnd(); ++frag_it)		// For each segment...
+	const SegmentList& seg_list = m_pCult->GetSegmentList();
+	for (ConstSegIter frag_it = seg_list.begin(); frag_it != seg_list.end(); ++frag_it)		// For each segment...
 	{
 		Segment subunit;												// Segment subdivision placeholder
 	
-		Segment& seg = (*frag_it);												// Obtain the segment
+		const Segment& seg = (*frag_it);												// Obtain the segment
 		
 		for (int k = 1; k <= Nsub; k++)									// For each subdivision...
 		{
@@ -531,11 +532,12 @@ void FEAngio::adjust_mesh_stiffness()
 		}
 			
 			// Calculate the subdivision
-			if (seg.length() > 0.){										// If it's a +1 segment...			
-				subunit.tip(1).pt.r = subunit.tip(0).pos() + seg.uvect()*(sub_scale*seg.length());     
+			vec3d v = seg.uvect();
+			if (seg.length() > 0.){
+				subunit.tip(1).pt.r = subunit.tip(0).pos() + v*(sub_scale*seg.length());     
 			}
 			else{														// If it's a -1 segment...
-				subunit.tip(0).pt.r = subunit.tip(1).pos() + seg.uvect()*(sub_scale*seg.length());     
+				subunit.tip(0).pt.r = subunit.tip(1).pos() + v*(sub_scale*seg.length());     
 			}
 
 			subunit.Update();										// Find the length of the subdivision
