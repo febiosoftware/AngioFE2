@@ -12,13 +12,13 @@ public:
 	FEAngioMaterialPoint(FEMaterialPoint* pt);
 
 	//! The init function is used to intialize data
-	virtual void Init(bool bflag);
+	void Init(bool bflag);
 
 	//! copy material point data (for running restarts) \todo Is this still used?
-	virtual FEMaterialPoint* Copy();
+	FEMaterialPoint* Copy();
 
 	//! copy material point data (for running restarts) \todo Is this still used?
-	virtual void ShallowCopy(DumpStream& dmp, bool bsave);
+	void Serialize(DumpStream& dmp);
 
 public:
 	// These are the material parameters

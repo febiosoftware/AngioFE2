@@ -236,17 +236,22 @@ mat3ds FESproutBodyForce::stiffness(FEMaterialPoint &mp)
 //      
 ///////////////////////////////////////////////////////////////////////
 
-void FESproutBodyForce::Serialize(DumpFile &ar)
+void FESproutBodyForce::Serialize(DumpStream& ar)
 {
-	if (ar.IsSaving())
+	FEBodyForce::Serialize(ar);
+
+	if (ar.IsShallow() == false)
 	{
-		ar << m_a << m_b;
-		ar << m_inode << m_brigid;
-	}
-	else
-	{
-		ar >> m_a >> m_b;
-		ar >> m_inode >> m_brigid;
+		if (ar.IsSaving())
+		{
+			ar << m_a << m_b;
+			ar << m_inode << m_brigid;
+		}
+		else
+		{
+			ar >> m_a >> m_b;
+			ar >> m_inode >> m_brigid;
+		}
 	}
 }
 

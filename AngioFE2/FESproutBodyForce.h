@@ -29,7 +29,7 @@ public:
 	vec3d force(FEMaterialPoint& mp);
 	mat3ds stiffness(FEMaterialPoint& mp);
 
-	void Serialize(DumpFile& ar);
+	void Serialize(DumpStream& ar);
 
 	void ApplySym();
 	void MirrorSym(vec3d x, vec3d &f, SPROUT sp);

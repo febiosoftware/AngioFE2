@@ -35,9 +35,9 @@ FEMaterialPoint* FEAngioMaterialPoint::Copy()
 
 //-----------------------------------------------------------------------------
 //! copy material point data (for running restarts) \todo Is this still used?
-void FEAngioMaterialPoint::ShallowCopy(DumpStream& dmp, bool bsave)
+void FEAngioMaterialPoint::Serialize(DumpStream& dmp)
 {
-	if (bsave)
+	if (dmp.IsSaving())
 	{
 		dmp << m_D;
 	}
@@ -45,7 +45,7 @@ void FEAngioMaterialPoint::ShallowCopy(DumpStream& dmp, bool bsave)
 	{
 		dmp >> m_D;
 	}
-	if (m_pNext) m_pNext->ShallowCopy(dmp, bsave);
+	FEMaterialPoint::Serialize(dmp);
 }
 
 //-----------------------------------------------------------------------------
