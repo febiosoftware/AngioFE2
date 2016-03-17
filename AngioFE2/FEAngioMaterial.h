@@ -85,6 +85,7 @@ private:
 	double	m_a;
 	double	m_b;
 	double  m_N;
+	int mat_id;
 
 	// user-defined sprouts
 	vec3d	m_s;	//!< dummy parameter used for reading sprouts from the input file

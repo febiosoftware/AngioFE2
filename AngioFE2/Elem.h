@@ -19,7 +19,6 @@ public:
 	double m_ecm_den;		// current ecm density
     double m_ecm_den0;		// initial ecm density
 	
-	vec3d m_ecm_den_grad;
 	vec3d m_collfib;		// current collagen fiber direction
 	vec3d m_collfib0;		// initial collagen fiber direction
 

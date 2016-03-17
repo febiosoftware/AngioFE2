@@ -104,7 +104,6 @@ public:	// parameters read directly from file
 	unsigned int	m_irseed;			// Seed number for the random number generator
 	int				comp_mat;			// is composite material used (TODO: do we still need this?)
 	double			phi_stiff_factor;	// stiffness factor, which scales the amount of mesh displacement that's sent to the microvessels
-	int				m_bsprout_verify;	// Flag for the sprout verification problem
     double			m_vessel_width;     // Width of Segments (in um) (TODO: make this a user parameter)
 	int				m_matrix_cond;		// flag indicating how the collagen fibers are oriented initially ( 0 = random, 3 = along local element direction)
 	int				m_bzfibflat;		// flatten fiber option

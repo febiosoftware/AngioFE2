@@ -62,8 +62,6 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem), m_grid(fem.GetMesh())
 	// vessel_width - Diameter of microvessels (Default: 7 um)
 	m_vessel_width = 7;
 
-	m_bsprout_verify = 0;				// Sprout verification problem flag
-
 	// boundary conditions
 	m_Sx = 0.;						// Location of the x-symmetry plane
 	m_Sy = 0.;						// Location of the y-symmetry plane
@@ -650,90 +648,6 @@ void FEAngio::adjust_mesh_stiffness()
 
 	return;
 }
-
-//-----------------------------------------------------------------------------
-// Calculate the density gradient for each element (this function may not work properly)
-void FEAngio::update_ecm_den_grad()
-{
-	assert(false);
-/*	vec3d elem_den_grad;
-	double ex = 0.; double ey = 0.; double ez = 0.;	
-	vec3d dN1; vec3d dN2; vec3d dN3; vec3d dN4; vec3d dN5; vec3d dN6; vec3d dN7; vec3d dN8;
-	
-	dN1 = m_grid.shapefun_d1(ex, ey, ez, 1);
-    dN2 = m_grid.shapefun_d1(ex, ey, ez, 2);
-	dN3 = m_grid.shapefun_d1(ex, ey, ez, 3);
-	dN4 = m_grid.shapefun_d1(ex, ey, ez, 4);
-	dN5 = m_grid.shapefun_d1(ex, ey, ez, 5);
-	dN6 = m_grid.shapefun_d1(ex, ey, ez, 6);
-	dN7 = m_grid.shapefun_d1(ex, ey, ez, 7);
-	dN8 = m_grid.shapefun_d1(ex, ey, ez, 8);
-	
-	Grid& grid = m_grid;
-	int NN = grid.Nodes();
-	for (int j = 0; j < NN; ++j){
-		grid.nodes[j].updated = false;}
-
-
-	int NE = grid.Elems();
-	for (int i = 0; i < NE; ++i){
-		Elem& elem = grid.ebin[i];
-		
-		elem_den_grad.x = ((*elem.n1).ecm_den)*dN1.x + ((*elem.n2).ecm_den)*dN2.x + ((*elem.n3).ecm_den)*dN3.x + ((*elem.n4).ecm_den)*dN4.x + ((*elem.n5).ecm_den)*dN5.x + ((*elem.n6).ecm_den)*dN6.x + ((*elem.n7).ecm_den)*dN7.x + ((*elem.n8).ecm_den)*dN8.x;
-		elem_den_grad.y = ((*elem.n1).ecm_den)*dN1.y + ((*elem.n2).ecm_den)*dN2.y + ((*elem.n3).ecm_den)*dN3.y + ((*elem.n4).ecm_den)*dN4.y + ((*elem.n5).ecm_den)*dN5.y + ((*elem.n6).ecm_den)*dN6.y + ((*elem.n7).ecm_den)*dN7.y + ((*elem.n8).ecm_den)*dN8.y;
-		elem_den_grad.z = ((*elem.n1).ecm_den)*dN1.z + ((*elem.n2).ecm_den)*dN2.z + ((*elem.n3).ecm_den)*dN3.z + ((*elem.n4).ecm_den)*dN4.z + ((*elem.n5).ecm_den)*dN5.z + ((*elem.n6).ecm_den)*dN6.z + ((*elem.n7).ecm_den)*dN7.z + ((*elem.n8).ecm_den)*dN8.z;
-	
-		if ((*elem.n1).updated == false){
-			(*elem.n1).ecm_den_grad = elem_den_grad;
-			(*elem.n1).updated = true;}
-		else if ((*elem.n1).updated == true){
-			(*elem.n1).ecm_den_grad = (elem_den_grad + (*elem.n1).ecm_den_grad)*0.5;}
-
-		if ((*elem.n2).updated == false){
-			(*elem.n2).ecm_den_grad = elem_den_grad;
-			(*elem.n2).updated = true;}
-		else if ((*elem.n2).updated == true){
-			(*elem.n2).ecm_den_grad = (elem_den_grad + (*elem.n2).ecm_den_grad)*0.5;}
-		
-		if ((*elem.n3).updated == false){
-			(*elem.n3).ecm_den_grad = elem_den_grad;
-			(*elem.n3).updated = true;}
-		else if ((*elem.n3).updated == true){
-			(*elem.n3).ecm_den_grad = (elem_den_grad + (*elem.n3).ecm_den_grad)*0.5;}
-
-		if ((*elem.n4).updated == false){
-			(*elem.n4).ecm_den_grad = elem_den_grad;
-			(*elem.n4).updated = true;}
-		else if ((*elem.n4).updated == true){
-			(*elem.n4).ecm_den_grad = (elem_den_grad + (*elem.n4).ecm_den_grad)*0.5;}
-
-		if ((*elem.n5).updated == false){
-			(*elem.n5).ecm_den_grad = elem_den_grad;
-			(*elem.n5).updated = true;}
-		else if ((*elem.n5).updated == true){
-			(*elem.n5).ecm_den_grad = (elem_den_grad + (*elem.n5).ecm_den_grad)*0.5;}
-
-		if ((*elem.n6).updated == false){
-			(*elem.n6).ecm_den_grad = elem_den_grad;
-			(*elem.n6).updated = true;}
-		else if ((*elem.n6).updated == true){
-			(*elem.n6).ecm_den_grad = (elem_den_grad + (*elem.n6).ecm_den_grad)*0.5;}
-
-		if ((*elem.n7).updated == false){
-			(*elem.n7).ecm_den_grad = elem_den_grad;
-			(*elem.n7).updated = true;}
-		else if ((*elem.n7).updated == true){
-			(*elem.n7).ecm_den_grad = (elem_den_grad + (*elem.n7).ecm_den_grad)*0.5;}
-
-		if ((*elem.n8).updated == false){
-			(*elem.n8).ecm_den_grad = elem_den_grad;
-			(*elem.n8).updated = true;}
-		else if ((*elem.n8).updated == true){
-			(*elem.n8).ecm_den_grad = (elem_den_grad + (*elem.n8).ecm_den_grad)*0.5;}
-	}
-*/
-}
-
 
 //-----------------------------------------------------------------------------
 void FEAngio::update_sprout_stress_scaling()

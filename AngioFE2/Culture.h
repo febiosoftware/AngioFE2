@@ -51,9 +51,6 @@ public:
 	
 	// Find the density-based length scale factor at a point of the grid
 	double FindDensityScale(const GridPoint& pt);
-
-	// Check a newly created segment to see if it physically intersections with any existing segments
-	void CheckForIntersection(Segment &seg, Segment& it);
 	
 public:
 	// Add a segment to the culture (without checking BCs).
