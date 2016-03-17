@@ -4,13 +4,14 @@
 #include <FECore/FESolidDomain.h>
 #include "FEAngioMaterial.h"
 #include "Grid.h"
+#include "FECore/FEMesh.h"
 
 extern FEAngio* pfeangio;
 
 //-----------------------------------------------------------------------------
 bool FEPlotAngioStress::Save(FEDomain& d, FEDataStream& str)
 {
-	FEAngioMaterial* pmat = dynamic_cast<FEAngioMaterial*>(d.GetMaterial());
+	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
 	if (pmat == 0) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);

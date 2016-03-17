@@ -5,6 +5,8 @@
 #include <cmath>
 #include "Elem.h"
 #include "Culture.h"
+#include "FEBioMech/FEElasticMixture.h"
+#include "FEBioMech/FEViscoElasticMaterial.h"
 
 //-----------------------------------------------------------------------------
 // define the material parameters
@@ -197,8 +199,36 @@ vec3d FEAngioMaterial::CurrentPosition(FEElement* pe, double r, double s, double
 //-----------------------------------------------------------------------------
 mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 {
-	FEElasticMaterialPoint& ep = *mp.ExtractData<FEElasticMaterialPoint>();
-	FEAngioMaterialPoint& ap = *mp.ExtractData<FEAngioMaterialPoint>();
+	FEElasticMixtureMaterialPoint* mPt = dynamic_cast<FEElasticMixtureMaterialPoint*>(&mp);
+
+	FEAngioMaterialPoint* angioPt = nullptr;
+	FEElasticMaterialPoint* elasticPt = nullptr;
+	if(mPt)
+	{
+		vector<FEMaterialPoint*> mPtV = mPt->m_mp;
+		for (int i=0; i<(int)mPtV.size(); ++i)
+		{
+			FEAngioMaterialPoint* angioPt1 = dynamic_cast<FEAngioMaterialPoint*>(mPtV[i]);
+			if(angioPt1)
+			{
+				angioPt = angioPt1;
+			}
+
+			FEViscoElasticMaterialPoint* viscoPt = dynamic_cast<FEViscoElasticMaterialPoint*>(mPtV[i]);
+
+			if(viscoPt)
+			{
+				elasticPt = dynamic_cast<FEElasticMaterialPoint*>(viscoPt->Next()->Next());
+			}
+		}
+	}
+	//we need to calculate the 
+	else
+	{
+		angioPt= mp.ExtractData<FEAngioMaterialPoint>();
+	}
+
+	FEAngioMaterialPoint& ap=*angioPt;
 
 	// get density scale factor
 	Culture& cult = m_pangio->GetCulture();
@@ -217,7 +247,8 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 		vec3d x = CurrentPosition(sp.pel, sp.r[0], sp.r[1], sp.r[2]);
 
 		// current position of integration point
-		vec3d y = ep.m_rt;
+		FEDomain &d = GetFEModel()->GetMesh().Domain(0);
+		vec3d y = CurrentPosition(&d.ElementRef(ap.m_pt.nelem), ap.m_pt.q.x, ap.m_pt.q.x, ap.m_pt.q.x);
 
 		vec3d r = y - x;
 		double l = r.unit();

@@ -2,6 +2,8 @@
 #include "Fileout.h"
 #include "FESproutBodyForce.h"
 #include "Grid.h"
+#include "FEAngioMaterial.h"
+
 
 //-----------------------------------------------------------------------------
 class FEModel;
@@ -54,6 +56,7 @@ public:
 	void adjust_mesh_stiffness();
 	void update_ecm_den_grad();
 	void update_sprout_stress_scaling();
+	FEAngioMaterial* FEAngio::FindAngioMaterial(FEMaterial* pm);
 
 private:
 	// Initialize the nodal ECM values
@@ -75,10 +78,11 @@ private:
 	void UpdateSprouts(double scale);
 
 private:
-	static void feangio_callback(FEModel* pfem, unsigned int nwhen, void* pd)
+	static bool feangio_callback(FEModel* pfem, unsigned int nwhen, void* pd)
 	{
 		FEAngio* pfa = (FEAngio*)(pd);
 		pfa->OnCallback(pfem, nwhen);
+		return true;
 	}
 
 	void OnCallback(FEModel* pfem, unsigned int nwhen);

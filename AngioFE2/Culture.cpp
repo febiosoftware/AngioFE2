@@ -241,16 +241,16 @@ Segment Culture::GrowSegment(Segment::TIP& tip, bool branch, bool bnew_vessel)
 		// TODO: what's the logic here? Why the 0.5 factor?
 		//      If the vessel is aligned with the collagen (and the initial fragments are)
 		//      then  the new branch will overlap the old segment. 
-//		vec3d coll_fib = grid.CollagenDirection(tip.pt);
-//		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
-//		seg_vec.unit();
+		vec3d coll_fib = grid.CollagenDirection(tip.pt);
+		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
+		seg_vec.unit();
 
 		// TODO: Trying something new here: grow perpendicular to segment.
-		vec3d e = vrand(); e.unit();
-		double d = e*seg_vec;
-		assert(d != 0.0);
-		seg_vec = e - seg_vec*d;
-		seg_vec.unit();
+		//vec3d e = vrand(); e.unit();
+		//double d = e*seg_vec;
+		//assert(d != 0.0);
+		//seg_vec = e - seg_vec*d;
+		//seg_vec.unit();
 	}
 
 	// Create a new segment
@@ -539,7 +539,7 @@ double Culture::FindDensityScale(const GridPoint& pt)
 	Grid& grid = m_angio.GetGrid();
 	double coll_den = grid.FindECMDensity(pt);
     
-	if (coll_den == 3.0) return 1.0;
+	//if (coll_den == 3.0) return 1.0;
 
 	// Determine the density scaling factor using the function defined by a, b, c
 	double den_scale;

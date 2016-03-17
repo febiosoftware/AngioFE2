@@ -93,7 +93,7 @@ FEModel& FEAngio::GetFEModel()
 
 //-----------------------------------------------------------------------------
 // find the angio material component
-FEAngioMaterial* FindAngioMaterial(FEMaterial* pm)
+FEAngioMaterial* FEAngio::FindAngioMaterial(FEMaterial* pm)
 {
 	FEMaterial* pmat = pm->FindComponentByType("angio");
 	if (pmat)
