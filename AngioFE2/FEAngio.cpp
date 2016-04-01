@@ -619,15 +619,10 @@ void FEAngio::adjust_mesh_stiffness()
 		
 			for (int n = 0; n < nint; ++n)										// For each gauss point...
 			{
-				//FEMaterialPoint& mp = *e.m_State[n];								// Obtain the material point
-				//FEElasticMixtureMaterialPoint& pt = *mp.ExtractData<FEElasticMixtureMaterialPoint>();	// Obtain the mixture material point
-				//pt.m_w[0] = alpha;													// Set the first weight factor to alpha
-				//pt.m_w[1] = 1.0 - alpha;											// Set the second weight factor to 1 - alpha
-			
-				FEMaterialPoint& mp = *(e.GetMaterialPoint(n)->GetPointData(1));    // returns the second component of the mixture
-				FEElasticMixtureMaterialPoint& pt = *mp.ExtractData<FEElasticMixtureMaterialPoint>(); // get the mixture material point
-				pt.m_w[0] = alpha;
-				pt.m_w[1] = 1.0 - alpha;
+				FEMaterialPoint& mp = *(e.GetMaterialPoint(n));
+				FEAngioMaterialPoint* pt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp); // get the mixture material point
+				pt->vessel_weight = alpha;
+				pt->matrix_weight = 1.0 - alpha;
 
 				if (comp_mat == 2){													// If the transversely isotropic material is being used...
 					FEElasticMaterialPoint& pt2 = *mp.ExtractData<FEElasticMaterialPoint>();
@@ -693,7 +688,8 @@ bool CreateFiberMap(vector<vec3d>& fiber, FEMaterial* pmat)
 			{
 				// generate a coordinate transformation at this integration point
 				FEMaterialPoint* mpoint = el.GetMaterialPoint(n);
-				FEElasticMaterialPoint& pt = *mpoint->ExtractData<FEElasticMaterialPoint>();
+				FEAngioMaterialPoint* apoint = FEAngioMaterialPoint::FindAngioMaterialPoint(mpoint);
+				FEElasticMaterialPoint& pt = *apoint->matPt->ExtractData<FEElasticMaterialPoint>();
 				mat3d m = pt.m_Q;
 				
 				// grab the first column as the fiber orientation
@@ -756,21 +752,8 @@ bool CreateDensityMap(vector<double>& density, FEMaterial* pmat)
 			{
 				// generate a coordinate transformation at this integration point
 				FEMaterialPoint* mpoint = el.GetMaterialPoint(n);
-				FEElasticMixtureMaterialPoint* mPt = dynamic_cast<FEElasticMixtureMaterialPoint*>(mpoint);
-
-				if(mPt)
-				{
-					vector<FEMaterialPoint*> mPtV = mPt->m_mp;
-					for (int i=0; i<(int)mPtV.size(); ++i)
-					{
-						FEAngioMaterialPoint* angioPt = dynamic_cast<FEAngioMaterialPoint*>(mPtV[i]);
-						if(angioPt)
-						{
-							den[n] = angioPt->m_D;
-							break;
-						}
-					}
-				}
+				FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(mpoint);
+				den[n] = angioPt->m_D;
 			}
 
 			// now that we have the values at the integration points

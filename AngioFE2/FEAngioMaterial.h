@@ -9,7 +9,7 @@ class FEAngioMaterialPoint : public FEMaterialPoint
 {
 public:
 	//! constructor
-	FEAngioMaterialPoint(FEMaterialPoint* pt);
+	FEAngioMaterialPoint(FEMaterialPoint* pt, FEMaterialPoint* vesselPt, FEMaterialPoint *matrixPt);
 
 	//! The init function is used to intialize data
 	void Init(bool bflag);
@@ -27,7 +27,16 @@ public:
 public:
 	GridPoint	m_pt;	// grid point location of this material point
 
+public:
+	double vessel_weight;
+	double matrix_weight;
+	FEMaterialPoint* vessPt;
+	FEMaterialPoint* matPt;
+
 	DECLARE_PARAMETER_LIST();
+
+public:
+	static FEAngioMaterialPoint* FindAngioMaterialPoint(FEMaterialPoint* mp);
 };
 
 //-----------------------------------------------------------------------------
@@ -51,6 +60,9 @@ public:
 
 	// Calculate Cauchy-stress
 	mat3ds Stress(FEMaterialPoint& mp);
+
+	// Calculate the active Angio stress
+	mat3ds AngioStress(FEAngioMaterialPoint& mp);
 
 	// Calculate spatial elasticity tangent
 	tens4ds Tangent(FEMaterialPoint& mp);
@@ -116,6 +128,10 @@ private:
 public:
 	void ApplySym();
 	void MirrorSym(vec3d x, mat3ds &si, SPROUT sp, double den_scale);
+
+private:
+	FEPropertyT<FESolidMaterial> vessel_material;
+	FEPropertyT<FESolidMaterial> matrix_material;
 };
 
 //-----------------------------------------------------------------------------

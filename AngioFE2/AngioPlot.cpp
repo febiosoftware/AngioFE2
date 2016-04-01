@@ -24,7 +24,7 @@ bool FEPlotAngioStress::Save(FEDomain& d, FEDataStream& str)
 		for (int j=0; j<nint; ++j)
 		{
 			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
-			mat3ds sj = pmat->Stress(mp);
+			mat3ds sj = pmat->AngioStress(*(FEAngioMaterialPoint::FindAngioMaterialPoint(&mp)));
 			s += sj;
 		}
 		s /= (double) nint;
@@ -51,7 +51,7 @@ bool FEPlotAngioEffectiveStress::Save(FEDomain& d, FEDataStream& str)
 		{
 			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
 			FEElasticMaterialPoint& pt = *(mp.ExtractData<FEElasticMaterialPoint>());
-			mat3ds sj = pmat->Stress(mp);
+			mat3ds sj = pmat->Stress(*(FEAngioMaterialPoint::FindAngioMaterialPoint(&mp)));
 			s += pt.m_s - sj;
 		}
 		s /= (double) nint;

@@ -7,6 +7,7 @@
 #include "Culture.h"
 #include "FEBioMech/FEElasticMixture.h"
 #include "FEBioMech/FEViscoElasticMaterial.h"
+#include <iostream>
 
 //-----------------------------------------------------------------------------
 // define the material parameters
@@ -15,15 +16,23 @@ BEGIN_PARAMETER_LIST(FEAngioMaterialPoint, FEMaterialPoint)
 END_PARAMETER_LIST();
 
 //-----------------------------------------------------------------------------
-FEAngioMaterialPoint::FEAngioMaterialPoint(FEMaterialPoint* pt) : FEMaterialPoint(pt)
+FEAngioMaterialPoint::FEAngioMaterialPoint(FEMaterialPoint* pt, FEMaterialPoint* vesselPt, FEMaterialPoint *matrixPt) : FEMaterialPoint(pt)
 {
 	m_D = 0.0;
+	vessPt = vesselPt;
+	matPt = matrixPt;
+	vessPt->SetPrev(this);
+	matPt->SetPrev(this);
+	m_D = 0.0;
 }
+
 
 //-----------------------------------------------------------------------------
 //! The init function is used to intialize data
 void FEAngioMaterialPoint::Init(bool bflag)
 {
+	vessPt->Init(bflag);
+	matPt->Init(bflag);
 }
 
 //-----------------------------------------------------------------------------
@@ -48,6 +57,39 @@ void FEAngioMaterialPoint::Serialize(DumpStream& dmp)
 		dmp >> m_D;
 	}
 	FEMaterialPoint::Serialize(dmp);
+}
+
+FEAngioMaterialPoint* FEAngioMaterialPoint::FindAngioMaterialPoint(FEMaterialPoint* mp)
+{
+	FEAngioMaterialPoint* angioPt  = dynamic_cast<FEAngioMaterialPoint*>(mp);
+	if(angioPt)
+		return angioPt;
+
+	FEMaterialPoint* pt = mp;
+	while(pt)
+	{
+		angioPt = dynamic_cast<FEAngioMaterialPoint*>(pt);
+		if(angioPt)
+			return angioPt;
+
+		FEElasticMixtureMaterialPoint* mixtureP = dynamic_cast<FEElasticMixtureMaterialPoint*>(pt);
+		if(mixtureP)
+		{
+			vector<FEMaterialPoint*> mixtureVector = mixtureP->m_mp;
+			for(int i=0; i<mixtureVector.size(); i++)
+			{
+				angioPt = FindAngioMaterialPoint(mixtureVector[i]);
+				if(angioPt)
+				{
+					return angioPt;
+				}
+			}
+		}
+
+		pt = pt->Next();
+	}
+
+	return 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -78,8 +120,10 @@ FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticMaterial(pfem)
 	sym_vects[6][0] = 1.; sym_vects[6][1] = 1.; sym_vects[6][2] = 1.;
 
 	sym_on = false;
-}
 
+	AddProperty(&vessel_material, "vessel");
+	AddProperty(&matrix_material , "matrix");
+}
 //-----------------------------------------------------------------------------
 bool FEAngioMaterial::Init()
 {
@@ -119,23 +163,15 @@ bool FEAngioMaterial::Init()
 				for (int j=0; j<nint; ++j)
 				{
 					FEMaterialPoint& mp = *el.GetMaterialPoint(j);
-
-					int nc = mp.Components();
-					for (int k=0; k<nc; ++k)
+					FEAngioMaterialPoint* pt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
+					if(pt)
 					{
-						FEMaterialPoint& mk = *mp.GetPointData(k);
-					
-						FEAngioMaterialPoint* ap = mk.ExtractData<FEAngioMaterialPoint>();
-						if (ap)
-						{
-							// calculate the spatial location of the integration point
-							vec3d r = el.Evaluate(x, j);
+						vec3d r = el.Evaluate(x, j);
 
-							// calculate the GridPoint data for this point.
-							if (grid.FindGridPoint(r, ap->m_pt) == false)
-							{
-								return false;
-							}
+						// calculate the GridPoint data for this point.
+						if (grid.FindGridPoint(r, pt->m_pt) == false)
+						{
+							return false;
 						}
 					}
 				}
@@ -197,48 +233,18 @@ vec3d FEAngioMaterial::CurrentPosition(FEElement* pe, double r, double s, double
 }
 
 //-----------------------------------------------------------------------------
-mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
+mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 {
-	FEElasticMixtureMaterialPoint* mPt = dynamic_cast<FEElasticMixtureMaterialPoint*>(&mp);
-
-	FEAngioMaterialPoint* angioPt = nullptr;
-	FEElasticMaterialPoint* elasticPt = nullptr;
-	if(mPt)
-	{
-		vector<FEMaterialPoint*> mPtV = mPt->m_mp;
-		for (int i=0; i<(int)mPtV.size(); ++i)
-		{
-			FEAngioMaterialPoint* angioPt1 = dynamic_cast<FEAngioMaterialPoint*>(mPtV[i]);
-			if(angioPt1)
-			{
-				angioPt = angioPt1;
-			}
-
-			FEViscoElasticMaterialPoint* viscoPt = dynamic_cast<FEViscoElasticMaterialPoint*>(mPtV[i]);
-
-			if(viscoPt)
-			{
-				elasticPt = dynamic_cast<FEElasticMaterialPoint*>(viscoPt->Next()->Next());
-			}
-		}
-	}
-	//we need to calculate the 
-	else
-	{
-		angioPt= mp.ExtractData<FEAngioMaterialPoint>();
-	}
-
-	FEAngioMaterialPoint& ap=*angioPt;
+	mat3ds s(0.0);
 
 	// get density scale factor
 	Culture& cult = m_pangio->GetCulture();
-	double den_scale = cult.FindDensityScale(ap.m_pt);
+	double den_scale = cult.FindDensityScale(angioPt.m_pt);
 
 	// loop over all sprout tips
-	mat3ds s(0.0);
 	int NS = Sprouts();
 
-//#pragma omp parallel for shared(s)
+	//#pragma omp parallel for shared(s)
 	for (int i=0; i<NS; ++i)
 	{
 		SPROUT& sp = m_spr[i];
@@ -248,7 +254,7 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 
 		// current position of integration point
 		FEDomain &d = GetFEModel()->GetMesh().Domain(0);
-		vec3d y = CurrentPosition(&d.ElementRef(ap.m_pt.nelem), ap.m_pt.q.x, ap.m_pt.q.x, ap.m_pt.q.x);
+		vec3d y = CurrentPosition(&d.ElementRef(angioPt.m_pt.nelem), angioPt.m_pt.q.x, angioPt.m_pt.q.x, angioPt.m_pt.q.x);
 
 		vec3d r = y - x;
 		double l = r.unit();
@@ -269,14 +275,58 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 //#pragma omp critical
 		s += si;
 	}
+
+	return s;
+}
+
+mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
+{
+	FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
+	FEElasticMaterialPoint& elastic_pt = *mp.ExtractData<FEElasticMaterialPoint>();
+
+	mat3ds s(0.0);
+	//should always be true but we should check
+	if(angioPt)
+	{
+		FEElasticMaterialPoint& vessel_elastic = *angioPt->vessPt->ExtractData<FEElasticMaterialPoint>();
+		vessel_elastic.m_rt = elastic_pt.m_rt;
+		vessel_elastic.m_r0 = elastic_pt.m_r0;
+		vessel_elastic.m_F = elastic_pt.m_F;
+		vessel_elastic.m_J = elastic_pt.m_J;
+		FEElasticMaterialPoint& matrix_elastic = *angioPt->matPt->ExtractData<FEElasticMaterialPoint>();
+		matrix_elastic.m_rt = elastic_pt.m_rt;
+		matrix_elastic.m_r0 = elastic_pt.m_r0;
+		matrix_elastic.m_F = elastic_pt.m_F;
+		matrix_elastic.m_J = elastic_pt.m_J;
+		mat3ds activeStress = AngioStress(*angioPt);
+		mat3ds vesselStress = vessel_material->Stress(*angioPt->vessPt);
+		mat3ds matrixStress = matrix_material->Stress(*angioPt->matPt);
+		s = activeStress + angioPt->vessel_weight*vesselStress + angioPt->matrix_weight*matrixStress;
+	}
 	return s;
 }
 
 //-----------------------------------------------------------------------------
 tens4ds FEAngioMaterial::Tangent(FEMaterialPoint& mp)
 {
-	tens4ds C(0.0);
-	return C;
+	FEElasticMaterialPoint& elastic_pt = *mp.ExtractData<FEElasticMaterialPoint>();
+	FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
+	tens4ds s(0.0);
+	if(angioPt)
+	{
+		FEElasticMaterialPoint& vessel_elastic = *angioPt->vessPt->ExtractData<FEElasticMaterialPoint>();
+		vessel_elastic.m_rt = elastic_pt.m_rt;
+		vessel_elastic.m_r0 = elastic_pt.m_r0;
+		vessel_elastic.m_F = elastic_pt.m_F;
+		vessel_elastic.m_J = elastic_pt.m_J;
+		FEElasticMaterialPoint& matrix_elastic = *angioPt->matPt->ExtractData<FEElasticMaterialPoint>();
+		matrix_elastic.m_rt = elastic_pt.m_rt;
+		matrix_elastic.m_r0 = elastic_pt.m_r0;
+		matrix_elastic.m_F = elastic_pt.m_F;
+		matrix_elastic.m_J = elastic_pt.m_J;
+		s = angioPt->vessel_weight*vessel_material->Tangent(*angioPt->vessPt) + angioPt->matrix_weight*matrix_material->Tangent(*angioPt->matPt);
+	}
+	return s;
 }
 
 //=============================================================================
@@ -396,5 +446,5 @@ void FEAngioMaterial::MirrorSym(vec3d y, mat3ds &s, SPROUT sp, double den_scale)
 //-----------------------------------------------------------------------------
 FEMaterialPoint* FEAngioMaterial::CreateMaterialPointData()
 {
-	return new FEAngioMaterialPoint(new FEElasticMaterialPoint); 
+	return new FEAngioMaterialPoint(new FEElasticMaterialPoint, vessel_material->CreateMaterialPointData(), matrix_material->CreateMaterialPointData()); 
 }
