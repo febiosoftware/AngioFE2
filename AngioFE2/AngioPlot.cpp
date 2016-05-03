@@ -20,7 +20,8 @@ bool FEPlotAngioStress::Save(FEDomain& d, FEDataStream& str)
 	{
 		FESolidElement& el = dom.Element(i);
 		int nint = el.GaussPoints();
-		mat3ds s(0.0);
+		mat3ds s;
+		s.zero();
 		for (int j=0; j<nint; ++j)
 		{
 			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
@@ -46,7 +47,8 @@ bool FEPlotAngioEffectiveStress::Save(FEDomain& d, FEDataStream& str)
 	{
 		FESolidElement& el = dom.Element(i);
 		int nint = el.GaussPoints();
-		mat3ds s(0.0);
+		mat3ds s;
+		s.zero();
 		for (int j=0; j<nint; ++j)
 		{
 			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));

@@ -185,7 +185,7 @@ bool FEAngioMaterial::Init()
 //-----------------------------------------------------------------------------
 void FEAngioMaterial::SetParameter(FEParam& p)
 {
-	if (strcmp(p.m_szname, "sprout") == 0)
+	if (strcmp(p.name(), "sprout") == 0)
 	{
 		m_suser.push_back(m_s);
 	}
@@ -235,7 +235,8 @@ vec3d FEAngioMaterial::CurrentPosition(FEElement* pe, double r, double s, double
 //-----------------------------------------------------------------------------
 mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 {
-	mat3ds s(0.0);
+	mat3ds s;
+	s.zero();
 
 	// get density scale factor
 	Culture& cult = m_pangio->GetCulture();
@@ -284,7 +285,8 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 	FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
 	FEElasticMaterialPoint& elastic_pt = *mp.ExtractData<FEElasticMaterialPoint>();
 
-	mat3ds s(0.0);
+	mat3ds s;
+	s.zero();
 	//should always be true but we should check
 	if(angioPt)
 	{

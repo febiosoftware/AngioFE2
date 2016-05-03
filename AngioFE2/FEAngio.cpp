@@ -11,6 +11,7 @@
 #include "FEBioMech/FEElasticMixture.h"
 #include <FECore/log.h>
 #include <FECore/FEModel.h>
+#include <FECore/FEAnalysis.h>
 #include "FECore\FESolidDomain.h"
 #include "FEBioMech\FEElasticMaterial.h"
 #include "FEAngioMaterial.h"
