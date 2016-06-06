@@ -90,3 +90,16 @@ bool FEPlotAngioECMDensity::Save(FEMesh& m, FEDataStream& a)
 
 	return true;
 }
+
+bool FEPlotAngioECMAlpha::Save(FEMesh& m, FEDataStream& a)
+{
+	if (pfeangio == 0) return false;
+
+	Grid& grid = pfeangio->GetGrid();
+	assert(grid.Nodes() == m.Nodes());
+
+	int NN = grid.Nodes();
+	for (int i=0; i<NN; ++i) a << grid.GetNode(i).alpha;
+
+	return true;
+}

@@ -32,3 +32,11 @@ public:
 	FEPlotAngioECMDensity(FEModel* pfem) : FENodeData(PLT_FLOAT, FMT_ITEM){}
 	bool Save(FEMesh& m, FEDataStream& a);
 };
+
+//-----------------------------------------------------------------------------
+class FEPlotAngioECMAlpha : public FENodeData
+{
+public:
+	FEPlotAngioECMAlpha(FEModel* pfem) : FENodeData(PLT_FLOAT, FMT_ITEM){}
+	bool Save(FEMesh& m, FEDataStream& a);
+};
