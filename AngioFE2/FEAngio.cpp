@@ -9,11 +9,12 @@
 #include "FECore/FECoreKernel.h"
 #include "FEBioMech/FEElasticMaterial.h"
 #include "FEBioMech/FEElasticMixture.h"
+#include "FEBioMix/FESolute.h"
+#include "FEBioMix/FEMultiphasic.h"
 #include <FECore/log.h>
 #include <FECore/FEModel.h>
 #include <FECore/FEAnalysis.h>
 #include "FECore\FESolidDomain.h"
-#include "FEBioMech\FEElasticMaterial.h"
 #include "FEAngioMaterial.h"
 #include "FEBioMech/FEElasticMixture.h"
 #include "Elem.h"
@@ -27,7 +28,9 @@
 bool CreateFiberMap(vector<vec3d>& fiber, FEMaterial* pmat);
 
 // create a density map based on material point density
-bool CreateDensityMap(vector<double>& density, FEMaterial* pmat);
+bool CreateDensityMap(vector<double>& density, vector<double>& anisotropy, FEMaterial* pmat);
+
+bool CreateConcentrationMap(vector<double>& concentration, FEMaterial* pmat, int vegfID);
 
 //-----------------------------------------------------------------------------
 FEAngio::FEAngio(FEModel& fem) : m_fem(fem), m_grid(fem.GetMesh())
@@ -94,7 +97,15 @@ FEModel& FEAngio::GetFEModel()
 // find the angio material component
 FEAngioMaterial* FEAngio::FindAngioMaterial(FEMaterial* pm)
 {
-	FEMaterial* pmat = pm->FindComponentByType("angio");
+	FEMaterial* pmat;
+	if(strcmp(pm->GetTypeStr(), "angio")==0)
+	{
+		pmat = pm;
+	}
+	else
+	{
+		pmat = pm->FindComponentByType("angio");
+	}
 	if (pmat)
 	{
 		FEAngioMaterial* pma = dynamic_cast<FEAngioMaterial*>(pmat);
@@ -121,6 +132,9 @@ bool FEAngio::Init()
 
 	// assign collagen fibers to grid nodes
 	if (InitCollagenFibers() == false) return false;
+
+	// assign concentration values to grid nodes
+	//if (InitSoluteConcentration() == false) return false;
 
 	// initialize culture
 	// NOTE: must be done after InitECMDensity() and InitCollagenFibers().
@@ -241,15 +255,25 @@ bool FEAngio::InitECMDensity()
 {
 	int NN = m_grid.Nodes();
 	vector<double> density(NN, 0.0);
+	vector<double> anisotropy(NN, 0.0);
 
 	if (m_grid.m_coll_den == 0.0)
 	{
 		// get the material
 		FEMaterial* pm = m_fem.GetMaterial(0);
-		FEMaterial* pmat = pm->FindComponentByType("angio");
+		FEMaterial* pmat;
+		if(strcmp(pm->GetTypeStr(), "angio")==0)
+		{
+			pmat = pm;
+		}
+		else
+		{
+			pmat = pm->FindComponentByType("angio");
+		}
+
 		if (pmat == 0) return false;
 
-		if (CreateDensityMap(density, pmat) == false) return false;
+		if (CreateDensityMap(density, anisotropy, pmat) == false) return false;
 	}
 	else
 	{
@@ -263,6 +287,48 @@ bool FEAngio::InitECMDensity()
 
 		node.m_ecm_den0 = density[i];	
 		node.m_ecm_den = node.m_ecm_den0;
+		node.m_da = anisotropy[i];
+	}
+
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Find VEGF solute
+int FEAngio::FindVEGF()
+{
+	FEModel& fem = GetFEModel();
+	int N = fem.GlobalDataItems();
+	for (int i=0; i<N; ++i)
+	{
+		FESoluteData* psd = dynamic_cast<FESoluteData*>(fem.GetGlobalData(i));
+		if (psd && (strcmp(psd->m_szname,"VEGF"))) return psd->m_nID;
+	}
+	return 0;
+}
+//-----------------------------------------------------------------------------
+// Initialize the nodal concentration values
+bool FEAngio::InitSoluteConcentration()
+{
+	int vegfID = FindVEGF();
+
+	if(vegfID==0)
+		return false;
+
+
+	int NN = m_grid.Nodes();
+	vector<double> concentration(NN, 0.0);
+
+	// get the material
+	FEMaterial* pm = m_fem.GetMaterial(0);
+	if (CreateConcentrationMap(concentration, pm, vegfID) == false) return false;
+
+	// assign ECM density
+	for (int i = 0; i < NN; ++i)								
+	{
+		Node& node = m_grid.GetNode(i);
+
+		node.vegf_conc = concentration[i];
 	}
 
 	return true;
@@ -333,6 +399,8 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 
 		// do a growth step
 		m_pCult->Grow(m_time);
+
+		adjust_mesh_stiffness();
 
 		// update sprout stress scaling
 		update_sprout_stress_scaling();
@@ -570,7 +638,6 @@ void FEAngio::adjust_mesh_stiffness()
 				// Calculate the vessel orientation vector 
 				if ((el.fiber_orient.x == 0) && (el.fiber_orient.y == 0) && (el.fiber_orient.z == 0)){	// If the vessel orientation vector hasn't been assigned yet...
 					el.fiber_orient = vess_vect;			// Set the vessel orientation vector					
-					el.fiber_orient.z = vess_vect.z;
 				}
 				else{														// If it has been...	
 					el.fiber_orient.x = (el.fiber_orient.x + vess_vect.x)/2;	// Average together the vessel orientation vector
@@ -605,6 +672,10 @@ void FEAngio::adjust_mesh_stiffness()
 		
 			Elem& eg = grid.GetElement(num_elem);
 			alpha = eg.alpha;											// Obtain alpha from the grid element
+			for(int n=0; n<8; n++)
+			{
+				eg.GetNode(n).alpha=alpha;
+			}
 
 			// Set e1 to the vessel orientation vector
 			e1 = eg.fiber_orient;
@@ -689,8 +760,7 @@ bool CreateFiberMap(vector<vec3d>& fiber, FEMaterial* pmat)
 			{
 				// generate a coordinate transformation at this integration point
 				FEMaterialPoint* mpoint = el.GetMaterialPoint(n);
-				FEAngioMaterialPoint* apoint = FEAngioMaterialPoint::FindAngioMaterialPoint(mpoint);
-				FEElasticMaterialPoint& pt = *apoint->matPt->ExtractData<FEElasticMaterialPoint>();
+				FEElasticMaterialPoint& pt = *mpoint->ExtractData<FEElasticMaterialPoint>();
 				mat3d m = pt.m_Q;
 				
 				// grab the first column as the fiber orientation
@@ -725,7 +795,7 @@ bool CreateFiberMap(vector<vec3d>& fiber, FEMaterial* pmat)
 
 //-----------------------------------------------------------------------------
 // create a density map based on material density parameter per point
-bool CreateDensityMap(vector<double>& density, FEMaterial* pmat)
+bool CreateDensityMap(vector<double>& density, vector<double>& anisotropy, FEMaterial* pmat)
 {
 	// get the mesh
 	FEMesh& mesh = pmat->GetFEModel()->GetMesh();
@@ -733,6 +803,7 @@ bool CreateDensityMap(vector<double>& density, FEMaterial* pmat)
 	// initialize the density array
 	int N = mesh.Nodes();
 	density.resize(N, 0.0);
+	anisotropy.resize(N, 0.0);
 
 	// loop over all domains
 	for (int nd = 0; nd < mesh.Domains(); ++nd)
@@ -749,24 +820,82 @@ bool CreateDensityMap(vector<double>& density, FEMaterial* pmat)
 
 			// local density at integration points
 			vector<double> den(nint);
+			vector<double> anis(nint);
 			for (int n=0; n<nint; ++n)
 			{
 				// generate a coordinate transformation at this integration point
 				FEMaterialPoint* mpoint = el.GetMaterialPoint(n);
 				FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(mpoint);
 				den[n] = angioPt->m_D;
+				anis[n] = angioPt->m_DA;
 			}
 
 			// now that we have the values at the integration points
 			// we need to map it to the nodes
 			vector<double> gx(neln);
+			vector<double> fx(neln);
 			el.project_to_nodes(&den[0], &gx[0]);
+			el.project_to_nodes(&anis[0], &fx[0]);
 
 			// add it to the node accumulators
 			for (int i=0; i<neln; ++i)
 			{
 				int ni = el.m_node[i];
 				density[ni] = gx[i];
+				if(fx[i] > anisotropy[ni])
+					anisotropy[ni] = fx[i];
+			}
+		}
+	}
+
+	// If we get here, all is well.
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// create a density map based on material density parameter per point
+bool CreateConcentrationMap(vector<double>& concentration, FEMaterial* pmat, int vegfID)
+{
+	// get the mesh
+	FEMesh& mesh = pmat->GetFEModel()->GetMesh();
+
+	// initialize the density array
+	int N = mesh.Nodes();
+	concentration.resize(N, 0.0);
+
+	// loop over all domains
+	for (int nd = 0; nd < mesh.Domains(); ++nd)
+	{
+		FESolidDomain& dom = static_cast<FESolidDomain&>(mesh.Domain(nd));
+		
+		// loop over all elements in the domain
+		int NE = dom.Elements();
+		for (int ne=0; ne<NE; ++ne)
+		{
+			FESolidElement& el = dom.Element(ne);
+			int neln = el.Nodes();
+			int nint = el.GaussPoints();
+
+			// local density at integration points
+			vector<double> con(nint);
+			for (int n=0; n<nint; ++n)
+			{
+				// generate a coordinate transformation at this integration point
+				FEMaterialPoint* mpoint = el.GetMaterialPoint(n);
+				FESolutesMaterialPoint& spt = *mpoint->ExtractData<FESolutesMaterialPoint>();
+				con[n]=spt.m_c[vegfID];
+			}
+
+			// now that we have the values at the integration points
+			// we need to map it to the nodes
+			vector<double> gx(neln);
+			el.project_to_nodes(&con[0], &gx[0]);
+
+			// add it to the node accumulators
+			for (int i=0; i<neln; ++i)
+			{
+				int ni = el.m_node[i];
+				concentration[ni] = gx[i];
 			}
 		}
 	}

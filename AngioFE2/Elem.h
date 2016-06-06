@@ -21,6 +21,9 @@ public:
 	
 	vec3d m_collfib;		// current collagen fiber direction
 	vec3d m_collfib0;		// initial collagen fiber direction
+	double vegf_conc;		// vegf concentration
+	double m_da;
+	double alpha;
 
 	int m_id;		// node ID (zero-based)
 	int m_ntag;

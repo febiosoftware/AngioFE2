@@ -23,6 +23,7 @@ public:
 public:
 	// These are the material parameters
 	double		m_D;		// collagen density (?)
+	double		m_DA;		// degree of anisotropy (?)
 
 public:
 	GridPoint	m_pt;	// grid point location of this material point
@@ -69,6 +70,11 @@ public:
 
 	//! create material point data for this material
 	FEMaterialPoint* CreateMaterialPointData();
+
+	//! Set the local coordinate system for a material point (overridden from FEMaterial)
+	void SetLocalCoordinateSystem(FEElement& el, int n, FEMaterialPoint& mp);
+
+	double StrainEnergyDensity(FEMaterialPoint& mp);
 
 public:
 	// clear all sprouts

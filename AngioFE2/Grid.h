@@ -1,5 +1,7 @@
 #pragma once
-#include <FECore\mat3d.h>
+#include <FECore/mat3d.h>
+#include <FECore/vec3d.h>
+#include <FECore/FESolidDomain.h>
 #include "Segment.h"
 #include "Elem.h"
 #include <vector>
@@ -97,6 +99,14 @@ public:
 	
 	// Find the ecm density
 	double FindECMDensity(const GridPoint& pt);
+
+	vec3d gradient(int elemNum, vector<double>& fn, double r, double s, double t);
+
+	vec3d genericGradient(int elemNum, double Node::*material_param, double r, double s, double t);
+
+	double projectToPoint(int elemNum, vector<double>& fn, double r, double s, double t);
+
+	double genericProjectToPoint(int elemNum, double Node::*material_param, double r, double s, double t);
 	
 private:
 	// Find the neighbors of all elements
@@ -113,6 +123,8 @@ private:
 
 	// find the intersection with a face
 	bool FindIntersection(vec3d& r0, vec3d& r1, int nface, FACE_INTERSECTION& ic);
+
+	vector<double> createVector(int elemNum, double Node::*material_param);
     
 public: // user parameters
 

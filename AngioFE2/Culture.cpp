@@ -6,6 +6,10 @@
 #include "FEAngio.h"
 #include "angio3d.h"
 #include "FEAngioMaterial.h"
+#define _USE_MATH_DEFINES
+#include "math.h"
+
+double* DirectionalWeights(double da, double dw[2]);
 
 //-----------------------------------------------------------------------------
 Culture::Culture(FEAngio& angio) : bc(angio), m_angio(angio)
@@ -208,6 +212,13 @@ void Culture::GrowVessels()
 	{
 		Segment::TIP& tip = *(*it);
 
+		//modify direction based on anisotropy value
+		double dw[2];
+		double da_value = m_angio.GetGrid().genericProjectToPoint(tip.pt.nelem, &Node::m_da, tip.pt.q.x, tip.pt.q.y, tip.pt.q.z);
+		DirectionalWeights(da_value, dw);
+		m_W[0] = dw[0];
+		m_W[3] = dw[1];
+		
 		// Create new vessel segment at the current tip existing segment
 		Segment seg = GrowSegment(tip);
 
@@ -219,7 +230,7 @@ void Culture::GrowVessels()
 
 //-----------------------------------------------------------------------------
 // Create a new segment at the (active) tip of an existing segment
-Segment Culture::GrowSegment(Segment::TIP& tip, bool branch, bool bnew_vessel)
+Segment Culture::GrowSegment(Segment::TIP& tip, bool branch, bool bnew_vessel, vec3d growthDirection)
 {
 	Grid& grid = m_angio.GetGrid();
 
@@ -233,7 +244,15 @@ Segment Culture::GrowSegment(Segment::TIP& tip, bool branch, bool bnew_vessel)
 	double seg_length = den_scale*m_vess_length;
 
 	// determine the growth direction
-	vec3d seg_vec = FindGrowDirection(tip);
+	vec3d seg_vec;
+	if(growthDirection.x==0 && growthDirection.y==0 && growthDirection.z == 0)
+	{
+		seg_vec = FindGrowDirection(tip);
+	}
+	else
+	{
+		seg_vec = growthDirection;
+	}
 
 	// If new segment is a branch we modify the grow direction a bit
 	if (branch)
@@ -614,3 +633,11 @@ void Culture::Update()
         m_total_length += it->length();
     }
 }   
+
+double* DirectionalWeights(double da, double dw[2])
+{
+	double degree_isotropy = 1.0-da;
+	dw[0] = degree_isotropy;
+	dw[1] = da;
+	return dw;
+}

@@ -3,6 +3,7 @@
 #include "angio3d.h"
 #include <FECore/FEMesh.h>
 #include <FECore/vec3d.h>
+#include <FECore/FESolidDomain.h>
 #include <math.h>
 #include "Elem.h"
 #include "BC.h"
@@ -783,4 +784,82 @@ double Grid::FindECMDensity(const GridPoint& pt)
 	}
 
 	return coll_den;
+}
+
+vec3d Grid::gradient(int elemNum, vector<double>& fn, double r, double s, double t)
+{
+	FESolidDomain& domain = static_cast<FESolidDomain&>(m_mesh.Domain(0));
+	FESolidElement& el = domain.Element(elemNum);
+	double Ji[3][3];
+	domain.invjact(el, Ji, r, s, t);
+	double Gr[8], Gs[8], Gt[8];
+	el.shape_deriv(Gr, Gs, Gt, r, s, t);
+
+	double Gx, Gy, Gz;
+
+	vec3d gradf;
+	int N = el.Nodes();
+	for (int i=0; i<N; ++i)
+	{
+		// calculate global gradient of shape functions
+		// note that we need the transposed of Ji, not Ji itself !
+		Gx = Ji[0][0]*Gr[i]+Ji[1][0]*Gs[i]+Ji[2][0]*Gt[i];
+		Gy = Ji[0][1]*Gr[i]+Ji[1][1]*Gs[i]+Ji[2][1]*Gt[i];
+		Gz = Ji[0][2]*Gr[i]+Ji[1][2]*Gs[i]+Ji[2][2]*Gt[i];
+
+		// calculate pressure gradient
+		gradf.x += Gx*fn[i];
+		gradf.y += Gy*fn[i];
+		gradf.z += Gz*fn[i];
+	}
+
+	return gradf;
+}
+
+vec3d Grid::genericGradient(int elemNum, double Node::*material_param, double r, double s, double t)
+{
+	vector<double> gx = createVector(elemNum, material_param);
+	return gradient(elemNum, gx, r, s, t);
+}
+
+double Grid::projectToPoint(int elemNum, vector<double>& fn, double r, double s, double t)
+{
+	FESolidDomain& domain = static_cast<FESolidDomain&>(m_mesh.Domain(0));
+	FESolidElement& el = domain.Element(elemNum);
+	double H[8];
+	el.shape_fnc(H, r, s, t);
+	int N = el.Nodes();
+	double value = 0.0;
+
+	for(int i=0; i<N; i++)
+	{
+		value += fn[i]*H[i];
+	}
+	return value;
+}
+
+double Grid::genericProjectToPoint(int elemNum, double Node::*material_param, double r, double s, double t)
+{
+	vector<double> gx = createVector(elemNum, material_param);
+	return projectToPoint(elemNum, gx, r, s, t);
+}
+
+vector<double> Grid::createVector(int elemNum, double Node::*material_param)
+{
+	FESolidDomain& domain = static_cast<FESolidDomain&>(m_mesh.Domain(0));
+	Elem& angioElem = GetElement(elemNum);
+	FESolidElement& el = domain.Element(elemNum);
+	int neln = el.Nodes();
+	vector<double> gx(neln);
+
+	gx[0] = angioElem.GetNode(0).*material_param;
+	gx[1] = angioElem.GetNode(1).*material_param;
+	gx[3] = angioElem.GetNode(2).*material_param;
+	gx[2] = angioElem.GetNode(3).*material_param;
+	gx[4] = angioElem.GetNode(4).*material_param;
+	gx[5] = angioElem.GetNode(5).*material_param;
+	gx[7] = angioElem.GetNode(6).*material_param;
+	gx[6] = angioElem.GetNode(7).*material_param;
+
+	return gx;
 }

@@ -93,7 +93,7 @@ private:
 	void FuseVessels();
 
 	// Grow a segment
-	Segment GrowSegment(Segment::TIP& it, bool branch = false, bool bnew_vessel = false);
+	Segment GrowSegment(Segment::TIP& it, bool branch = false, bool bnew_vessel = false, vec3d growthDirection = vec3d());
 
 	// Create a new segment connecting two existing segments that are fusing through anastomosis
 	Segment ConnectSegment(Segment& it, Segment& it2, int k, int kk);

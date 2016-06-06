@@ -65,6 +65,11 @@ private:
 	// Initialize nodal collagen fiber directions
 	bool InitCollagenFibers();
 
+	// Initialize nodal collagen fiber directions
+	bool InitSoluteConcentration();
+
+	int FindVEGF();
+
 	// Init FE stuff
 	bool InitFEM();
 
