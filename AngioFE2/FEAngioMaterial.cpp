@@ -31,11 +31,11 @@ FEAngioMaterialPoint::FEAngioMaterialPoint(FEMaterialPoint* pt, FEMaterialPoint*
 
 //-----------------------------------------------------------------------------
 //! The init function is used to intialize data
-void FEAngioMaterialPoint::Init(bool bflag)
+void FEAngioMaterialPoint::Init()
 {
-	FEMaterialPoint::Init(bflag);
-	vessPt->Init(bflag);
-	matPt->Init(bflag);
+	FEMaterialPoint::Init();
+	vessPt->Init();
+	matPt->Init();
 }
 
 //-----------------------------------------------------------------------------
@@ -220,7 +220,7 @@ void FEAngioMaterial::SetLocalCoordinateSystem(FEElement& el, int n, FEMaterialP
 //-----------------------------------------------------------------------------
 void FEAngioMaterial::SetParameter(FEParam& p)
 {
-	if (strcmp(p.m_szname, "sprout") == 0)
+	if (strcmp(p.name(), "sprout") == 0)
 	{
 		m_suser.push_back(m_s);
 	}

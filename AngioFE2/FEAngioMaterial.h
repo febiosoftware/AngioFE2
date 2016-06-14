@@ -12,7 +12,7 @@ public:
 	FEAngioMaterialPoint(FEMaterialPoint* pt, FEMaterialPoint* vesselPt, FEMaterialPoint *matrixPt);
 
 	//! The init function is used to intialize data
-	void Init(bool bflag);
+	void Init();
 
 	//! copy material point data (for running restarts) \todo Is this still used?
 	FEMaterialPoint* Copy();
