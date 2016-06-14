@@ -278,7 +278,11 @@ bool FEAngio::InitECMDensity()
 	}
 	else
 	{
-		for (int i=0; i<NN; ++i) density[i] = m_grid.m_coll_den;
+		for (int i=0; i<NN; ++i)
+		{
+			density[i] = m_grid.m_coll_den;
+			anisotropy[i] = GetCulture().m_W[3]/(GetCulture().m_W[0] + GetCulture().m_W[3]);
+		}
 	}
 
 	// assign ECM density
