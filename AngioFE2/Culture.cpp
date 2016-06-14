@@ -137,7 +137,8 @@ bool Culture::createInitFrag(Segment& seg)
 		p0 = grid.FindGridPoint(elem_num, q);
     
 		// Determine vessel orientation based off of collagen fiber orientation
-		vec3d seg_vec = grid.CollagenDirection(p0);
+		vec3d seg_vec = vrand();
+		seg_vec.unit();
 
 		// End of new segment is origin plus length component in each direction	
 		vec3d r1 = p0.r + seg_vec*seg_length;

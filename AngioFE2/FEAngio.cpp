@@ -128,6 +128,7 @@ bool FEAngio::Init()
 	if (m_grid.Init() == false) return false;
 
 	// assign ECM densities to grid nodes
+	//TODO: degree of anisotropy values will only get initialized if density is set to 0
 	if (InitECMDensity() == false) return false;
 
 	// assign collagen fibers to grid nodes
