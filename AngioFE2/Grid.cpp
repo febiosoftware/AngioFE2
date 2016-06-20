@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "Grid.h"
 #include "angio3d.h"
 #include <FECore/FEMesh.h>

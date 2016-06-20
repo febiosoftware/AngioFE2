@@ -14,7 +14,7 @@
 #include <FECore/log.h>
 #include <FECore/FEModel.h>
 #include <FECore/FEAnalysis.h>
-#include "FECore\FESolidDomain.h"
+#include "FECore/FESolidDomain.h"
 #include "FEAngioMaterial.h"
 #include "FEBioMech/FEElasticMixture.h"
 #include "Elem.h"
@@ -47,7 +47,7 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem), m_grid(fem.GetMesh())
 	m_pmat = 0;
 
 	phi_stiff_factor = 1.0;
-    m_ntime = 1;
+	m_ntime = 1;
 
 	// flag for generating fibers (0 = random, 3 = element orientation)
 	m_matrix_cond = 0;
@@ -59,9 +59,9 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem), m_grid(fem.GetMesh())
 	m_time.dt = 0.25;
 
 	// TODO: What are these and make these user parameters
-    m_dtA = 0.0637;
-    m_dtB = 9.0957;
-    m_dtC = 2.6073;
+	m_dtA = 0.0637;
+	m_dtB = 9.0957;
+	m_dtC = 2.6073;
 
 	// vessel_width - Diameter of microvessels (Default: 7 um)
 	m_vessel_width = 7;
@@ -155,7 +155,7 @@ bool FEAngio::Init()
 double FEAngio::RunTime()
 {
 	time_t stop;
-    time(&stop);
+	time(&stop);
 	return (double) difftime(stop, m_start);
 }
 
@@ -665,7 +665,7 @@ void FEAngio::adjust_mesh_stiffness()
 	
 	FEMesh& mesh = m_fem.GetMesh();										// Get the FE mesh
 	int J = mesh.Domains();												// Find the number of domains within the mesh
-    int num_elem = 0;
+	int num_elem = 0;
 
 	for (int k = 0; k < J; ++k){
 		FEDomain& d = mesh.Domain(k);										// Obtain the domain

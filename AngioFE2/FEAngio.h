@@ -56,7 +56,7 @@ public:
 	void adjust_mesh_stiffness();
 	void update_ecm_den_grad();
 	void update_sprout_stress_scaling();
-	FEAngioMaterial* FEAngio::FindAngioMaterial(FEMaterial* pm);
+	FEAngioMaterial* FindAngioMaterial(FEMaterial* pm);
 
 private:
 	// Initialize the nodal ECM values

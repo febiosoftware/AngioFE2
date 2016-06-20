@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include <iostream>
 #include "BC.h"
 #include "Culture.h"

@@ -1,5 +1,5 @@
 #pragma once
-#include <FECore\vec3d.h>
+#include <FECore/vec3d.h>
 
 //-----------------------------------------------------------------------------
 class Grid;
