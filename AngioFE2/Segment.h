@@ -1,5 +1,6 @@
 #pragma once
 #include <FECore/vec3d.h>
+#include <FECore/FEDomain.h>
 
 //-----------------------------------------------------------------------------
 // A helper class for locating points on the grid using an element number and
@@ -7,13 +8,16 @@
 class GridPoint
 {
 public:
-	int		nelem;		// element number
+	int		nelem;		// element id
+	int		elemindex;
+	int		elembydomainindex;
+	FEDomain *		ndomain=nullptr;    //domain id
+	//TODO: update this on vessel creation and growth
 	vec3d	q;			// natural coordinates
 	vec3d	r;			// spatial position
 
-public:
-	GridPoint() { nelem = -1; }
-	GridPoint(int ne, vec3d& k) { nelem = ne; q = k; }
+	GridPoint() { nelem = -1; elemindex = -1; }
+	GridPoint(int ne, vec3d& k) { nelem = ne; elemindex = -1; q = k; }
 };
 
 //-----------------------------------------------------------------------------
@@ -47,11 +51,9 @@ public:
 
 		const vec3d& pos() const { return pt.r; }
 
-	public:
 		TIP();
 	};
 
-public:
     Segment();
 	virtual ~Segment();
     
@@ -78,10 +80,10 @@ public:
 	void SetFlagOff(unsigned int nflag) { m_nflag &= ~nflag; }
 
 	// get the status of a flag
-	bool GetFlag(unsigned int nflag) { return ((m_nflag & nflag) != 0); }
+	bool GetFlag(unsigned int nflag) const { return ((m_nflag & nflag) != 0); }
 
 	// get all the flags
-	unsigned int GetFlags() { return m_nflag; }
+	unsigned int GetFlags() const { return m_nflag; }
 
 	// set the time of birth
 	void SetTimeOfBirth(double t) { m_TofBirth = t; }
@@ -109,9 +111,8 @@ public:
 	// get the vessel value
 	int vessel() const { return m_nvessel; }
 
-public:
 	int m_nid;			// segment id (unique zero-based ID)
-
+	int m_nvessel;		// Label that indicates which vessel the segment belongs to //TODO: move back to private once done debugging
 private:
 	TIP				m_tip[2];		// the two end tips
     double			m_length;       // Length of the segment.
@@ -120,5 +121,5 @@ private:
 	double			m_TofBirth;		// Time point at which the segment was created
 
 	int m_nseed;		// Label that indicates which initial fragment the segment orginated from
-	int m_nvessel;		// Label that indicates which vessel the segment belongs to
+	
 };

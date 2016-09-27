@@ -9,12 +9,9 @@
 
 #pragma once
 
-#include <list>
-#include <time.h>
 #include <fstream>
 #include <vector>
 
-class Grid;
 class Segment;
 class FEAngio;
 
@@ -25,8 +22,6 @@ class Fileout
 public:
 	Fileout();
 	virtual ~Fileout();
-	
-public:
 	void writeTracking(FEAngio& angio);
 	void closeTracking();
 	void printStatus(FEAngio& angio);
@@ -34,8 +29,8 @@ public:
     void writeData(FEAngio &feangio);
 	void writeNodes(FEAngio& angio);
 	void writeEconn(FEAngio& angio);
-	void writeCollFib(Grid &grid, bool initial);
-	void writeECMDen(Grid &grid);
+	void writeCollFib(FEAngio & angio, bool initial);
+	void writeECMDen(FEAngio & angio);
 	void printtime(FEAngio& angio);
 	void printrandseed(int randseed);
 	void save_vessel_state(FEAngio& angio);

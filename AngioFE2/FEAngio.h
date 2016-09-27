@@ -2,7 +2,15 @@
 #include "Fileout.h"
 #include "FESproutBodyForce.h"
 #include "Grid.h"
+#include "Elem.h"
 #include "FEAngioMaterial.h"
+#include "Segment.h"
+#include "FECore/FESolidDomain.h" //isd this include correct or should i just forward declare the class
+#include "FECore/FENormalProjection.h"
+#include <vector>
+#include <functional>
+#include <unordered_map>
+#include <FECore/FESurface.h>
 
 
 //-----------------------------------------------------------------------------
@@ -18,8 +26,6 @@ public:
 	double	t;		// current time value
 	double	dt;		// time increment from last time
 	double	maxt;	// end time of simulation
-
-public:
 	SimulationTime() { t = dt = maxt = 0.0; }
 };
 
@@ -35,32 +41,61 @@ public:
 	bool Init();
 
 	// Get the FE model
-	FEModel& GetFEModel();
+	FEModel& GetFEModel() const;
 
-	// Get the culture
-	Culture& GetCulture() { return *m_pCult; }
-
-	// Get the grid
-	Grid& GetGrid() { return m_grid; }
+	//check the get FEModel above it may not be useful in any way
+	FEMesh * GetMesh() const;
 
 	// get the run time (in secs)
-	double RunTime();
+	double RunTime() const;
 
 	// get the simulation time
 	SimulationTime& CurrentSimTime() { return m_time; }
 
-	// Total number of sprouts
-	int Sprouts();
-
-public:
 	void adjust_mesh_stiffness();
-	void update_ecm_den_grad();
 	void update_sprout_stress_scaling();
-	FEAngioMaterial* FindAngioMaterial(FEMaterial* pm);
+	static FEAngioMaterial* FindAngioMaterial(FEMaterial* pm);
+	double FindECMDensity(const GridPoint& pt);
+	vec3d CollagenDirection(GridPoint& pt);
+	bool FindGridPoint(const vec3d & r, std::vector<FEDomain*> &domains , GridPoint & p) const;
+	bool FindGridPoint(const vec3d & r, FEDomain * domain, int elemindex, GridPoint & p) const;
+	vec3d LocalToGlobal(FESolidElement * se, vec3d & rst) const;
+	vec3d FindRST(const vec3d & r, vec2d rs, FESolidElement * elem) const;
+	GridPoint FindGridPoint(FEDomain * domain, int nelem, vec3d& q) const;
+	vec3d Position(const GridPoint& pt)  const;
+	// Creates a vector of specified paramenter
+	std::vector<double> createVectorOfMaterialParameters(FEDomain & d, FEElement * elem,
+		double FEAngioNodeData::*materialparam, double r, double s, double t);
+	// gets the value of a parameter at a given point interpolated from the shape function
+	double genericProjectToPoint(FEDomain & d, FEElement * elem,
+		double FEAngioNodeData::*materialparam, double r, double s, double t);
+	
+	//some funtions to replace the loops everywhere in the code
+	//for each excludes non-angio materials
+	void ForEachNode(std::function<void(FENode &)> f);
+	void ForEachNode(std::function<void(FENode &)> f, std::vector<int> & matls);
+	void ForEachElement(std::function<void(FESolidElement&, FESolidDomain&)> f);
+	void ForEachElement(std::function<void(FESolidElement&, FESolidDomain&)> f, std::vector<int> & matls);
+	void ForEachDomain(std::function<void(FESolidDomain&)> f);
+	void ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<int> & matls);
 
+	static bool IsInsideHex8(FESolidElement * se, vec3d y, FEMesh * mesh, double r[3]);
+
+	//these freindships are for displaying/reading the data and are okay
+	friend class Fileout;
+	friend class FEPlotAngioCollagenFibers;
+	friend class FEPlotAngioECMDensity;
+	friend class FEPlotAngioECMAlpha;
+	//the following friendships are bad and need removed eventually
+	//TODO: remove the freindship, creation in the old way requires this
+	//or consider making the node and element data public
+	friend class FEAngioMaterial;
+	friend class BC;
 private:
+	
 	// Initialize the nodal ECM values
 	bool InitECMDensity();
+	void UpdateECM();
 
 	// Initialize nodal collagen fiber directions
 	bool InitCollagenFibers();
@@ -73,16 +108,13 @@ private:
 	// Init FE stuff
 	bool InitFEM();
 
+	void FinalizeFEM();
+
+	void SetupSurface();
+
 	// do the final output
 	void Output();
 
-	// create the sprouts
-	void CreateSprouts(double scale);
-
-	// update sprouts
-	void UpdateSprouts(double scale);
-
-private:
 	static bool feangio_callback(FEModel* pfem, unsigned int nwhen, void* pd)
 	{
 		FEAngio* pfa = (FEAngio*)(pd);
@@ -94,41 +126,30 @@ private:
 
 public:	// parameters read directly from file
 
-	// sprout force parameters
-	double	m_tip_range;		// sprout force range
-	double	m_sproutf;			// sprout force magnitude
-	double	m_spfactor;			// Sprout force directional factor
-    int		m_bsp_sphere;		// Flag for sprout force representations
-
-	// boundary conditions
-	double m_Sx;						// Location of the symmetry plane along the x-direction
-	double m_Sy;						// Location of the symmetry plane along the y-direction
-	double m_Sz;						// Location of the symmetry plane along the z-direction
+	//TODO: move this once it is more generic to the elements
+	FESurface * exterior_surface;
+	FESurface * interior_surface;
+	FENormalProjection * normal_proj;
 
 	// miscellaneous
 	unsigned int	m_irseed;			// Seed number for the random number generator
-	int				comp_mat;			// is composite material used (TODO: do we still need this?)
-	double			phi_stiff_factor;	// stiffness factor, which scales the amount of mesh displacement that's sent to the microvessels
-    double			m_vessel_width;     // Width of Segments (in um) (TODO: make this a user parameter)
-	int				m_matrix_cond;		// flag indicating how the collagen fibers are oriented initially ( 0 = random, 3 = along local element direction)
-	int				m_bzfibflat;		// flatten fiber option
 
     double	half_cell_l;			// Half the length of one grid element in the x direction, use in determining variable time step
     int		m_ntime;				// number of total time steps ?
-	double	m_dtA, m_dtB, m_dtC;	// Time step parameters. TODO: make these user variables.
     
-public:
 	int		total_bdyf;
 	int		FE_state;			// State counter to count the number of solved FE states
 
-public:
 	FESproutBodyForce*	m_pbf;	//!< sprout body-force
-	FEAngioMaterial*	m_pmat;	//!< the angio-material pointer
+	std::vector<FEAngioMaterial*>	m_pmat;	//!< the angio-material pointer
+	std::vector<int>                m_pmat_ids;
 
 private:
 	FEModel&		m_fem;		// the FE model
-    Grid			m_grid;		// The grid class
-	Culture*		m_pCult;	// The culture class
+	//both nodes and elements id's go from 1 to n+1 for n items
+	//first element is padding so the id can be used to lookup the data for that node
+	std::unordered_map<int, FEAngioNodeData> m_fe_node_data;
+	std::unordered_map<int, FEAngioElementData> m_fe_element_data;
 
 	SimulationTime	m_time;		// simulation time
 

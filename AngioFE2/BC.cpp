@@ -1,9 +1,12 @@
 #include "StdAfx.h"
-#include <iostream>
 #include "BC.h"
-#include "Culture.h"
 #include "Segment.h"
 #include "FEAngio.h"
+#include "FECore/FEMesh.h"
+#include "FECore/FEModel.h"
+#include "Culture.h"
+#include <cassert>
+#include <cmath>
 #include "angio3d.h"
 
 //-----------------------------------------------------------------------------
@@ -19,237 +22,345 @@ BC::~BC()
 
 //-----------------------------------------------------------------------------
 // Checks if a newly-created segment violates the boundary faces of the element in which it occupies
-void BC::CheckBC(Segment &seg)
+void BC::CheckBC(Segment &seg, Culture * culture)
 {
-	Grid& grid = m_angio.GetGrid();
+	
+	//new implementation may be run on all segments will add the segment once the boundaries are safe
+	//remove the check of whether or not to check the boundary condition in Culture
+	assert(seg.tip(0).pt.nelem != -1);
+	//make sure that the defining tip has not drifted too far
+	vec3d pq = m_angio.Position(seg.tip(0).pt);
+	assert((m_angio.Position(seg.tip(0).pt) - seg.tip(0).pt.r).norm() < 1.0);
+	//if the second segment is unititialized make sure it is not in the same element as tip(0)
+	FESolidElement * tse = dynamic_cast<FESolidElement*>(&seg.tip(0).pt.ndomain->ElementRef(seg.tip(0).pt.elemindex));
 
-	// get the end-points and reference element
-	vec3d r0 = seg.tip(0).pos();
-	vec3d r1 = seg.tip(1).pos();
-	int elem_num = seg.tip(0).pt.nelem;
-	assert(elem_num >= 0);
-
-	// find the intersection with the element's boundary
-	FACE_INTERSECTION ic;
-	ic.nelem = elem_num;
-	if (grid.FindIntersection(r0, r1, ic))
+	if (seg.tip(1).pt.nelem == -1)
 	{
-		// enforce the BC
-		EnforceBC(seg, ic);
+		
+		double arr[3];
+		if (tse && m_angio.IsInsideHex8(tse,seg.tip(1).pt.r, m_angio.GetMesh() , arr))
+		{
+			//just copy the data from tip(0)
+			seg.tip(1).pt.q.x = arr[0]; seg.tip(1).pt.q.y = arr[1]; seg.tip(1).pt.q.z = arr[2];
+			seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
+			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
+			seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
+		}
+	}
+	//this is the costliest part of the boundary check if reached
+	if (seg.tip(1).pt.nelem == -1)
+	{
+		m_angio.FindGridPoint(seg.tip(1).pt.r,culture->m_pmat->domainptrs ,seg.tip(1).pt);
+	}	
+	
+	//if both are in the same element just add the segment
+	if (seg.tip(0).pt.nelem == seg.tip(1).pt.nelem)
+	{
+		seg.Update();
+		if (seg.length() >= culture->m_cultParams->min_segment_length)
+		{
+			culture->AddSegment(seg);
+			return;
+		}
+	}
+	//if both elmeents are in the same material add the segment
+	//this implies that angio materials are convex or that the user will in some way mitigate the nonconvex portions of the material
+	if (seg.tip(1).pt.ndomain != nullptr && seg.tip(1).pt.elemindex >= 0)
+	{
+		FEElement & t1se = seg.tip(1).pt.ndomain->ElementRef(seg.tip(1).pt.elemindex);
+		FEElement & t0se = seg.tip(0).pt.ndomain->ElementRef(seg.tip(0).pt.elemindex);
+		if (t1se.GetMatID() == t0se.GetMatID())
+		{
+			if (seg.length() >= culture->m_cultParams->min_segment_length)
+			{
+				culture->AddSegment(seg);
+				return;
+			}
+		}
+	}
+	
+	vec3d dir = seg.tip(1).pt.r - seg.tip(0).pt.r;
+	double dist = dir.norm();
+	assert(dir.norm() > 0.0);
+
+	dir.unit();
+
+	FESolidDomain & sd = reinterpret_cast<FESolidDomain&>(*seg.tip(0).pt.ndomain);
+	FESolidElement * se = dynamic_cast<FESolidElement*>(&sd.ElementRef(seg.tip(0).pt.elemindex));
+	assert(se);//make sure we have an element
+
+	FEMaterial * mat = sd.GetMaterial();
+	vec3d lastgood_pt;
+	double rs[2];
+	double g;
+	FESurface * surf = m_angio.exterior_surface;
+	assert(m_angio.m_fe_element_data[se->GetID()].surfacesIndices.size());
+	int hcount = 0;//counts how many times the boundary is handled
+	std::vector<int> & edinices = m_angio.m_fe_element_data[se->GetID()].surfacesIndices;
+	m_angio.normal_proj->SetSearchRadius(seg.length()*2);
+	for (size_t i = 0; i < edinices.size(); i++)
+	{
+		FESurfaceElement & surfe = reinterpret_cast<FESurfaceElement&>(surf->ElementRef(m_angio.m_fe_element_data[se->GetID()].surfacesIndices[i]));
+		if (m_angio.exterior_surface->Intersect(surfe, seg.tip(0).pt.r, -dir, rs, g, 0.0001))//see the epsilon in FIndSolidElement
+		{
+			//set last_goodpt
+			lastgood_pt = surf->Local2Global(surfe, rs[0], rs[1]);
+
+			seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
+			seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
+			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
+			return HandleBoundary(seg, culture, lastgood_pt, rs, se);
+		}
+		
+	}
+	FESurfaceElement * surfe = m_angio.normal_proj->Project(seg.tip(0).pt.r, -dir, rs);
+	if (!surfe)
+	{
+		//printf("no surface element found\n");
+		//assert(false);
+		surfe = m_angio.normal_proj->Project3(seg.tip(0).pt.r + (dir * 2.0), -dir, rs);
+		if (surfe)
+		{
+			lastgood_pt = surf->Local2Global(*surfe, rs[0], rs[1]);
+
+			seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
+			seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
+			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
+			return HandleBoundary(seg, culture, lastgood_pt, rs, se);
+		}
+		else
+		{
+			printf("segment adjustment failed\n");
+		}
 	}
 	else
 	{
-		assert(false);
+		int eindex = surfe->m_elem[0];
+			
+		vec3d pos = surf->Local2Global(*surfe, rs[0], rs[1]);
+		seg.tip(1).pt.elemindex = eindex;
+		seg.tip(1).pt.nelem = eindex + 1;
+		seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
+		FESolidElement & se = reinterpret_cast<FESolidElement&>(seg.tip(1).pt.ndomain->ElementRef(seg.tip(1).pt.elemindex));
+		return HandleBoundary(seg, culture, pos, rs, &se);
 	}
 } 
 
-//-----------------------------------------------------------------------------
-// This enforces a boundary condition on a new vessel.
-void BC::EnforceBC(Segment &seg, FACE_INTERSECTION& ic)
+
+bool BC::ChangeOfMaterial(Segment & seg) const
 {
-	Grid& grid = m_angio.GetGrid();
-	Culture& cult = m_angio.GetCulture();
-
-	// get the element
-	Elem& elem = grid.GetElement(ic.nelem);
-
-	// get the BC type
-	unsigned int bctype = grid.GetFace(ic.nface).bc_type;
+	//if either is not in the model they are in different materials
+	if (seg.tip(0).pt.nelem == -1 || seg.tip(1).pt.nelem == -1)
+		return true;
+	//if both are in the same element return
+	if (seg.tip(0).pt.nelem == seg.tip(1).pt.nelem)
+		return false;
 	
-	// vessel stops growing
-    if (bctype == BC::STOP){
-        BCStop(seg, ic);
-		return;
-	}
+	vec3d dir = seg.tip(1).pt.r - seg.tip(0).pt.r;
 
-	// vessl bounces off the wall
-	if (bctype == BC::BOUNCY){
-		BCBouncy(seg, ic);
-		return;
-	}
+	//not sure a meaningful answer can be returned if the length is zero and is probably an error at the call site 
+	assert(dir.norm() > 0.0);
 
-	assert(false);
-/*    
-    // Bouncy wall boundary type
-    if (bctype == 98){
-        Segment seg2;
-		
-		seg2 = bouncywallBC(i_point, face, seg, elem_num, k);
+	dir.unit();
 
-		elem_num = grid.findelem(seg2.tip(k).rt);
-        
-		if (elem_num != -1){
-			seg2.tip(k).pt.nelem = elem_num;
-			cult.AddSegment(seg2);}
-		else{
-			checkBC(seg2, k);
-			elem_num = grid.findelem(seg2.tip(k).rt);
-			if (elem_num != -1){
-				seg2.tip(k).pt.nelem = elem_num;
-				cult.AddSegment(seg2);}}
+	FESolidDomain & sd = reinterpret_cast<FESolidDomain&>(*seg.tip(0).pt.ndomain);
+	FESolidElement * se = dynamic_cast<FESolidElement*>(&sd.ElementRef(seg.tip(0).pt.elemindex));
+	assert(se);//make sure we have an element
 
-		BC_bouncy = false;
-		BC_violated = false;
-		
-		if (seg2.mark_of_death == true)
-			seg.tip(k).BC = 1;
 
-		return;}
-    
-	// In-plane wall boundary type
-    if (bctype == 105){
-        Segment seg2;
-				
-		seg2 = inplanewallBC(i_point, face, seg, elem_num, k);
+	return false;
 
-		elem_num = grid.findelem(seg2.tip(k).rt);
-        
-		if (elem_num != -1){
-			seg2.tip(k).pt.nelem = elem_num;
-			cult.AddSegment(seg2);}
-		else{
-			checkBC(seg2, k);
-			elem_num = grid.findelem(seg2.tip(k).rt);
-			if (elem_num != -1){
-				seg2.tip(k).pt.nelem = elem_num;
-				cult.AddSegment(seg2);}}
-
-		BC_bouncy = false;
-		BC_violated = false;
-		
-		if (seg2.mark_of_death == true)
-			seg.tip(k).BC = 1;
-
-		return;} 
-
-	// Collagen Fiber Bouncy wall boundary type
-    if (bctype == 99){
-        collfibwallBC(i_point, face, seg, elem_num, k);
-        BC_violated = false;
-		return;}   
-
-	// Sym plane periodic wall boundary type
-    if (bctype == 112){
-        Segment seg2;
-				
-		seg2 = symplaneperiodicwallBC(i_point, face, seg, elem_num, k);
-
-		elem_num = grid.findelem(seg2.tip(1).rt);
-        
-		if (elem_num != -1){
-			seg2.tip(k).pt.nelem = elem_num;
-			cult.AddSegment(seg2);}
-		else{
-			checkBC(seg2, k);
-			elem_num = grid.findelem(seg2.tip(k).rt);
-			if (elem_num != -1){
-				seg2.tip(k).pt.nelem = elem_num;
-				cult.AddSegment(seg2);}}
-
-		BC_bouncy = false;
-		BC_violated = false;
-		
-		if (seg2.mark_of_death == true)
-			seg.tip(k).BC = 1;
-
-		return;} 
-*/
 }
-
-//-----------------------------------------------------------------------------
-// Boundary condition where vessels stops growing after hitting boundary.
-void BC::BCStop(Segment &seg, FACE_INTERSECTION& ic)
+void StopBC::HandleBoundary(Segment & seg, Culture * culture, vec3d lastGoodPt, double * rs, FESolidElement * se)
 {
-	Segment::TIP& tip = seg.tip(1);
-	assert(tip.pt.nelem == -1);
-
-	// update position and grid point structure
-	Grid& grid = m_angio.GetGrid();
-	tip.pt.nelem = ic.nelem;
-	vec3d p = ic.q;
-	grid.natcoord(tip.pt.q, p, ic.nelem);
-	tip.pt.r = ic.q;
-	seg.Update();
-
-	// turn the tip off
-	tip.bactive = false;
-
-	// mark as dead
+	//fill in the pt's data and add the segment
+	//remaining distance is ignored
+	FEMesh * mesh = m_angio.GetMesh();
+	seg.tip(1).pt.r = lastGoodPt;
 	seg.SetFlagOn(Segment::BC_DEAD);
-	tip.BC = 1;
-
-	// add the segment
-	Culture& cult = m_angio.GetCulture();
-	cult.AddSegment(seg);
-}
-
-//-----------------------------------------------------------------------------
-// Boundary condition where the vessel bounces off the wall.
-// This effectively creates another segment by breaking the current segment
-// in two at the intersection point and then creating a new segment that bounces of the wall.
-void BC::BCBouncy(Segment &seg, FACE_INTERSECTION& ic)
-{
-	Grid& grid = m_angio.GetGrid();
-	Culture& cult = m_angio.GetCulture();
-
-	// get the original tip positions
-	vec3d r0 = seg.tip(0).pos();
-	vec3d r1 = seg.tip(1).pos();
-	vec3d q = ic.q;	// intersection point
-
-	// get the old length
-    double old_length = seg.length();
-	if (old_length == 0.0)
+	if (m_angio.FindGridPoint(lastGoodPt, seg.tip(1).pt.ndomain, seg.tip(1).pt.elemindex, seg.tip(1).pt))
 	{
-//		assert(false);
-		return;
+		assert(seg.tip(1).pt.nelem != -1);
+		seg.Update();
+		if (seg.length() >= culture->m_cultParams->min_segment_length)
+		{
+			seg.tip(0).bactive = false;
+			seg.tip(1).bactive = false;
+			if (seg.length() >= culture->m_cultParams->min_segment_length)
+			{
+				culture->AddSegment(seg);
+				return;
+			}
+		}
+		else
+		{
+			
+		}
 	}
 
-	// break the first segment
-	Segment::TIP& tip = seg.tip(1);
-	tip.pt.r = q;
-	tip.pt.nelem = ic.nelem;
-	grid.natcoord(tip.pt.q, q, ic.nelem);
-	seg.Update();
-	tip.bactive = false;
-    seg.SetFlagOn(Segment::BC_DEAD);
+	else
+	{
+		//this denotes a mismatch between the FindSolidElement and FESurface output
+		//printf("boundary segment out of bounds attempting to correct this\n");
+		vec2d nrs(rs[0], rs[1]);
+		seg.tip(1).pt.q = m_angio.FindRST(lastGoodPt, nrs, se);
+		seg.tip(1).pt.r = lastGoodPt;
+		seg.tip(1).pt.nelem = se->GetID();
+		seg.tip(1).pt.elemindex = se->GetID() -1; //hack
+		seg.tip(1).pt.ndomain = &mesh->Domain(0); //hack
+		seg.tip(1).pt.r = m_angio.Position(seg.tip(1).pt);
+		seg.Update();
+		seg.tip(0).bactive = false;
+		seg.tip(1).bactive = false;
+		if (seg.length() >= culture->m_cultParams->min_segment_length)
+		{
+			culture->AddSegment(seg);
+		}
+		else
+		{
+			printf("boundary segment dropped due to zero length\n");
+			//assert(false);
+		}
+		
+	}
+}
+void BouncyBC::HandleBoundary(Segment & seg, Culture * culture, vec3d lastGoodPt, double * rs, FESolidElement * se)
+{
+	//fill in the pt's data and add the segment
+	//remaining distance is ignored
+	double rdist = (lastGoodPt - seg.tip(1).pt.r).norm();
+	FEMesh * mesh = m_angio.GetMesh();
+	assert(rdist >= 0.0);
+	vec3d prevhead = seg.tip(1).pt.r;
+	vec3d segadjdir = seg.tip(1).pt.r - seg.tip(0).pt.r;
+	segadjdir.unit();
+	seg.tip(1).pt.r = lastGoodPt;
+	seg.SetFlagOn(Segment::BC_DEAD);
+	if (m_angio.FindGridPoint(lastGoodPt, seg.tip(1).pt.ndomain, seg.tip(1).pt.elemindex, seg.tip(1).pt))
+	{
+		assert(seg.tip(1).pt.nelem != -1);
+		seg.Update();
+		if (seg.length() >= culture->m_cultParams->min_segment_length)
+		{
+			seg.tip(0).bactive = false;
+			seg.tip(1).bactive = false;
+			seg.tip(1).bdyf_id = 1;
+			seg.tip(0).bdyf_id = 1;
+			culture->AddSegment(seg);
+		}
+		else
+		{
+			return;
+		}
+	}
 
-	// calculate new length
-	double new_length = seg.length();
+	else
+	{
+		//this denotes a mismatch between the FindSolidElement and FESurface output
+		//printf("boundary segment out of bounds attempting to correct this\n");
+		vec2d nrs(rs[0], rs[1]);
+		seg.tip(1).pt.q = m_angio.FindRST(lastGoodPt, nrs, se);
+		seg.tip(1).pt.r = lastGoodPt;
+		seg.tip(1).pt.nelem = se->GetID();
+		seg.tip(1).pt.elemindex = se->GetID() - 1; //hack
+		seg.tip(1).pt.ndomain = &mesh->Domain(0); //hack
+		seg.tip(1).pt.r = m_angio.Position(seg.tip(1).pt);
+		seg.Update();
+		seg.tip(0).bactive = false;
+		seg.tip(1).bactive = false;
+		seg.tip(1).bdyf_id = 1;
+		seg.tip(0).bdyf_id = 1;
+		if (seg.length() >= culture->m_cultParams->min_segment_length)
+		{
+			culture->AddSegment(seg);
+		}
+		else
+		{
+			printf("boundary segment dropped due to zero length\n");
+			return;
+			//assert(false);
+		}
 
-	// Add this segment
-	// TODO: if the new length is zero, I should not add it, but then the
-	//       continuity of the vessel will be broken. Not sure yet how to handle this.
-	cult.AddSegment(seg);
+	}
+	assert(seg.tip(1).pt.nelem != -1);
+	vec3d dir = seg.tip(1).pt.r - seg.tip(0).pt.r;
+	dir.unit();
 
-	// create a new segment
-	Segment seg2;
-	seg2.seed(seg.seed());
-	seg2.vessel(seg.vessel());
+	FESurfaceElement * surfe = m_angio.normal_proj->Project(seg.tip(0).pt.r, -dir, rs);
+	if (surfe)
+	{
+		Segment reflSeg;
+		reflSeg.tip(0).pt = seg.tip(1).pt;
+		//calculate the growth direction
+		dir.unit();
+		vec3d normal = m_angio.exterior_surface->SurfaceNormal(*surfe, rs[0], rs[1]);
+		vec3d gdir = reflect(dir, normal);
+		gdir.unit();
 
-	// set the starting point at the intersection point
-	seg2.tip(0).pt = tip.pt;
-	seg2.tip(0).bactive = false;
+		reflSeg.tip(1).pt.r = reflSeg.tip(0).pt.r + (gdir * rdist);
 
-	// calculate the recoil vector
-	vec3d t = r1 - r0; t.unit();
-	vec3d n = ic.norm;
+		reflSeg.tip(0).bactive = false;
+		reflSeg.tip(1).bactive = true;
 
-	vec3d new_vec = t - n*(2.0*(t*n));
+		//set seed and vessel to match
+		reflSeg.m_nvessel = seg.m_nvessel;
+		reflSeg.seed(seg.seed());
+		reflSeg.tip(0).nseed = seg.seed();
+		reflSeg.tip(1).nseed = seg.seed();
+		reflSeg.tip(0).nvessel = seg.m_nvessel;
+		reflSeg.tip(1).nvessel = seg.m_nvessel;
+		reflSeg.tip(1).bdyf_id = seg.tip(1).bdyf_id;
+		reflSeg.Update();
+		reflSeg.tip(1).bdyf_id = 1;
+		reflSeg.tip(0).bdyf_id = 1;
+
+		if (reflSeg.length() >= culture->m_cultParams->min_segment_length)
+			return culture->AddNewSegment(reflSeg);
+		
+	}
+	else
+	{
+
+		//probaly too close to the boundary shoot the ray from the other side
+		//printf("no segment found\n");
+		//the segment is very close to the border of the domain
+		//use the direction of the segment to back it off to get a element and normal
+		vec3d starting_point = seg.tip(0).pt.r - (segadjdir * 2.0);
+		surfe = m_angio.normal_proj->Project3(starting_point, -dir, rs);
+		if (surfe)
+		{
+			Segment reflSeg;
+			reflSeg.tip(0).pt = seg.tip(1).pt;
+			//calculate the growth direction
+			dir.unit();
+			vec3d normal = m_angio.exterior_surface->SurfaceNormal(*surfe, rs[0], rs[1]);
+			vec3d gdir = reflect(dir, normal);
+			gdir.unit();
+
+			reflSeg.tip(1).pt.r = reflSeg.tip(0).pt.r + (gdir * rdist);
+
+			reflSeg.tip(0).bactive = false;
+			reflSeg.tip(1).bactive = true;
+
+			//set seed and vessel to match
+			reflSeg.m_nvessel = seg.m_nvessel;
+			reflSeg.seed(seg.seed());
+			reflSeg.tip(0).nseed = seg.seed();
+			reflSeg.tip(1).nseed = seg.seed();
+			reflSeg.tip(0).nvessel = seg.m_nvessel;
+			reflSeg.tip(1).nvessel = seg.m_nvessel;
+			reflSeg.tip(1).bdyf_id = seg.tip(1).bdyf_id;
+			reflSeg.Update();
+			reflSeg.tip(1).bdyf_id = 1;
+			reflSeg.tip(0).bdyf_id = 1;
+
+			if (reflSeg.length() >= culture->m_cultParams->min_segment_length)
+				return culture->AddNewSegment(reflSeg);
+		}
+		else
+		{
+			printf("adjustment not working\n");
+		}
+	}
 	
-	// calculate the remaining length
-    double remain_length = old_length - seg.length();
-	assert(remain_length > 0.0);
-
-	seg2.tip(1).pt.r = q + new_vec*remain_length;
-	seg2.Update();
-
-	// activate the new tip
-	seg2.tip(1).bactive = true;
-
-	// pass on body force ID
-	seg2.tip(1).bdyf_id = seg.tip(1).bdyf_id; 
-
-	// Add the new segment to the culture
-	cult.AddNewSegment(seg2);
 }

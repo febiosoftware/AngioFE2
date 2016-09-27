@@ -7,6 +7,8 @@
 
 #include <math.h>
 
+//TODO: consider replacing/removing most of this file
+
 const double pi = 3.14159265;                                   // Global constant pi
 
 
@@ -63,5 +65,12 @@ inline double ang_dom(double angle)
 inline double frand() { return (double) rand() / RAND_MAX; }
 
 // generates a random vector in the unit cube [-1, +1]
-// TODO: This doesn't generate a truly random vector since there will be bias towards corners.
+//TODO: This doesn't generate a truly random vector since there will be bias towards corners.
 inline vec3d vrand() { return vec3d(2.0*(frand()-0.5), 2.0*(frand()-0.5), 2*(frand() - 0.5)); }
+
+//see https://www.opengl.org/sdk/docs/man/html/reflect.xhtml
+inline vec3d reflect(vec3d I, vec3d N)
+{
+	double temp = (2.0 * (N * I));
+	return I - (N * temp);
+}

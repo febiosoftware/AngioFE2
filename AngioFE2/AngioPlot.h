@@ -6,7 +6,7 @@ class FEPlotAngioStress : public FEDomainData
 {
 public:
 	FEPlotAngioStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
-	bool Save(FEDomain& d, FEDataStream& str);
+	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
 //-----------------------------------------------------------------------------
@@ -14,7 +14,7 @@ class FEPlotAngioEffectiveStress : public FEDomainData
 {
 public:
 	FEPlotAngioEffectiveStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
-	bool Save(FEDomain& d, FEDataStream& str);
+	bool Save(FEDomain& d, FEDataStream& str)  override;
 };
 
 //-----------------------------------------------------------------------------
@@ -22,7 +22,7 @@ class FEPlotAngioCollagenFibers : public FENodeData
 {
 public:
 	FEPlotAngioCollagenFibers(FEModel* pfem) : FENodeData(PLT_VEC3F, FMT_ITEM){}
-	bool Save(FEMesh& m, FEDataStream& a);
+	bool Save(FEMesh& m, FEDataStream& a)  override;
 };
 
 //-----------------------------------------------------------------------------
@@ -30,7 +30,7 @@ class FEPlotAngioECMDensity : public FENodeData
 {
 public:
 	FEPlotAngioECMDensity(FEModel* pfem) : FENodeData(PLT_FLOAT, FMT_ITEM){}
-	bool Save(FEMesh& m, FEDataStream& a);
+	bool Save(FEMesh& m, FEDataStream& a)  override;
 };
 
 //-----------------------------------------------------------------------------
@@ -38,5 +38,5 @@ class FEPlotAngioECMAlpha : public FENodeData
 {
 public:
 	FEPlotAngioECMAlpha(FEModel* pfem) : FENodeData(PLT_FLOAT, FMT_ITEM){}
-	bool Save(FEMesh& m, FEDataStream& a);
+	bool Save(FEMesh& m, FEDataStream& a)  override;
 };

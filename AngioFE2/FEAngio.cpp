@@ -19,8 +19,9 @@
 #include "FEBioMech/FEElasticMixture.h"
 #include "Elem.h"
 #include "angio3d.h"
-#include "Culture.h"
-#include <iostream>
+#include <ctime>
+#include <algorithm>
+#include <cfloat> 
 
 
 //-----------------------------------------------------------------------------
@@ -33,64 +34,36 @@ bool CreateDensityMap(vector<double>& density, vector<double>& anisotropy, FEMat
 bool CreateConcentrationMap(vector<double>& concentration, FEMaterial* pmat, int vegfID);
 
 //-----------------------------------------------------------------------------
-FEAngio::FEAngio(FEModel& fem) : m_fem(fem), m_grid(fem.GetMesh())
+FEAngio::FEAngio(FEModel& fem) : m_fem(fem)
 {
-	// Create the culture
-	m_pCult = new Culture(*this);
-
 	// Body force counter
 	total_bdyf = 0;
 	
 	FE_state = 0;
 
-	comp_mat = 0;
-	m_pmat = 0;
-
-	phi_stiff_factor = 1.0;
 	m_ntime = 1;
-
-	// flag for generating fibers (0 = random, 3 = element orientation)
-	m_matrix_cond = 0;
-
-	// flatten fiber option (default to false)
-	m_bzfibflat = 0;
 
 	// initialize time stepping parameters
 	m_time.dt = 0.25;
 
-	// TODO: What are these and make these user parameters
-	m_dtA = 0.0637;
-	m_dtB = 9.0957;
-	m_dtC = 2.6073;
-
-	// vessel_width - Diameter of microvessels (Default: 7 um)
-	m_vessel_width = 7;
-
-	// boundary conditions
-	m_Sx = 0.;						// Location of the x-symmetry plane
-	m_Sy = 0.;						// Location of the y-symmetry plane
-	m_Sz = 0.;						// Location of the z-symmetry plane
-
 	// Input random seed number
-	m_irseed = (unsigned int) time(0);
-
-	// default sprout force parameters
-   	m_sproutf   = 1.0;		// Sprout force magnitude	
-	m_tip_range = 250.;		// Sprout force range
-	m_spfactor = 0.;		// Sprout force directional factor
-	m_bsp_sphere = 0;		// Switch between local directional (0), local isotropic (1), and global isotropic (2) sprout froce representations
+	m_irseed = 0;
 }
 
 //-----------------------------------------------------------------------------
 FEAngio::~FEAngio()
 {
-	delete m_pCult;
 }
 
 //-----------------------------------------------------------------------------
-FEModel& FEAngio::GetFEModel()
+FEModel& FEAngio::GetFEModel() const
 {
 	return m_fem;
+}
+
+FEMesh * FEAngio::GetMesh() const
+{
+	return &m_fem.GetMesh();
 }
 
 //-----------------------------------------------------------------------------
@@ -111,21 +84,51 @@ FEAngioMaterial* FEAngio::FindAngioMaterial(FEMaterial* pm)
 		FEAngioMaterial* pma = dynamic_cast<FEAngioMaterial*>(pmat);
 		return pma;
 	}
-	return 0;
+	return nullptr;
 }
 
 //-----------------------------------------------------------------------------
 // Initializes the FEAngio object.
 bool FEAngio::Init()
 {
-	// Seed the random number generator
+	// Init all the FE stuff
+	//must be done first initializes material
+	if (InitFEM() == false) return false;
+
+	// Seed the random number generator based on the sum of the seeds of the materials ie set the seed only once in any material
+	unsigned int posseed = 0;
+	for (size_t i = 0; i < m_pmat.size(); i++)
+	{
+		posseed += m_pmat[i]->GetSeed();
+	}
+	if (!posseed)
+	{
+		posseed = static_cast<unsigned int>(time(0));
+	}
+	m_irseed = posseed;
 	srand(m_irseed);
 
 	// Print out the seed number for the random generator
-	fileout.printrandseed(m_irseed);					
+	fileout.printrandseed(m_irseed);
 
-	// create the grid based on the FEBio mesh
-	if (m_grid.Init() == false) return false;
+
+
+	ForEachNode([this](FENode & node)
+	{
+		//nodes may be accessed multiple times by the current implementation
+		FEAngioNodeData nd;
+		m_fe_node_data[node.GetID()] = nd;
+	});
+	ForEachElement([this](FEElement & e, FEDomain & d)
+	               {
+		               if (m_fe_element_data.count(e.GetID())) assert(false);
+		               FEAngioElementData ed;
+		               m_fe_element_data[e.GetID()] = ed;
+	               });
+
+
+	//setup the exterior_surface
+	SetupSurface();
 
 	// assign ECM densities to grid nodes
 	//TODO: degree of anisotropy values will only get initialized if density is set to 0
@@ -137,13 +140,16 @@ bool FEAngio::Init()
 	// assign concentration values to grid nodes
 	//if (InitSoluteConcentration() == false) return false;
 
-	// initialize culture
 	// NOTE: must be done after InitECMDensity() and InitCollagenFibers().
-	// Initialize Culture class
-	if (m_pCult->Init() == false) return false;
+	bool rv = true;
+	for (size_t i = 0; i < m_pmat.size(); i++)
+	{
+		rv &= m_pmat[i]->InitCulture();
+	}
+	if (!rv)
+		return false;
 
-	// Init all the FE stuff
-	if (InitFEM() == false) return false;
+	FinalizeFEM();
 	
 	// start timer
 	time(&m_start);
@@ -151,72 +157,58 @@ bool FEAngio::Init()
 	return true;
 }
 
+void FEAngio::SetupSurface()
+{
+	FEMesh * mesh = GetMesh();
+	//setup the exterior_surface
+	std::vector<FEDomain *> domains;
+	domains.push_back(&mesh->Domain(0));
+	exterior_surface = mesh->ElementBoundarySurface(domains,true, false);
+	normal_proj = new FENormalProjection(*exterior_surface);
+	normal_proj->SetTolerance(0.001);
+	normal_proj->Init();
+	normal_proj->SetSearchRadius(1.0);
+	interior_surface = mesh->ElementBoundarySurface(domains,false, true);
+
+	//now add the exterior_surface element indices to the element data
+	for (auto i = 0; i < exterior_surface->Elements(); i++)
+	{
+		FESurfaceElement & surfe = exterior_surface->Element(i);
+		auto base_eindex = surfe.m_elem[0];
+		
+		//TODO: hack fix when exterior_surface moved to be per domain
+		m_fe_element_data[base_eindex + 1].surfacesIndices.push_back(i);
+	}
+}
+
 //-----------------------------------------------------------------------------
-double FEAngio::RunTime()
+double FEAngio::RunTime() const
 {
 	time_t stop;
 	time(&stop);
-	return (double) difftime(stop, m_start);
+	return static_cast<double>(difftime(stop, m_start));
 }
 
 //-----------------------------------------------------------------------------
 // Initialize FE model.
 bool FEAngio::InitFEM()
 {
-	// See if an "angio" material is defined.
-	bool bmat = true;
-	FEAngioMaterial* pma = FindAngioMaterial(m_fem.GetMaterial(0));
-	if (pma == 0) bmat = false;
-	else 
+	for (int i = 0; i < m_fem.Materials(); i++)
 	{
-		if (m_Sx != 0.){ pma->Sx = m_Sx;}						// If there's an x-symmetry plane, set the location of the x-symmetry plane 
-		if (m_Sy != 0.){ pma->Sy = m_Sy;}						// If there's an y-symmetry plane, set the location of the y-symmetry plane
-		if (m_Sz != 0.){ pma->Sz = m_Sz;}						// If there's an z-symmetry plane, set the location of the z-symmetry plane
-
-		pma->ApplySym();
-
-		m_pmat = pma;
-		update_sprout_stress_scaling();
+		FEAngioMaterial * cmat = dynamic_cast<FEAngioMaterial*>(m_fem.GetMaterial(i));
+		if (cmat)
+		{
+			m_pmat.push_back(cmat);
+			m_pmat_ids.push_back(cmat->GetID());
+			//TODO: check that material parameters are set here
+			cmat->ApplySym();
+			cmat->SetFEAngio(this);
+			cmat->UpdateSproutStressScaling();
+		}
 	}
+	assert(m_pmat.size());
 
-	// If the angio material is not defined we apply the "old" body force approach
-	if (bmat == false)
-	{
-		FESproutBodyForce* pbf = new FESproutBodyForce(&m_fem);			// Define the one-and-only bodyforce	
-		m_pbf = pbf; // --- SAM ---
-	
-		m_fem.AddBodyLoad(pbf);										// Add the body force to the FEmodel
-		FEParameterList& pl = pbf->GetParameterList();					// Get the body force's parameter list
-		FEParam* pa = pl.Find("a"); assert(pa);							// Get the magnitude parameter
-		FEParam* pb = pl.Find("b"); assert(pb);							// Get the range parameter
-	
-		pa->value<double>() = (1.0/4.0)*0.001*m_sproutf;	// Set the mangnitude parameter using the input file
-		pb->value<double>() = 1.0/m_tip_range;				// Set the range parameter using the input file
-		pbf->m_factor = m_spfactor;							// Set the directional factor parameter using the input file
-	
-		if (m_bsp_sphere == 1) pbf->m_factor = 0.;				// If using local isotropic sprout force, set directional factor to 0
-
-		if (m_bsp_sphere == 2){									// If using global isotropic sprout froce, set directional factor and range to 0 
-			pbf->m_factor = 0.; 
-			pb->value<double>() = 0;}					
-
-		//cout << pbf->m_factor << endl;									// Print out the directional factor parameter
-
-		if (m_Sx != 0.){ pbf->Sx = m_Sx;}						// If there's an x-symmetry plane, set the location of the x-symmetry plane 
-		if (m_Sy != 0.){ pbf->Sy = m_Sy;}						// If there's an y-symmetry plane, set the location of the y-symmetry plane
-		if (m_Sz != 0.){ pbf->Sz = m_Sz;}						// If there's an z-symmetry plane, set the location of the z-symmetry plane
-
-		pbf->ApplySym();												// Apply any symmetry to the bodyforce class
-	}
-
-	//// FEBIO - Initialize the FE model
-	m_pmat->SetFEAngio(this);
-
-	// report if the stress or body force approach will be used
-	if (bmat)
-		felog.printf("Angio material found. Stress approach will be used.");
-	else
-		felog.printf("Angio materia NOT found. Body-force appraoch will be used.");
+	felog.printf("%d Angio materials found. Stress approach will be used.", m_pmat.size());
 
 	// register the callback
 	m_fem.AddCallback(FEAngio::feangio_callback, CB_UPDATE_TIME | CB_MAJOR_ITERS | CB_SOLVED, this);
@@ -224,11 +216,24 @@ bool FEAngio::InitFEM()
 	// Do the model initialization
 	if (m_fem.Init() == false) return false;
 
-	// apply the intial sprouts
-	CreateSprouts(0.5);
-
-	// Adjust the stiffness of the mesh based on microvessel volume
-	adjust_mesh_stiffness();
+	for (int i = 0; i < m_fem.Materials(); i++)
+	{
+		FEAngioMaterial * cmat = dynamic_cast<FEAngioMaterial*>(m_fem.GetMaterial(i));
+		if (cmat)
+		{
+			cmat->SetBoundaryCondition();
+		}
+	}
+	return true;
+}
+void FEAngio::FinalizeFEM()
+{
+	for (size_t i = 0; i < m_pmat.size(); i++)
+	{
+		//TODO: remove this constant or make it a user parameter
+		m_pmat[i]->CreateSprouts(0.5);
+		m_pmat[i]->AdjustMeshStiffness();
+	}
 
 	// only output to the logfile (not to the screen)
 	felog.SetMode(Logfile::FILE_ONLY);
@@ -245,57 +250,139 @@ bool FEAngio::InitFEM()
 	fileout.save_time(*this);
 
 	// Output initial collagen fiber orientation
-	fileout.writeCollFib(GetGrid(), true);
-
-	return true;
+	fileout.writeCollFib(*this, true);
 }
 
 //-----------------------------------------------------------------------------
 // Initialize the nodal ECM values
 bool FEAngio::InitECMDensity()
 {
-	int NN = m_grid.Nodes();
-	vector<double> density(NN, 0.0);
-	vector<double> anisotropy(NN, 0.0);
-
-	if (m_grid.m_coll_den == 0.0)
+	ForEachNode([this](FENode & node)
 	{
-		// get the material
-		FEMaterial* pm = m_fem.GetMaterial(0);
-		FEMaterial* pmat;
-		if(strcmp(pm->GetTypeStr(), "angio")==0)
-		{
-			pmat = pm;
-		}
-		else
-		{
-			pmat = pm->FindComponentByType("angio");
-		}
-
-		if (pmat == 0) return false;
-
-		if (CreateDensityMap(density, anisotropy, pmat) == false) return false;
+		m_fe_node_data[node.GetID()].m_collfib = vec3d(0, 0, 0);
+		m_fe_node_data[node.GetID()].m_ecm_den = 0.0;
+	});
+	bool rv = true;
+	for (size_t i = 0; i < m_pmat.size(); i++)
+	{
+		rv &= m_pmat[i]->InitECMDensity(this);
 	}
-	else
+	if (!rv)
 	{
-		for (int i=0; i<NN; ++i)
-		{
-			density[i] = m_grid.m_coll_den;
-			anisotropy[i] = GetCulture().m_W[3]/(GetCulture().m_W[0] + GetCulture().m_W[3]);
-		}
+		return false;
 	}
 
-	// assign ECM density
-	for (int i = 0; i < NN; ++i)								
+	// normalize fiber vector and average ecm density
+	ForEachNode([this](FENode & node)
 	{
-		Node& node = m_grid.GetNode(i);
-
-		node.m_ecm_den0 = density[i];	
-		node.m_ecm_den = node.m_ecm_den0;
-		node.m_da = anisotropy[i];
-	}
-
+		//nneds to be run only once per node
+		if (m_fe_node_data[node.GetID()].m_ntag)
+		{
+			m_fe_node_data[node.GetID()].m_ecm_den0 /= static_cast<double>(m_fe_node_data[node.GetID()].m_ntag);
+			m_fe_node_data[node.GetID()].m_ecm_den = m_fe_node_data[node.GetID()].m_ecm_den0;
+			//m_fe_node_data[node.GetID()].m_da /= static_cast<double>(m_fe_node_data[node.GetID()].m_ntag);
+			m_fe_node_data[node.GetID()].m_ntag = 0;
+		}
+	});
 	return true;
+}
+//-----------------------------------------------------------------------------
+// update the extracellular matrix nodal values
+void FEAngio::UpdateECM()
+{
+	//straight translation of code from the grid probably should be optimized later
+
+	// reset nodal data
+	FEMesh & mesh = m_fem.GetMesh();
+
+	ForEachNode([this](FENode & node)
+	{
+		m_fe_node_data[node.GetID()].m_collfib = vec3d(0, 0, 0);
+		m_fe_node_data[node.GetID()].m_ecm_den = 0.0;
+		//REFACTOR: why reset not just overwrite
+	});
+
+	//this portion will be harder
+	// For each element within the grid...
+	ForEachElement([this, &mesh](FESolidElement & elem, FESolidDomain & d)
+	{
+		//these will hold the natural coordinates once the project to nodes is complete 
+		double nr[FEElement::MAX_NODES];
+		double ns[FEElement::MAX_NODES];
+		double nt[FEElement::MAX_NODES];
+		//these hold the natural coordinates of the integration points (r,s,t)
+		double gr[FEElement::MAX_NODES];
+		double gs[FEElement::MAX_NODES];
+		double gt[FEElement::MAX_NODES];
+		//TODO: if needed get FEBIO to expose the vectors that contain these to avoid this copy
+		for (int i = 0; i < elem.Nodes(); i++)
+		{
+			gr[i] = elem.gr(i);
+			gs[i] = elem.gs(i);
+			gt[i] = elem.gt(i);
+		}
+
+		elem.project_to_nodes(gr, nr);
+		elem.project_to_nodes(gs, ns);
+		elem.project_to_nodes(gt, nt);
+
+		// For each node in the element...
+		for (int j = 0; j<elem.Nodes(); ++j)
+		{
+			// get the node
+			int nnum = elem.m_node[j];
+			nnum = mesh.Node(nnum).GetID();
+			// get the ecm density and collagen fiber
+			double ecm_den = m_fe_node_data[nnum].m_ecm_den0;
+			vec3d coll_fib = m_fe_node_data[nnum].m_collfib0;
+
+			/*
+			//clamp n* to [1,-1]
+			nr[j] = min(max(nr[j], -1), 1);
+			ns[j] = min(max(ns[j], -1), 1);
+			nt[j] = min(max(nt[j], -1), 1);
+			*/
+
+			//round to nearest integer
+			nr[j] = round(nr[j]);
+			ns[j] = round(ns[j]);
+			nt[j] = round(nt[j]);
+
+			// Calculate the deformation gradient tensor and jacobian at the node
+			mat3d F;
+			double Jacob = d.defgrad(elem, F, nr[j], ns[j], nt[j]);
+			
+			//make sure the function is differentiable and preserves orientation
+			assert(Jacob > 0.0);
+
+			// Update the collagen fiber orientation vector into the current configuration using F		
+			coll_fib = F*coll_fib;
+			coll_fib.unit();
+
+			// Update matrix density using the Jacobian
+			ecm_den = ecm_den / Jacob;
+
+			// accumulate fiber directions and densities
+			m_fe_node_data[nnum].m_collfib += coll_fib;
+			m_fe_node_data[nnum].m_ecm_den += ecm_den;
+
+
+			// increment counter
+			m_fe_node_data[nnum].m_ntag++;
+		}
+	  });
+
+	// normalize fiber vector and average ecm density
+	ForEachNode([this](FENode & node)
+	{
+		//nneds to be run only once per node
+		if (m_fe_node_data[node.GetID()].m_ntag)
+		{
+			m_fe_node_data[node.GetID()].m_ecm_den /= (double)m_fe_node_data[node.GetID()].m_ntag;
+			m_fe_node_data[node.GetID()].m_collfib.unit();
+			m_fe_node_data[node.GetID()].m_ntag = 0;
+		}
+	});
 }
 
 //-----------------------------------------------------------------------------
@@ -315,13 +402,13 @@ int FEAngio::FindVEGF()
 // Initialize the nodal concentration values
 bool FEAngio::InitSoluteConcentration()
 {
+	FEMesh & mesh = m_fem.GetMesh();
 	int vegfID = FindVEGF();
 
 	if(vegfID==0)
 		return false;
 
-
-	int NN = m_grid.Nodes();
+	int NN = mesh.Nodes();
 	vector<double> concentration(NN, 0.0);
 
 	// get the material
@@ -331,7 +418,7 @@ bool FEAngio::InitSoluteConcentration()
 	// assign ECM density
 	for (int i = 0; i < NN; ++i)								
 	{
-		Node& node = m_grid.GetNode(i);
+		FEAngioNodeData& node = m_fe_node_data[i +1];
 
 		node.vegf_conc = concentration[i];
 	}
@@ -339,87 +426,707 @@ bool FEAngio::InitSoluteConcentration()
 	return true;
 }
 
+//TODO: consider making the ForEach* const as long as this works on both compilers
+void FEAngio::ForEachNode(std::function<void(FENode &)> f, std::vector<int> & matls)
+{
+	//TODO: the last element to access a node wins on overwting the data associated with that node
+	//this behavior matches the previous behavior of the plugin but probably should be fixed sometime
+	FEMesh & mesh = m_fem.GetMesh();
+	std::vector<int> dl;
+	mesh.DomainListFromMaterial(matls, dl);
+	for (size_t i = 0; i < dl.size(); i++)
+	{
+		FEDomain & d = mesh.Domain(dl[i]);
+		for (int j = 0; j < d.Elements(); j++)
+		{
+			FEElement & e = d.ElementRef(j);
+			for (int k = 0; k < e.Nodes(); k++)
+			{
+				f(mesh.Node(e.m_node[k]));//this iterates over the local nodes
+			}
+		}
+	}
+}
+void FEAngio::ForEachNode(std::function<void(FENode &)> f)
+{
+	ForEachNode(f, m_pmat_ids);
+}
+void FEAngio::ForEachElement(std::function<void(FESolidElement&, FESolidDomain&)> f, std::vector<int> & matls)
+{
+	FEMesh & mesh = m_fem.GetMesh();
+	std::vector<int> dl;
+	mesh.DomainListFromMaterial(matls, dl);
+	for (size_t i = 0; i < dl.size(); i++)
+	{
+		FESolidDomain & d = reinterpret_cast<FESolidDomain&>(mesh.Domain(i));
+		for (int j = 0; j < d.Elements(); j++)
+		{
+			FESolidElement & e = reinterpret_cast<FESolidElement&>(d.ElementRef(j));
+			f(e, d);
+		}
+	}
+}
+void FEAngio::ForEachElement(std::function<void(FESolidElement&, FESolidDomain&)> f)
+{
+	ForEachElement(f, m_pmat_ids);
+}
+void FEAngio::ForEachDomain(std::function<void(FESolidDomain&)> f)
+{
+	ForEachDomain(f, m_pmat_ids);
+}
+void FEAngio::ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<int> & matls)
+{
+	FEMesh & mesh = m_fem.GetMesh();
+	std::vector<int> dl;
+	mesh.DomainListFromMaterial(matls, dl);
+	for (size_t i = 0; i < dl.size(); i++)
+	{
+		FESolidDomain & d = reinterpret_cast<FESolidDomain&>(mesh.Domain(i));
+		f(d);
+	}
+}
+//-----------------------------------------------------------------------------
+static void solve_3x3(double A[3][3], double b[3], double x[3])
+{
+	double D = A[0][0] * A[1][1] * A[2][2] + A[0][1] * A[1][2] * A[2][0] + A[1][0] * A[2][1] * A[0][2] \
+		- A[1][1] * A[2][0] * A[0][2] - A[2][2] * A[1][0] * A[0][1] - A[0][0] * A[2][1] * A[1][2];
+
+	assert(D != 0);
+
+	double Ai[3][3];
+	Ai[0][0] = A[1][1] * A[2][2] - A[2][1] * A[1][2];
+	Ai[0][1] = A[2][1] * A[0][2] - A[0][1] * A[2][2];
+	Ai[0][2] = A[0][1] * A[1][2] - A[1][1] * A[0][2];
+
+	Ai[1][0] = A[2][0] * A[1][2] - A[1][0] * A[2][2];
+	Ai[1][1] = A[0][0] * A[2][2] - A[2][0] * A[0][2];
+	Ai[1][2] = A[1][0] * A[0][2] - A[0][0] * A[1][2];
+
+	Ai[2][0] = A[1][0] * A[2][1] - A[2][0] * A[1][1];
+	Ai[2][1] = A[2][0] * A[0][1] - A[0][0] * A[2][1];
+	Ai[2][2] = A[0][0] * A[1][1] - A[0][1] * A[1][0];
+
+	x[0] = (Ai[0][0] * b[0] + Ai[0][1] * b[1] + Ai[0][2] * b[2]) / D;
+	x[1] = (Ai[1][0] * b[0] + Ai[1][1] * b[1] + Ai[1][2] * b[2]) / D;
+	x[2] = (Ai[2][0] * b[0] + Ai[2][1] * b[1] + Ai[2][2] * b[2]) / D;
+
+
+#ifdef _DEBUG
+	double r[3];
+	r[0] = b[0] - (A[0][0] * x[0] + A[0][1] * x[1] + A[0][2] * x[2]);
+	r[1] = b[1] - (A[1][0] * x[0] + A[1][1] * x[1] + A[1][2] * x[2]);
+	r[2] = b[2] - (A[2][0] * x[0] + A[2][1] * x[1] + A[2][2] * x[2]);
+
+	double nr = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
+#endif
+}
+
+bool FEAngio::IsInsideHex8(FESolidElement * se, vec3d y, FEMesh * mesh, double r[3])
+{
+	assert(se->Type() == FE_HEX8G8);
+	vec3d x[FEElement::MAX_NODES];
+	size_t j;
+	// get the element nodal coordinates
+	auto neln = se->Nodes();
+	for (j = 0; j<neln; ++j) x[j] = mesh->Node(se->m_node[j]).m_rt;
+
+	// first, as a quick check, we see if y lies in the bounding box defined by x
+	FEBoundingBox box(x[0]);
+	for (j = 1; j<neln; ++j) box.add(x[j]);
+
+	if (box.IsInside(y))
+	{
+		// If the point y lies inside the box, we apply a Newton method to find
+		// the isoparametric coordinates r
+		r[0] = r[1] = r[2] = 0;
+		const double tol = 1e-5;
+		double dr[3], norm;
+		double H[8], G[8][3];
+		do
+		{
+			H[0] = 0.125*(1 - r[0])*(1 - r[1])*(1 - r[2]);
+			H[1] = 0.125*(1 + r[0])*(1 - r[1])*(1 - r[2]);
+			H[2] = 0.125*(1 + r[0])*(1 + r[1])*(1 - r[2]);
+			H[3] = 0.125*(1 - r[0])*(1 + r[1])*(1 - r[2]);
+			H[4] = 0.125*(1 - r[0])*(1 - r[1])*(1 + r[2]);
+			H[5] = 0.125*(1 + r[0])*(1 - r[1])*(1 + r[2]);
+			H[6] = 0.125*(1 + r[0])*(1 + r[1])*(1 + r[2]);
+			H[7] = 0.125*(1 - r[0])*(1 + r[1])*(1 + r[2]);
+
+			G[0][0] = -0.125*(1 - r[1])*(1 - r[2]); G[0][1] = -0.125*(1 - r[0])*(1 - r[2]); G[0][2] = -0.125*(1 - r[0])*(1 - r[1]);
+			G[1][0] = 0.125*(1 - r[1])*(1 - r[2]); G[1][1] = -0.125*(1 + r[0])*(1 - r[2]); G[1][2] = -0.125*(1 + r[0])*(1 - r[1]);
+			G[2][0] = 0.125*(1 + r[1])*(1 - r[2]); G[2][1] = 0.125*(1 + r[0])*(1 - r[2]); G[2][2] = -0.125*(1 + r[0])*(1 + r[1]);
+			G[3][0] = -0.125*(1 + r[1])*(1 - r[2]); G[3][1] = 0.125*(1 - r[0])*(1 - r[2]); G[3][2] = -0.125*(1 - r[0])*(1 + r[1]);
+			G[4][0] = -0.125*(1 - r[1])*(1 + r[2]); G[4][1] = -0.125*(1 - r[0])*(1 + r[2]); G[4][2] = 0.125*(1 - r[0])*(1 - r[1]);
+			G[5][0] = 0.125*(1 - r[1])*(1 + r[2]); G[5][1] = -0.125*(1 + r[0])*(1 + r[2]); G[5][2] = 0.125*(1 + r[0])*(1 - r[1]);
+			G[6][0] = 0.125*(1 + r[1])*(1 + r[2]); G[6][1] = 0.125*(1 + r[0])*(1 + r[2]); G[6][2] = 0.125*(1 + r[0])*(1 + r[1]);
+			G[7][0] = -0.125*(1 + r[1])*(1 + r[2]); G[7][1] = 0.125*(1 - r[0])*(1 + r[2]); G[7][2] = 0.125*(1 - r[0])*(1 + r[1]);
+
+			double R[3] = { 0 }, A[3][3] = { 0 };
+			for (j = 0; j<8; ++j)
+			{
+				R[0] += x[j].x*H[j];
+				R[1] += x[j].y*H[j];
+				R[2] += x[j].z*H[j];
+
+				A[0][0] -= x[j].x*G[j][0]; A[0][1] -= x[j].x*G[j][1]; A[0][2] -= x[j].x*G[j][2];
+				A[1][0] -= x[j].y*G[j][0]; A[1][1] -= x[j].y*G[j][1]; A[1][2] -= x[j].y*G[j][2];
+				A[2][0] -= x[j].z*G[j][0]; A[2][1] -= x[j].z*G[j][1]; A[2][2] -= x[j].z*G[j][2];
+			}
+			R[0] = y.x - R[0];
+			R[1] = y.y - R[1];
+			R[2] = y.z - R[2];
+
+			solve_3x3(A, R, dr);
+			r[0] -= dr[0];
+			r[1] -= dr[1];
+			r[2] -= dr[2];
+
+			norm = dr[0] * dr[0] + dr[1] * dr[1] + dr[2] * dr[2];
+		} while (norm > tol);
+
+		// see if the point r lies inside the element
+		const double eps = 1.0001;
+		if ((r[0] >= -eps) && (r[0] <= eps) &&
+			(r[1] >= -eps) && (r[1] <= eps) &&
+			(r[2] >= -eps) && (r[2] <= eps)) return true;
+	}
+	return false;
+}
+
+vec3d FEAngio::LocalToGlobal(FESolidElement * se, vec3d & rst) const
+{
+	vec3d cur = vec3d(0, 0, 0);
+	FEMesh * mesh = GetMesh();
+	double sf[FEElement::MAX_NODES];
+	se->shape_fnc(sf,rst.x, rst.y, rst.z);
+	for (int k = 0; k < se->Nodes(); k++)
+	{
+		cur += mesh->Node(se->m_node[k]).m_rt * sf[k];
+	}
+	return cur;
+}
+
+vec3d FEAngio::FindRST(const vec3d & v ,vec2d rs, FESolidElement * elem) const
+{
+	//try brute force it may yeild interesting results: ie the distance between the actual point on surface and the gridpoint
+	std::vector<vec3d> positions_global;
+	std::vector<vec3d> positions_local;
+	vec3d cur;
+	//r
+	vec3d cpos = vec3d(1, rs[0], rs[1]);
+	cur = LocalToGlobal(elem,cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(1, rs[1], rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-1, rs[0], rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-1, rs[1], rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	//s
+	cpos = vec3d(rs[0], 1, rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(rs[1], 1, rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(rs[0], -1, rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(rs[1], -1, rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	//t
+	cpos = vec3d(rs[0], rs[1], 1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(rs[1], rs[0], 1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(rs[0], rs[1], -1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(rs[1], rs[0], -1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	//do all of the negations
+	//first
+	//r
+	cpos = vec3d(1, -rs[0], rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(1, -rs[1], rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-1, -rs[0], rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-1, -rs[1], rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	//s
+	cpos = vec3d(-rs[0], 1, rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-rs[1], 1, rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-rs[0], -1, rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-rs[1], -1, rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	//t
+	cpos = vec3d(-rs[0], rs[1], 1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-rs[1], rs[0], 1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-rs[0], rs[1], -1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-rs[1], rs[0], -1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	//second
+	//r
+	cpos = vec3d(1, rs[0], -rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(1, rs[1], -rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-1, rs[0], -rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-1, rs[1], -rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	//s
+	cpos = vec3d(rs[0], 1, -rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(rs[1], 1, -rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(rs[0], -1, -rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(rs[1], -1, -rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	//t
+	cpos = vec3d(rs[0], -rs[1], 1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(rs[1], -rs[0], 1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(rs[0], -rs[1], -1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(rs[1], -rs[0], -1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+
+	//both
+	//r
+	cpos = vec3d(1, -rs[0], -rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(1, -rs[1], -rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-1, -rs[0], -rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-1, -rs[1], -rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	//s
+	cpos = vec3d(-rs[0], 1, -rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-rs[1], 1, -rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-rs[0], -1, -rs[1]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-rs[1], -1, -rs[0]);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	//t
+	cpos = vec3d(-rs[0], -rs[1], 1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-rs[1], -rs[0], 1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-rs[0], -rs[1], -1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+	cpos = vec3d(-rs[1], -rs[0], -1);
+	cur = LocalToGlobal(elem, cpos);
+	positions_global.push_back(cur);
+	positions_local.push_back(cpos);
+
+
+	double best_dist = DBL_MAX;
+	int best_index = -1;
+	for (size_t i = 0; i < positions_global.size(); i++)
+	{
+		double cdist = (v - positions_global[i]).norm();
+		if (cdist < best_dist)
+		{
+			best_index = i;
+			best_dist = cdist;
+		}
+	}
+	if (best_dist > 0.25)
+	{
+		//may need negations if the method does not appear to work
+		printf("large error here\n");
+		assert(false);
+	}
+	return positions_local[best_index];
+}
+
+bool FEAngio::FindGridPoint(const vec3d & r, std::vector<FEDomain*> &domains,GridPoint & p) const
+{
+	FEMesh & mesh = m_fem.GetMesh();
+	double natc[3];
+	FESolidElement * se = mesh.FindSolidElement(r, natc);
+	//TODO: Needs fixed when implementing multiple feangio materials
+	//TODO: in init material id's don't match
+	//use the more explict version of this function to handle multiple materials
+	//if (se && se->GetMatID() == m_pmat->GetID())
+	if (se && (std::find(domains.begin(), domains.end(), se->GetDomain()) != domains.end()))
+	{
+		p.r = r;
+		p.q.x = natc[0]; 
+		p.q.y = natc[1];
+		p.q.z = natc[2];
+		p.nelem = se->GetID();
+		//TODO: hack
+		p.elemindex = se->GetID() -1;
+		p.ndomain = se->GetDomain();
+		vec3d pq = Position(p);
+		vec3d pw = p.r;
+		assert((Position(p) - p.r).norm() < 1.0);
+		return true;
+	}
+	return false;
+}
+
+bool FEAngio::FindGridPoint(const vec3d & r, FEDomain * domain, int elemindex, GridPoint & p) const
+{
+	FEMesh & mesh = m_fem.GetMesh();
+	double natc[3];
+	FESolidElement & se = reinterpret_cast<FESolidElement&>(domain->ElementRef(elemindex));
+	if (IsInsideHex8(&se,r, &mesh, natc))
+	{
+		p.r = r;
+		p.q.x = natc[0];
+		p.q.y = natc[1];
+		p.q.z = natc[2];
+		p.nelem = se.GetID();
+		p.elemindex = elemindex;
+		p.ndomain = domain;
+		vec3d pq = Position(p);
+		assert((Position(p) - p.r).norm() < 1.0);
+		return true;
+	}
+	return false;
+}
+
+GridPoint FEAngio::FindGridPoint(FEDomain * domain, int nelem, vec3d& q) const
+{
+	assert(domain != nullptr && nelem >= 0);
+	GridPoint pt;
+	pt.q = q;
+	FEMesh & mesh = m_fem.GetMesh();
+	FESolidElement * se;
+	//TODO: refactor if problems with multiple domains
+	if ((se = dynamic_cast<FESolidElement*>(&domain->ElementRef(nelem))))
+	{
+		pt.ndomain = domain;//set the domain of the gridpoint
+		pt.elemindex = nelem;
+		pt.nelem = se->GetID();
+	}
+	else
+	{
+		assert(false);
+	}
+	pt.r = Position(pt);
+	return pt;
+}
+
+vec3d FEAngio::Position(const GridPoint& pt) const
+{
+	//Point has already been positioned
+	FEMesh & mesh = m_fem.GetMesh();
+	vec3d r(0, 0, 0);
+	FEDomain * d = pt.ndomain;
+	FESolidElement * se;
+	if ((se = dynamic_cast<FESolidElement*>(&d->ElementRef(pt.elemindex))))
+	{
+		double arr[FEElement::MAX_NODES];
+		se->shape_fnc(arr, pt.q.x, pt.q.y, pt.q.z);
+		for (int j = 0; j < se->Nodes(); j++)
+		{
+			r += mesh.Node(se->m_node[j]).m_rt* arr[j];
+		}
+	}
+	return r;
+}
+
+std::vector<double> FEAngio::createVectorOfMaterialParameters(FEDomain & d, FEElement * elem,
+	double FEAngioNodeData::*materialparam, double r, double s, double t)
+{
+	FEMesh * mesh = GetMesh();
+	std::vector<double> gx(elem->m_node.size());
+	for (size_t i = 0; i < elem->m_node.size(); i++)
+	{
+		gx[i] = this->m_fe_node_data[mesh->Node(elem->m_node[i]).GetID()].*materialparam;
+	}
+	return gx;
+}
+double FEAngio::genericProjectToPoint(FEDomain & d, FEElement * elem,
+	double FEAngioNodeData::*materialparam, double r, double s, double t)
+{
+	std::vector<double> gx = createVectorOfMaterialParameters(d, elem, materialparam, r, s, t);
+	//same as project to point that function is not used eleswhere so it has been eliminated
+	double H[FEElement::MAX_NODES];
+	double val = 0.0;
+	//should be zero to proprly accumulate the values
+
+	//check that 0 if not solid element is okay
+	FESolidElement * se = dynamic_cast<FESolidElement*>(elem);
+	if (se)
+	{
+		se->shape_fnc(H, r, s, t);
+		for (size_t i = 0; i < elem->m_node.size(); i++)
+		{
+			val += gx[i] * H[i];
+		}
+	}
+	return val;
+}
+
+double FEAngio::FindECMDensity(const GridPoint& pt)
+{
+	assert(pt.nelem != -1 && pt.nelem != 0);
+	FEMesh & mesh = m_fem.GetMesh();
+
+	//TODO: replace with a check if it is in the same element before doing a search
+	//the element may change between accesses
+	/*
+	double rez[3];
+	FESolidElement* se = mesh.FindSolidElement(pt.r, rez);//TODO uses spatial coordinates
+	assert(se->GetID() == pt.nelem);//verify that migration is not happening
+	*/
+	FESolidElement * se;
+	if (pt.elemindex >= 0)
+		se = dynamic_cast<FESolidElement*>(&pt.ndomain->ElementRef(pt.elemindex));
+	else
+		assert(false);
+	double rez[3];
+	rez[0] = pt.q.x; rez[1] = pt.q.y; rez[2] = pt.q.z;
+
+	if (se)
+	{
+		//double * shapef = new double[se->Nodes()];
+		double shapef[FEElement::MAX_NODES];
+		se->shape_fnc(shapef, rez[0], rez[1], rez[2]);
+
+		double coll_den = 0.0;
+		for (int i = 0; i < se->Nodes(); i++)
+		{
+			int nn = se->m_node[i];
+			nn = mesh.Node(nn).GetID();
+			coll_den += m_fe_node_data[nn].m_ecm_den* shapef[i];
+		}
+
+		//delete[] shapef;
+		return coll_den;
+	}
+	return 0.0;
+}
+
+vec3d FEAngio::CollagenDirection(GridPoint& pt)
+{
+	assert(pt.elemindex >= 0);
+	assert(pt.ndomain != nullptr);
+	FEMesh & mesh = m_fem.GetMesh();
+	// get the element
+	FEElement * elem = &pt.ndomain->ElementRef(pt.elemindex);
+
+	FESolidElement * selem = dynamic_cast<FESolidElement *>(elem);
+	
+	//TODO: may be refactored to remove shape function and dependencies 
+	// Obtain shape function weights
+	double shapeF[FEElement::MAX_NODES];
+	//double * shapeF = new double[elem->Nodes()];
+	if (selem)
+		selem->shape_fnc(shapeF, pt.q.x, pt.q.y, pt.q.z);//check these numbers
+
+	// Determine component of new vessel direction due to nodal collagen fiber orientation
+	vec3d coll_angle(0, 0, 0);
+	for (int i = 0; i<8; ++i)
+	{
+		int n = elem->m_node[i];
+		coll_angle += m_fe_node_data[mesh.Node(n).GetID()].m_collfib*shapeF[i];
+	}
+
+	// make unit vector
+	coll_angle.unit();
+
+	//delete[] shapeF;
+
+	return coll_angle;
+}
+
 //-----------------------------------------------------------------------------
 // Initialize nodal collagen fiber directions
 bool FEAngio::InitCollagenFibers()
 {
-	int NN = m_grid.Nodes();
-	vector<vec3d> fiber;
-	fiber.resize(NN, vec3d(0,0,0));
-
-	switch (m_matrix_cond)
+	bool rv = true;
+	for (size_t i = 0; i < m_pmat.size(); i++)
 	{
-	case 0: // random orientation
-		{
-			for (int i=0; i<NN; ++i)
-			{
-				fiber[i] = vrand();
-			}
-		}
-		break;
-	case 3:	// from element's local coordinates
-		{
-			// get the material
-			FEMaterial* pm = m_fem.GetMaterial(0);
-			FEMaterial* efd = pm->FindComponentByType("EFD neo-Hookean");
-			if (efd == 0) return false;
-			else
-			{
-				if (CreateFiberMap(fiber, efd) == false) return false;
-			}
-		}
+		rv &= m_pmat[i]->InitCollagenFibers();
 	}
-
-	// assign collagen fibers
-	for (int i=0; i<NN; ++i)
-	{
-		Node& node = m_grid.GetNode(i);
-
-		vec3d v = fiber[i];
-
-		// flatten if requested
-		if (m_bzfibflat == 1) v.z *= 0.25;
-
-		// normalize the vector
-		v.unit();
-
-		// assign the node
-		node.m_collfib0 = v;
-		node.m_collfib = node.m_collfib0;
-	}
-
-	return true;
+	return rv;
 }
 
 //-----------------------------------------------------------------------------
 void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 {
 	FEModel& fem = *pfem;
+	m_time.t = fem.m_ftime;
 
 	if (nwhen == CB_UPDATE_TIME)
 	{
 		// grab the time information
-		m_time.t = fem.m_ftime;
+		
 		m_time.dt = fem.GetCurrentStep()->m_dt;
 
 		// do a growth step
-		m_pCult->Grow(m_time);
-
-		adjust_mesh_stiffness();
-
-		// update sprout stress scaling
-		update_sprout_stress_scaling();
-
-		// Update the positions of the body forces
-		UpdateSprouts(1.0);
+		for (size_t i = 0; i < m_pmat.size(); i++)
+		{
+			m_pmat[i]->Grow(m_time);
+			m_pmat[i]->AdjustMeshStiffness();
+			m_pmat[i]->UpdateSproutStressScaling();
+			m_pmat[i]->UpdateSprouts(1.0);
+		}
 	}
 	else if (nwhen == CB_MAJOR_ITERS)
 	{
 		// update the grid data
-		m_grid.Update();
-
-		// update the culture
-		m_pCult->Update();
+		UpdateECM();
+		for (size_t i = 0; i < m_pmat.size(); i++)
+		{
+			m_pmat[i]->Update();
+		}
 
 		++FE_state;
 
@@ -455,103 +1162,10 @@ void FEAngio::Output()
 	fileout.dataout(*this);
 		
 	// Output final collagen fiber orientation
-	fileout.writeCollFib(GetGrid(), false);
+	fileout.writeCollFib(*this, false);
 
 	// Output final matrix density
-	fileout.writeECMDen(GetGrid());
-}
-
-//-----------------------------------------------------------------------------
-int FEAngio::Sprouts()
-{
-	if (m_pmat) return m_pmat->Sprouts();
-	else
-	{
-		FESproutBodyForce* pbf = dynamic_cast<FESproutBodyForce*>(m_fem.GetBodyLoad(0));
-		return pbf->Sprouts();
-	}
-}
-
-//-----------------------------------------------------------------------------
-// Apply sprout forces to the mesh for each active vessel tip
-void FEAngio::CreateSprouts(double scale)
-{
-	double magnitude = scale*m_sproutf;								// Scale the sprout magnitude
-
-	// Ramp up the sprout force magnitude up to time t = 4.0 days
-	if (m_time.t == 0.0)
-		magnitude = (1.0/4.0)*0.001*scale; 
-	else if (m_time.t < 4.0)
-		magnitude = (1.0/4.0)*m_time.t*scale;
-
-	//#pragma omp parallel for
-	const SegmentTipList& tip_list = m_pCult->GetActiveTipList();
-	for (ConstTipIter tip_it = tip_list.begin(); tip_it != tip_list.end(); ++tip_it)
-	{
-		Segment::TIP& tip = *(*tip_it);
-		if (tip.bactive)
-		{
-			// get the tip
-			const vec3d& r = tip.pos();
-			
-			// get the directional unit vector of the tip
-			const vec3d& u = tip.u;
-
-			if (m_pmat)
-			{
-				m_pmat->AddSprout(r, u);
-				tip.bdyf_id = m_pmat->Sprouts() - 1;
-			}
-			else
-			{
-				FESproutBodyForce* pbf = dynamic_cast<FESproutBodyForce*>(m_fem.GetBodyLoad(0));
-				pbf->AddSprout(r, u);
-				tip.bdyf_id = pbf->Sprouts() - 1;
-			}
-		}
-	}
-}
-
-//-----------------------------------------------------------------------------
-// Update the sprout forces after a deformation
-void FEAngio::UpdateSprouts(double scale)
-{
-	double magnitude = scale*m_sproutf;								// Magnitude of the sprout force
-	// Ramp up the sprout force magnitude up to time t = 4.0 days
-	if (m_time.t == 0.0)
-		magnitude = (1.0/4.0)*0.001*scale; 
-	else if (m_time.t < 4.0)
-		magnitude = (1.0/4.0)*m_time.t*scale;
-
-	if (m_pmat)
-	{
-		m_pmat->ClearSprouts();
-	}
-	else
-	{
-		FESproutBodyForce* pbf = dynamic_cast<FESproutBodyForce*>(m_fem.GetBodyLoad(0));			// Obtain the sprout body force field
-		pbf->ClearSprouts();
-		FEParameterList& pl = pbf->GetParameterList();										// Get the body force's parameter list
-		FEParam* pa = pl.Find("a"); assert(pa);												// Get the sprout force magnitude parameter
-		pa->value<double>() = magnitude*m_sproutf;													// Set the sprout force magnitude parameter
-	}
-
-	// Obtain the FE mesh
-	FEMesh& mesh = m_fem.GetMesh();
-
-	//#pragma omp parallel for
-	const SegmentTipList& tip_list = m_pCult->GetActiveTipList();
-	for (ConstTipIter tip_it = tip_list.begin(); tip_it != tip_list.end(); ++tip_it)		// Iterate through each segment in the model...
-	{
-		const Segment::TIP& tip= *(*tip_it);
-		assert(tip.bactive);
-		assert(tip.bdyf_id >= 0);
-
-		// TODO: What to do with BC==1? Currently, tips that stop growing after hitting boundary
-		//       are no longer active. We should still add a sprout for those
-		if      (m_pmat) m_pmat->AddSprout(tip.pos(), tip.u);
-		else if (m_pbf ) m_pbf->AddSprout (tip.pos(), tip.u);
-	}
+	fileout.writeECMDen(*this);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -561,173 +1175,20 @@ void FEAngio::UpdateSprouts(double scale)
 // TODO: vessel lengths are always positive now, so we need to fix the logic here.
 void FEAngio::adjust_mesh_stiffness()
 {
-	if (comp_mat == 0)													// If a composite consitutive model isn't being used, exit
-		return;
-
-	Grid& grid = m_grid;
-		
-	int elem_num = 0;													// Element number
-	vec3d vess_vect;													// Vessel vector
-
-	int NE = m_grid.Elems();
-	for (int i = 0; i < NE; ++i)
-	{							
-		Elem& el = grid.GetElement(i);
-		el.alpha = 0.;						// Set the vessel volume fraction, alpha, to zero
-		el.fiber_orient = vec3d(0,0,0);		// Set the vessel orientation vector to 0 (this is the element fiber_orient vector, which does not contain collagen fiber orientation information but rather the material fiber direction for a transversely isotropic material model)
-	}
-	
-	int Nsub = 2;														// Number of subdivisions used to calculate vessel orientation
-	double sub_scale = 1/(double)Nsub;									// Calculate the subdivision scale 
-	vec3d mid;
-	double elem_volume = 0.;											// Element volume
-	double subunit_volume = 0.;											// Subdivision volume
-	double volume_fraction = 0.;										// Volume fraction
-
-	const SegmentList& seg_list = m_pCult->GetSegmentList();
-	for (ConstSegIter frag_it = seg_list.begin(); frag_it != seg_list.end(); ++frag_it)		// For each segment...
+	for (size_t i = 0; i < m_pmat.size(); i++)
 	{
-		Segment subunit;												// Segment subdivision placeholder
-	
-		const Segment& seg = (*frag_it);												// Obtain the segment
-		
-		for (int k = 1; k <= Nsub; k++)									// For each subdivision...
-		{
-			if (k == 1){													// If this is the first subdivision, find the origin of the segment
-				if (seg.length() > 0.){											// If it's a +1 segment...
-					subunit.tip(0).pt.r = seg.tip(0).pos();
-				}
-				else{															// If it's a -1 segment...
-					subunit.tip(1).pt.r = seg.tip(1).pos();
-//					subunit.m_length = -1.;
-				}
-		}
-			
-			// Calculate the subdivision
-			vec3d v = seg.uvect();
-			if (seg.length() > 0.){
-				subunit.tip(1).pt.r = subunit.tip(0).pos() + v*(sub_scale*seg.length());     
-			}
-			else{														// If it's a -1 segment...
-				subunit.tip(0).pt.r = subunit.tip(1).pos() + v*(sub_scale*seg.length());     
-			}
-
-			subunit.Update();										// Find the length of the subdivision
-			
-			mid = (subunit.tip(1).pos() + subunit.tip(0).pos())*0.5;
-
-			elem_num = m_grid.findelem(mid);				// Find the element that the midpoint is within
-
-			// Calculate the orientation of the subdivision
-			if (seg.length() > 0.){										// If it's a +1 segment...
-				vess_vect = subunit.tip(1).pos() - subunit.tip(0).pos();
-			}
-			else{														// If it's a -1 segment...
-				vess_vect = subunit.tip(0).pos() - subunit.tip(1).pos();
-			}
-
-			if (vess_vect.norm() != 0.)									// Normalize to find the unit vector
-				vess_vect = vess_vect/vess_vect.norm();
-
-			if (elem_num != -1)											// If the midpoint has a real element number...
-			{
-				Elem& el = m_grid.GetElement(elem_num);
-
-				elem_volume = el.m_volume;					// Calculate the volume of the element
-
-				subunit_volume = pi*(m_vessel_width/2.)*(m_vessel_width/2.)*fabs(subunit.length());		// Find the volume of the subdivision
-				volume_fraction = subunit_volume/elem_volume;				// Calculate the volume fraction
-
-				el.alpha = el.alpha + volume_fraction;	// Add the volume fraction for each subdivision to alpha
-			
-				// Calculate the vessel orientation vector 
-				if ((el.fiber_orient.x == 0) && (el.fiber_orient.y == 0) && (el.fiber_orient.z == 0)){	// If the vessel orientation vector hasn't been assigned yet...
-					el.fiber_orient = vess_vect;			// Set the vessel orientation vector					
-				}
-				else{														// If it has been...	
-					el.fiber_orient.x = (el.fiber_orient.x + vess_vect.x)/2;	// Average together the vessel orientation vector
-					el.fiber_orient.y = (el.fiber_orient.y + vess_vect.y)/2;
-					el.fiber_orient.z = (el.fiber_orient.z + vess_vect.z)/2;}
-			}
-			
-			// Set the origin of the next subdivision to the end of the current one
-			if (seg.length() > 0.){
-				subunit.tip(0).pt.r = subunit.tip(1).pos();
-			}
-			else{
-				subunit.tip(1).pt.r = subunit.tip(0).pos();
-			}
-		}
+		m_pmat[i]->AdjustMeshStiffness();
 	}
-	
-	double alpha = 0.;													// Volume fraction for the composite material model
-	vec3d e1; vec3d e2; vec3d e3;										// Basis for the material coordinate system (e1 is the material direction, e2 and e3 are isotropic)
-	
-	FEMesh& mesh = m_fem.GetMesh();										// Get the FE mesh
-	int J = mesh.Domains();												// Find the number of domains within the mesh
-	int num_elem = 0;
-
-	for (int k = 0; k < J; ++k){
-		FEDomain& d = mesh.Domain(k);										// Obtain the domain
-		
-		for (int j = 0; j < d.Elements(); ++j)								// For each element within the domain...
-		{
-			FEElement& e = d.ElementRef(j);										// Obtain the element from the domain
-			int nint = e.GaussPoints();											// Obtain the number of gauss points
-		
-			Elem& eg = grid.GetElement(num_elem);
-			alpha = eg.alpha;											// Obtain alpha from the grid element
-			for(int n=0; n<8; n++)
-			{
-				eg.GetNode(n).alpha=alpha;
-			}
-
-			// Set e1 to the vessel orientation vector
-			e1 = eg.fiber_orient;
-
-			if ((e1.x == 0) && (e1.y == 0) && (e1.z == 0)){						// If there is not vessels in the element, set the material basis to the global coordinate basis
-				e1 = vec3d(1,0,0);
-				e2 = vec3d(0,1,0);
-				e3 = vec3d(0,0,1);}
-			else{																// Else, set the other two directions to be orthogonal to the vessel orientation
-				e2.y = 1;
-				e2 = e1^e2;
-				e3 = e1^e2;}
-		
-			for (int n = 0; n < nint; ++n)										// For each gauss point...
-			{
-				FEMaterialPoint& mp = *(e.GetMaterialPoint(n));
-				FEAngioMaterialPoint* pt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp); // get the mixture material point
-				pt->vessel_weight = alpha;
-				pt->matrix_weight = 1.0 - alpha;
-
-				if (comp_mat == 2){													// If the transversely isotropic material is being used...
-					FEElasticMaterialPoint& pt2 = *mp.ExtractData<FEElasticMaterialPoint>();
-					pt2.m_Q[0][0] = e1.x;												// Set the first column of Q to e1
-					pt2.m_Q[1][0] = e1.y;
-					pt2.m_Q[2][0] = e1.z;
-					pt2.m_Q[0][1] = e2.x;												// Set the second column of Q to e2
-					pt2.m_Q[1][1] = e2.y;
-					pt2.m_Q[2][1] = e2.z;
-					pt2.m_Q[0][2] = e3.x;												// Set the third column of Q to e3
-					pt2.m_Q[1][2] = e3.y;
-					pt2.m_Q[2][2] = e3.z;}
-				}
-
-			num_elem++;
-		}
-	}
-
-	return;
 }
 
 //-----------------------------------------------------------------------------
 void FEAngio::update_sprout_stress_scaling()
 {
+	//TODO: currently unused but needs moved or removed
 	double y0 = -0.004; double x0 = 3.0; double b = 0.5436; double a = 1.0081;
 
-	if (m_pmat)
-		m_pmat->scale = y0 + a/(1 + exp(-(m_time.t - x0)/b));
+	if (m_pmat.size())
+		m_pmat[0]->scale = y0 + a/(1 + exp(-(m_time.t - x0)/b));
 	
 	return;
 }

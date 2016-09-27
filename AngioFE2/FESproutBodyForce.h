@@ -11,6 +11,8 @@
 #include "FECore/FEParameterList.h"
 #include "FECore/FEElement.h"
 
+
+//REFACTOR: make some fields private
 //-----------------------------------------------------------------------------
 class FESproutBodyForce : public FEBodyForce
 {
@@ -23,19 +25,18 @@ public:
 	};
 
 // Public functions:
-public:
 	FESproutBodyForce(FEModel* pfem);
 
-	vec3d force(FEMaterialPoint& mp);
-	mat3ds stiffness(FEMaterialPoint& mp);
+	vec3d force(FEMaterialPoint& mp) override;
+	mat3ds stiffness(FEMaterialPoint& mp) override;
 
-	void Serialize(DumpStream& ar);
+	void Serialize(DumpStream& ar) override;
 
 	void ApplySym();
 	void MirrorSym(vec3d x, vec3d &f, SPROUT sp);
 
-	bool Init();
-	void Update();
+	bool Init() override;
+	void Update() override;
 
 	void AddSprout(vec3d r, vec3d s)
 	{
@@ -47,12 +48,11 @@ public:
 
 	void ClearSprouts() { m_sp.clear(); }
 
-	int Sprouts() { return (int) m_sp.size(); }
+	int Sprouts() const { return static_cast<int>(m_sp.size()); }
 
 	SPROUT& GetSprout(int i) { return m_sp[i]; }
 
 // Public fields:
-public:
 	double	m_a, m_b;
 
 	vector<SPROUT>	m_sp;

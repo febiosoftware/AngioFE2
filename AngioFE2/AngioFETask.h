@@ -12,9 +12,9 @@ public:
 	AngioFETask(FEModel* pfem);
 	~AngioFETask(void);
 
-	bool Init(const char* szfile);
+	bool Init(const char* szfile) override;
 
-	bool Run();
+	bool Run() override;
 
 private:
 	FEAngio*	m_pangio;

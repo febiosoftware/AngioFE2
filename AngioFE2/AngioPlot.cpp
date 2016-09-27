@@ -2,8 +2,8 @@
 #include "AngioPlot.h"
 #include "FEAngio.h"
 #include <FECore/FESolidDomain.h>
+#include <FECore/FEModel.h>
 #include "FEAngioMaterial.h"
-#include "Grid.h"
 #include "FECore/FEMesh.h"
 
 extern FEAngio* pfeangio;
@@ -12,7 +12,7 @@ extern FEAngio* pfeangio;
 bool FEPlotAngioStress::Save(FEDomain& d, FEDataStream& str)
 {
 	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
-	if (pmat == 0) return false;
+	if (pmat == nullptr) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
 	int NE = dom.Elements();
@@ -39,7 +39,7 @@ bool FEPlotAngioStress::Save(FEDomain& d, FEDataStream& str)
 bool FEPlotAngioEffectiveStress::Save(FEDomain& d, FEDataStream& str)
 {
 	FEAngioMaterial* pmat = dynamic_cast<FEAngioMaterial*>(d.GetMaterial());
-	if (pmat == 0) return false;
+	if (pmat == nullptr) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
 	int NE = dom.Elements();
@@ -67,26 +67,37 @@ bool FEPlotAngioEffectiveStress::Save(FEDomain& d, FEDataStream& str)
 bool FEPlotAngioCollagenFibers::Save(FEMesh& m, FEDataStream& a)
 {
 	if (pfeangio == 0) return false;
-
-	Grid& grid = pfeangio->GetGrid();
-	assert(grid.Nodes() == m.Nodes());
-
-	int NN = grid.Nodes();
-	for (int i=0; i<NN; ++i) a << grid.GetNode(i).m_collfib;
-
+	//multiple materials average their *
+	for (int i = 0; i < pfeangio->m_fem.GetMesh().Nodes(); i++)
+	{
+		if (pfeangio->m_fe_node_data.count(pfeangio->m_fem.GetMesh().Node(i).GetID()))
+		{
+			a << pfeangio->m_fe_node_data[pfeangio->m_fem.GetMesh().Node(i).GetID()].m_collfib;
+		}
+		else
+		{
+			a << vec3d(0, 0, 0);//is all zero's okay for this parameter
+		}
+	}
 	return true;
 }
 
 //-----------------------------------------------------------------------------
 bool FEPlotAngioECMDensity::Save(FEMesh& m, FEDataStream& a)
 {
-	if (pfeangio == 0) return false;
 
-	Grid& grid = pfeangio->GetGrid();
-	assert(grid.Nodes() == m.Nodes());
-
-	int NN = grid.Nodes();
-	for (int i=0; i<NN; ++i) a << grid.GetNode(i).m_ecm_den;
+	//multiple materials average their ecm denisties so this reflects that
+	for (int i = 0; i < pfeangio->m_fem.GetMesh().Nodes(); i++)
+	{
+		if (pfeangio->m_fe_node_data.count(pfeangio->m_fem.GetMesh().Node(i).GetID()))
+		{
+			a << pfeangio->m_fe_node_data[pfeangio->m_fem.GetMesh().Node(i).GetID()].m_ecm_den;
+		}
+		else
+		{
+			a << 0.0;//is zero okay for this parameter
+		}
+	}
 
 	return true;
 }
@@ -94,12 +105,18 @@ bool FEPlotAngioECMDensity::Save(FEMesh& m, FEDataStream& a)
 bool FEPlotAngioECMAlpha::Save(FEMesh& m, FEDataStream& a)
 {
 	if (pfeangio == 0) return false;
-
-	Grid& grid = pfeangio->GetGrid();
-	assert(grid.Nodes() == m.Nodes());
-
-	int NN = grid.Nodes();
-	for (int i=0; i<NN; ++i) a << grid.GetNode(i).alpha;
+	//multiple materials average their *
+	for (int i = 0; i < pfeangio->m_fem.GetMesh().Nodes(); i++)
+	{
+		if (pfeangio->m_fe_node_data.count(pfeangio->m_fem.GetMesh().Node(i).GetID()))
+		{
+			a << pfeangio->m_fe_node_data[pfeangio->m_fem.GetMesh().Node(i).GetID()].alpha;
+		}
+		else
+		{
+			a << 0.0;//is zero okay for this parameter
+		}
+	}
 
 	return true;
 }

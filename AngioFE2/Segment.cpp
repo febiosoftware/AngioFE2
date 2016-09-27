@@ -1,7 +1,6 @@
 #include "StdAfx.h"
 #include "Segment.h"
 #include <FECore/vec3d.h>
-#include "angio3d.h"
 
 //-----------------------------------------------------------------------------
 Segment::TIP::TIP()

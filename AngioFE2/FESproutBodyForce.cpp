@@ -79,7 +79,7 @@ vec3d FESproutBodyForce::force(FEMaterialPoint& mp)
 		double theta = acos(sp.sprout*r);											// Calculate theta, the angle between r and the sprout vector
 
 		double g = m_a*(pow(cos(theta/2),m_factor))*exp(-m_b*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
-		//double g = m_a*exp(-m_b*l);
+		//double g = sprout_s_mag*exp(-sprout_s_range*l);
 
 		vec3d fi = -r*g;
 		if (sym_on == true)															// If symmetry is turned on, apply symmetry
@@ -174,7 +174,7 @@ void FESproutBodyForce::MirrorSym(vec3d x, vec3d &f, SPROUT sp)
 			double theta = acos(sprout_vect*r);										// Calculate theta, the angle between r and the sprout direction vector
 
 			double g = m_a*(pow(cos(theta/2),m_factor))*exp(-m_b*l);				// Calculate the magnitude of the sprout force using the localized directional sprout force equation			
-			//double g = m_a*exp(-m_b*l);
+			//double g = sprout_s_mag*exp(-sprout_s_range*l);
 			
 			if ((g != g) || (r.x != r.x) || (r.y != r.y) || (r.z != r.z)){			// If the mirrored force vector isn't realy...
 				g = 0.; r.x = 0.; r.y = 0.; r.z = 0.;}									// Set it to zero
@@ -216,13 +216,13 @@ mat3ds FESproutBodyForce::stiffness(FEMaterialPoint &mp)
 	//
 	//		if (l != 0.0)
 	//		{
-	//			double g = m_a*(pow(cos(theta/2),m_factor))*exp(-m_b*l);
-	//			//double g = m_a*exp(-m_b*l);
+	//			double g = sprout_s_mag*(pow(cos(theta/2),m_factor))*exp(-sprout_s_range*l);
+	//			//double g = sprout_s_mag*exp(-sprout_s_range*l);
 
 	//			mat3ds rxr = dyad(r);
 	//			mat3ds I = mat3dd(1.0);
 
-	//			//k += (rxr*m_b - (I - rxr)/l)*g;
+	//			//k += (rxr*sprout_s_range - (I - rxr)/l)*g;
 	//		}
 	//	}
 	//}

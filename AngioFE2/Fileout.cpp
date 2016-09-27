@@ -7,14 +7,12 @@
 #include "Segment.h"
 #include "Culture.h"
 #include "angio3d.h"
-#include "Grid.h"
 #include "Elem.h"
 #include "FEAngio.h"
 #include <iostream>
 #include <FECore/FEModel.h>
 #include "FEAngioMaterial.h"
 
-#include "FEAngio.h"
 
 using namespace std;
 
@@ -46,10 +44,14 @@ Fileout::~Fileout()
 //-----------------------------------------------------------------------------
 void Fileout::writeTracking(FEAngio& angio)
 {
-	Culture& cult = angio.GetCulture();
-	double l = cult.TotalVesselLength();
-	SimulationTime& t = angio.CurrentSimTime();
-    fprintf(m_stream3,"%-12.7f %-12.7f %-12.7f %-5i\n",t.dt, t.t, l, cult.m_num_branches);   // Write to tracking.ang
+	for (size_t i = 0; i < angio.m_pmat.size(); i++)
+	{
+		Culture* cult = angio.m_pmat[i]->m_cult;
+		double l = cult->TotalVesselLength();
+		SimulationTime& t = angio.CurrentSimTime();
+		fprintf(m_stream3, "%-12.7f %-12.7f %-12.7f %-5i\n", t.dt, t.t, l, cult->m_num_branches);   // Write to tracking.ang
+	}
+	
     
     return;
 }
@@ -65,31 +67,35 @@ void Fileout::closeTracking()
 //-----------------------------------------------------------------------------
 void Fileout::printStatus(FEAngio& angio)
 {
-	Culture& cult = angio.GetCulture();
-	SimulationTime& t = angio.CurrentSimTime();
-    
-	cout << endl << "Time: " << t.t << endl;                             // Print out current time to user
-	//cout << "dt: " << data.dt << endl;
-    cout << "Segments     : " << cult.Segments() << endl;                             // Print out current number of segments to user
-	cout << "Total Length : " << cult.TotalVesselLength() << endl;                  // Print out the current total length to user
-	cout << "Vessels      : " << cult.m_num_vessel << endl;
-	cout << "Branch Points: " << cult.m_num_branches << endl;                 // Print out the current number of branches to user
-	cout << "Anastomoses  : " << cult.m_num_anastom << endl;            // Print out the current number of anastomoses to user
-	cout << "Active tips  : " << cult.ActiveTips() << endl;
-	cout << "Sprouts      : " << angio.Sprouts() << endl;
-	cout << endl;
-    
-    logstream << endl << "Time: " << t.t << endl;                        // Print out current time to log file
-	//logstream << "dt: " << data.dt << endl;
-    logstream << "Segments     : " << cult.Segments() << endl;                        // Print out current number of segments to log file
-	logstream << "Total Length : " << cult.TotalVesselLength() << endl;             // Print out the current total length to log file
-	logstream << "Vessels      : " << cult.m_num_vessel << endl;
-	logstream << "Branch Points: " << cult.m_num_branches << endl;            // Print out the current number of branches to log file
-	logstream << "Anastomoses  : " << cult.m_num_anastom << endl << endl;       // Print out the current number of anastomoses to log file
-	logstream << "Anastomoses  : " << cult.m_num_anastom << endl;            // Print out the current number of anastomoses to user
-	logstream << "Active tips  : " << cult.ActiveTips() << endl;
-	logstream << "Sprouts      : " << angio.Sprouts() << endl;
-	logstream << endl;
+	for (size_t i = 0; i < angio.m_pmat.size(); i++)
+	{
+		Culture* cult = angio.m_pmat[i]->m_cult;
+		SimulationTime& t = angio.CurrentSimTime();
+
+		cout << endl << "Time: " << t.t << endl;                             // Print out current time to user
+		//cout << "dt: " << data.dt << endl;
+		cout << "Segments     : " << cult->Segments() << endl;                             // Print out current number of segments to user
+		cout << "Total Length : " << cult->TotalVesselLength() << endl;                  // Print out the current total length to user
+		cout << "Vessels      : " << cult->m_num_vessel << endl;
+		cout << "Branch Points: " << cult->m_num_branches << endl;                 // Print out the current number of branches to user
+		cout << "Anastomoses  : " << cult->m_num_anastom << endl;            // Print out the current number of anastomoses to user
+		cout << "Active tips  : " << cult->ActiveTips() << endl;
+		cout << "Sprouts      : " << angio.m_pmat[i]->Sprouts() << endl;
+		cout << endl;
+
+		logstream << endl << "Time: " << t.t << endl;                        // Print out current time to log file
+		//logstream << "dt: " << data.dt << endl;
+		logstream << "Segments     : " << cult->Segments() << endl;                        // Print out current number of segments to log file
+		logstream << "Total Length : " << cult->TotalVesselLength() << endl;             // Print out the current total length to log file
+		logstream << "Vessels      : " << cult->m_num_vessel << endl;
+		logstream << "Branch Points: " << cult->m_num_branches << endl;            // Print out the current number of branches to log file
+		logstream << "Anastomoses  : " << cult->m_num_anastom << endl << endl;       // Print out the current number of anastomoses to log file
+		logstream << "Anastomoses  : " << cult->m_num_anastom << endl;            // Print out the current number of anastomoses to user
+		logstream << "Active tips  : " << cult->ActiveTips() << endl;
+		logstream << "Sprouts      : " << angio.m_pmat[i]->Sprouts() << endl;
+		logstream << endl;
+	}
+	
         
     return;
 }
@@ -122,14 +128,18 @@ void Fileout::writeData(FEAngio &angio)
 {
 	fprintf(m_stream,"%-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-5s %-5s\n","Time","X1","Y1","Z1","X2","Y2","Z2","Length","Vess","Label");
 	
-	Culture& cult = angio.GetCulture();
-	const SegmentList& seg_list = cult.GetSegmentList();
-	for (ConstSegIter it = seg_list.begin(); it != seg_list.end(); ++it)
+	for (size_t i = 0; i < angio.m_pmat.size(); i++)
 	{
-		const vec3d& r0 = it->tip(0).pos();
-		const vec3d& r1 = it->tip(1).pos();
-		fprintf(m_stream,"%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i %-5.2i\n",it->GetTimeOfBirth(),r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length(),it->m_nid,it->seed());
+		Culture * cult = angio.m_pmat[i]->m_cult;
+		const SegmentList& seg_list = cult->GetSegmentList();
+		for (ConstSegIter it = seg_list.begin(); it != seg_list.end(); ++it)
+		{
+			const vec3d& r0 = it->tip(0).pos();
+			const vec3d& r1 = it->tip(1).pos();
+			fprintf(m_stream, "%-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-5.2i %-5.2i\n", it->GetTimeOfBirth(), r0.x, r0.y, r0.z, r1.x, r1.y, r1.z, it->length(), it->m_nid, it->seed());
+		}
 	}
+	
 	fclose(m_stream);
 	
 	return;
@@ -138,17 +148,16 @@ void Fileout::writeData(FEAngio &angio)
 //-----------------------------------------------------------------------------
 void Fileout::writeNodes(FEAngio& angio)
 {
-    Grid& grid = angio.GetGrid();
-     
+ 
 	FILE *stream2;                                                                                                                           
 	stream2 = fopen("out_nodes.ang","wt");                                       
-	Node node;
+	angio.ForEachNode([&stream2, & angio](FENode & node)
+	{
+		fprintf(stream2, "%-5.2i %-12.7f %-12.7f %-12.7f\n", node.GetID(), node.m_rt.x, node.m_rt.y, node.m_rt.z);
+	});
 
-	int NN = grid.Nodes();
-	for (int i = 0; i < NN; ++i){
-	    Node& node = grid.GetNode(i);
-	    fprintf(stream2, "%-5.2i %-12.7f %-12.7f %-12.7f\n", node.m_id, node.rt.x, node.rt.y, node.rt.z);
-	}  
+	    
+	
 	                                                                      	
 	fclose(stream2);                                                        
 	
@@ -175,7 +184,7 @@ void Fileout::writeEconn(FEAngio& angio)
 }
 
 //-----------------------------------------------------------------------------
-void Fileout::writeCollFib(Grid &grid, bool initial)
+void Fileout::writeCollFib(FEAngio & angio, bool initial)
 {
 	FILE *node_stream;
 	
@@ -185,34 +194,46 @@ void Fileout::writeCollFib(Grid &grid, bool initial)
 		node_stream = fopen("out_coll_fib.ang","wt");
 
 	//fprintf(node_stream,"%-5s %-12s %-12s %-12s %-12s %-12s\n","ID"," X "," Y "," Z ","THETA","ETA");	
-
-	int NN = grid.Nodes();
-	for (int i = 0; i < NN; ++i)
+	FEMesh * mesh = angio.GetMesh();
+	for (int i = 0; i < mesh->Nodes(); i++)
 	{
-		Node& ni = grid.GetNode(i);
-		fprintf(node_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", ni.m_id, ni.rt.x, ni.rt.y, ni.rt.z, ni.m_collfib.x, ni.m_collfib.y, ni.m_collfib.z);
+		FENode & node = mesh->Node(i);
+		FEAngioNodeData & nd = angio.m_fe_node_data[node.GetID()];
+		//TODO: remove negative oneAccessCheckAndAuditAlarm update the tests once all tests are passing
+		fprintf(node_stream, "%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", node.GetID() -1, node.m_rt.x,
+			node.m_rt.y, node.m_rt.z, nd.m_collfib.x, nd.m_collfib.y, nd.m_collfib.z);
 	}
-
+	/*
+	angio.ForEachNode([&node_stream, &angio](FENode & node)
+	{
+		FEAngioNodeData & nd = angio.m_fe_node_data[node.GetID()];
+		fprintf(node_stream, "%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", node.GetID(), node.m_rt.x,
+			node.m_rt.y, node.m_rt.z, nd.m_collfib.x, nd.m_collfib.y, nd.m_collfib.z);
+	});
+	*/
 	fclose(node_stream);
 
 	return;
 }
 
 //-----------------------------------------------------------------------------
-void Fileout::writeECMDen(Grid &grid)
+void Fileout::writeECMDen(FEAngio & angio)
 {
 	FILE *node_stream;
 	
 	node_stream = fopen("out_ecm_den.ang","wt");
 
 	//fprintf(node_stream,"%-5s %-12s %-12s %-12s %-12s %-12s\n","ID"," X "," Y "," Z ","ECM_DEN","ECM_DEN0");	
-
-	int NN = grid.Nodes();
-	for (int i = 0; i < NN; ++i)
+	FEMesh * mesh = angio.GetMesh();
+	for (int i = 0; i < mesh->Nodes(); i++)
 	{
-		Node& ni = grid.GetNode(i);
-		fprintf(node_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", ni.m_id, ni.rt.x, ni.rt.y, ni.rt.z, ni.m_ecm_den, ni.m_ecm_den0);
+		FENode & node = mesh->Node(i);
+		FEAngioNodeData & nd = angio.m_fe_node_data[node.GetID()];
+		//TODO: redo this once tests are passing
+		fprintf(node_stream, "%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", node.GetID() -1, node.m_rt.x, node.m_rt.y,
+			node.m_rt.z, nd.m_ecm_den, nd.m_ecm_den0);
 	}
+
 
 	fclose(node_stream);
 
@@ -242,13 +263,16 @@ void Fileout::save_vessel_state(FEAngio& angio)
 {
 	fprintf(m_stream2,"%-5s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n","State","Time","X1","Y1","Z1","X2","Y2","Z2","Length");  // Write column labels to out_vess_state.ang
 	
-	Culture& cult = angio.GetCulture();
-	const SegmentList& seg_list = cult.GetSegmentList();
-	for (ConstSegIter it = seg_list.begin(); it != seg_list.end(); ++it)	// Iterate through all segments in frag list container (it)
+	for (size_t i = 0; i < angio.m_pmat.size(); i++)
 	{
-		const vec3d& r0 = it->tip(0).pos();
-		const vec3d& r1 = it->tip(1).pos();
-		fprintf(m_stream2,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n",angio.FE_state,it->GetTimeOfBirth(),r0.x,r0.y,r0.z,r1.x,r1.y,r1.z,it->length());  // Write to out_vess_state.ang
+		Culture* cult = angio.m_pmat[i]->m_cult;
+		const SegmentList& seg_list = cult->GetSegmentList();
+		for (ConstSegIter it = seg_list.begin(); it != seg_list.end(); ++it)	// Iterate through all segments in frag list container (it)
+		{
+			const vec3d& r0 = it->tip(0).pos();
+			const vec3d& r1 = it->tip(1).pos();
+			fprintf(m_stream2, "%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", angio.FE_state, it->GetTimeOfBirth(), r0.x, r0.y, r0.z, r1.x, r1.y, r1.z, it->length());  // Write to out_vess_state.ang
+		}
 	}
 }
 
@@ -260,30 +284,31 @@ void Fileout::save_active_tips(FEAngio& angio)
 
 	double t = angio.CurrentSimTime().t;
 	
-	Culture& cult = angio.GetCulture();
-	const SegmentTipList& tips = cult.GetActiveTipList();
-	for (ConstTipIter it = tips.begin(); it != tips.end(); ++it)
+	for (size_t i = 0; i < angio.m_pmat.size(); i++)
 	{
-		Segment::TIP& tip = *(*it);
-		if (tip.bactive)
+		Culture * cult = angio.m_pmat[i]->m_cult;
+		const SegmentTipList& tips = cult->GetActiveTipList();
+		for (ConstTipIter it = tips.begin(); it != tips.end(); ++it)
 		{
-			const vec3d& r = tip.pos();
-			fprintf(m_stream4,"%-5.2d %-5.2d %-12.7f %-12.7f %-12.7f\n",angio.FE_state, 0, r.x,r.y,r.z);
+			Segment::TIP& tip = *(*it);
+			if (tip.bactive)
+			{
+				const vec3d& r = tip.pos();
+				fprintf(m_stream4, "%-5.2d %-5.2d %-12.7f %-12.7f %-12.7f\n", angio.FE_state, 0, r.x, r.y, r.z);
+			}
 		}
-	}
 
-	if (angio.m_pmat)
-	{
-		FEAngioMaterial* pm = angio.m_pmat;
+		FEAngioMaterial* pm = angio.m_pmat[i];
 		int N = pm->Sprouts();
-		for (int i=0; i<N; ++i)
+		for (int i = 0; i<N; ++i)
 		{
 			FEAngioMaterial::SPROUT& si = pm->GetSprout(i);
 
 			vec3d r = pm->CurrentPosition(si.pel, si.r[0], si.r[1], si.r[2]);
-			fprintf(m_stream4,"%-5.2d %-5.2d %-12.7f %-12.7f %-12.7f\n",angio.FE_state, 1, r.x,r.y,r.z);
+			fprintf(m_stream4, "%-5.2d %-5.2d %-12.7f %-12.7f %-12.7f\n", angio.FE_state, 1, r.x, r.y, r.z);
 		}
 	}
+	
 }
 
 //-----------------------------------------------------------------------------
@@ -335,9 +360,9 @@ void Fileout::output_params(FEAngio& angio)
 	FILE *param_stream;													// Parameter output file stream                                                                                                                     
 	param_stream = fopen("out_params.ang","wt");						// Output the parameter output file
 	
-	fprintf(param_stream,"a = %5.5f \n", angio.m_sproutf);						// Print the sprout force magnitude
-	fprintf(param_stream,"tip range = %5.5f \n",angio.m_tip_range);				// Print the sprout force range
-	fprintf(param_stream,"phi_stiff_factor = %5.5f \n",angio.phi_stiff_factor);	// Print the displacement stiffness factor
+	//fprintf(param_stream,"a = %5.5f \n", angio.m_sproutf);						// Print the sprout force magnitude
+	//fprintf(param_stream,"tip range = %5.5f \n",angio.m_tip_range);				// Print the sprout force range
+	//fprintf(param_stream,"phi_stiff_factor = %5.5f \n",angio.phi_stiff_factor);	// Print the displacement stiffness factor
 	fprintf(param_stream,"total_body_force = %10.5i \n",angio.total_bdyf);		// Print the total number of body forces
 	fclose(param_stream);												// Close the parameter output file
 

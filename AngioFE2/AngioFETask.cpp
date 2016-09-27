@@ -3,7 +3,6 @@
 #include "StdAfx.h"
 #include "AngioFETask.h"
 #include "FEAngio.h"
-#include "Filein.h"
 #include <iostream>
 #include <FECore/FEModel.h>
 using namespace std;
@@ -19,7 +18,8 @@ AngioFETask::AngioFETask(FEModel* pfem) : FECoreTask(pfem)
 //-----------------------------------------------------------------------------
 AngioFETask::~AngioFETask(void)
 {
-	delete m_pangio;
+	//TODO:find where this is deleted
+	//delete m_pangio;
 }
 
 //-----------------------------------------------------------------------------
@@ -38,8 +38,8 @@ bool AngioFETask::Init(const char* inpfile)
 	pfeangio = m_pangio;
 
 	// Read the angio3d input file
-	Filein filein;
-	if (filein.Input(inpfile, *m_pangio) == false) return false;
+	//Filein filein;
+	//if (filein.Input(inpfile, *m_pangio) == false) return false;
 	
 	// initialize feangio object
 	if (m_pangio->Init() == false) return false;
