@@ -50,7 +50,7 @@ void BC::CheckBC(Segment &seg, Culture * culture)
 	//this is the costliest part of the boundary check if reached
 	if (seg.tip(1).pt.nelem == -1)
 	{
-		culture->m_pmat->FindGridPoint(seg.tip(1).pt.r,culture->m_pmat->domainptrs ,seg.tip(1).pt);
+		culture->m_pmat->FindGridPoint(seg.tip(1).pt.r ,seg.tip(1).pt);
 	}	
 	
 	//if both are in the same element just add the segment

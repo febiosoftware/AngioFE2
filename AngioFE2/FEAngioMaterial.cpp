@@ -199,15 +199,22 @@ bool FEAngioMaterial::Init()
 	}
 	m_suser.clear();
 
+	
+
+	return true;
+}
+void FEAngioMaterial::FinalizeInit()
+{
+	FEMesh * mesh = m_pangio->GetMesh();
 	// initialize material point data
 	vec3d x[FEElement::MAX_NODES];
-	
-	for (int n=0; n<mesh.Domains(); ++n)
+
+	for (int n = 0; n<mesh->Domains(); ++n)
 	{
-		FESolidDomain& dom = dynamic_cast<FESolidDomain&>(mesh.Domain(n));
+		FESolidDomain& dom = reinterpret_cast<FESolidDomain&>(mesh->Domain(n));
 		FEMaterial* pm = dom.GetMaterial();
 		FEAngioMaterial* pam;
-		if(strcmp(pm->GetTypeStr(), "angio")==0)
+		if (strcmp(pm->GetTypeStr(), "angio") == 0)
 		{
 			pam = dynamic_cast<FEAngioMaterial*>(pm);
 		}
@@ -219,43 +226,41 @@ bool FEAngioMaterial::Init()
 		{
 			// loop over all elements
 			int NE = dom.Elements();
-			for (int i=0; i<NE; ++i)
+			for (int i = 0; i<NE; ++i)
 			{
 				// get the next element
 				FEElement& el = dom.Element(i);
 				int neln = el.Nodes();
-				
+
 				// get the nodal coordinates
-				for (int j=0; j<neln; ++j) x[j] = mesh.Node(el.m_node[j]).m_rt;
+				for (int j = 0; j<neln; ++j) x[j] = mesh->Node(el.m_node[j]).m_rt;
 
 				// loop over all integration points
 				int nint = el.GaussPoints();
-				for (int j=0; j<nint; ++j)
+				for (int j = 0; j<nint; ++j)
 				{
 					FEMaterialPoint& mp = *el.GetMaterialPoint(j);
 					FEAngioMaterialPoint* pt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
-					if(pt)
+					if (pt)
 					{
 						vec3d r = el.Evaluate(x, j);
 
 						// calculate the GridPoint data for this point.
 						//TODO: check elastic material for integration point coordinates
-						if (FindGridPoint(r, &dom,i, pt->m_pt) == false)
+						if (FindGridPoint(r, &dom, i, pt->m_pt) == false)
 						{
-							return false;
+							assert(false);
 						}
 					}
 				}
 			}
 		}
 	}
-
-	return true;
 }
-
 void FEAngioMaterial::SetupSurface()
 {
 	FEMesh * mesh = m_pangio->GetMesh();
+	
 	//setup the exterior_surface
 	assert(domainptrs.size());
 	exterior_surface = mesh->ElementBoundarySurface(domainptrs, true, false);
@@ -463,7 +468,7 @@ void FEAngioMaterial::AdjustMeshStiffness()
 }
 
 
-bool FEAngioMaterial::FindGridPoint(const vec3d & r, std::vector<FEDomain*> &domains, GridPoint & p) const
+bool FEAngioMaterial::FindGridPoint(const vec3d & r, GridPoint & p) const
 {
 	FEMesh * mesh = m_pangio->GetMesh();
 	double natc[3];
@@ -472,7 +477,7 @@ bool FEAngioMaterial::FindGridPoint(const vec3d & r, std::vector<FEDomain*> &dom
 	//TODO: in init material id's don't match
 	//use the more explict version of this function to handle multiple materials
 	//if (se && se->GetMatID() == m_pmat->GetID())
-	if (se && (std::find(domains.begin(), domains.end(), se->GetDomain()) != domains.end()))
+	if (se && (std::find(domainptrs.begin(), domainptrs.end(), se->GetDomain()) != domainptrs.end()))
 	{
 		p.r = r;
 		p.q.x = natc[0];
@@ -481,7 +486,7 @@ bool FEAngioMaterial::FindGridPoint(const vec3d & r, std::vector<FEDomain*> &dom
 		p.ndomain = se->GetDomain();
 		p.nelem = se->GetID();
 		//TODO: hack
-		p.elemindex = se->GetID() - 1;
+		p.elemindex = se->GetID() - 1 - meshOffsets.find(p.ndomain)->second;
 		
 		vec3d pq = m_pangio->Position(p);
 		vec3d pw = p.r;
@@ -503,10 +508,11 @@ bool FEAngioMaterial::FindGridPoint(const vec3d & r, FEDomain * domain, int elem
 		p.q.y = natc[1];
 		p.q.z = natc[2];
 		p.nelem = se.GetID();
-		p.elemindex = elemindex;
+		p.elemindex = elemindex - meshOffsets.find(domain)->second;
 		p.ndomain = domain;
 		vec3d pq = m_pangio->Position(p);
 		assert((m_pangio->Position(p) - p.r).norm() < 1.0);
+		assert(se.GetDomain() == domain);
 		return true;
 	}
 	return false;

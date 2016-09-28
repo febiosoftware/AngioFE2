@@ -181,9 +181,7 @@ bool ClassicFragmentSeeder::createInitFrag(Segment& seg)
 		vec3d r1 = p0.r + seg_vec*seg_length;
 
 		// find the element where the second tip is
-		std::vector<FEDomain *> domains;
-		domains.push_back(&mesh->Domain(0));
-		m_angio.m_pmat[0]->FindGridPoint(r1, domains ,p1);
+		m_angio.m_pmat[0]->FindGridPoint(r1,p1);
 
 		ntries++;
 	} while ((p1.nelem == -1) && (ntries < MAX_TRIES));
@@ -285,7 +283,7 @@ bool MultiDomainFragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, 
 		vec3d r1 = p0.r + seg_vec*seg_length;
 
 		// find the element where the second tip is
-		culture->m_pmat->FindGridPoint(r1, domains,p1);
+		culture->m_pmat->FindGridPoint(r1,p1);
 		//need to check the domain is legal
 		ntries++;
 	} while (((p1.nelem == -1) && (ntries < MAX_TRIES)) || (std::find(domains.begin(), domains.end(), p1.ndomain) == domains.end()));
@@ -448,7 +446,7 @@ Segment Culture::GrowSegment(Segment::TIP& tip, bool branch, bool bnew_vessel, v
 	//TODO: check if still needed
 	if (branch)
 	{
-		m_pmat->FindGridPoint(seg.tip(1).pos(), m_pmat->domainptrs,seg.tip(1).pt);
+		m_pmat->FindGridPoint(seg.tip(1).pos(),seg.tip(1).pt);
 		//should fill in the  fields of the new segment
 
 		//do a check if the new vessel is in an element

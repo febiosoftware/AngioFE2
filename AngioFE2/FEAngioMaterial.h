@@ -60,6 +60,7 @@ public:
 	friend class Fileout;
 	// material initialization
 	bool Init() override;
+	void FinalizeInit();
 
 	void AdjustMeshStiffness();
 
@@ -127,7 +128,7 @@ public:
 	
 	void SetupSurface();
 
-	bool FindGridPoint(const vec3d & r, std::vector<FEDomain*> &domains, GridPoint & p) const;
+	bool FindGridPoint(const vec3d & r, GridPoint & p) const;
 	bool FindGridPoint(const vec3d & r, FEDomain * domain, int elemindex, GridPoint & p) const;
 private:
 	CultureParameters m_cultureParams;

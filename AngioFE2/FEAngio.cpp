@@ -127,6 +127,10 @@ bool FEAngio::Init()
 	               });
 
 
+	for (int i = 0; i < m_pmat.size(); i++)
+	{
+		m_pmat[i]->FinalizeInit();
+	}
 	//setup the exterior_surface
 	SetupSurface();
 
