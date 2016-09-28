@@ -182,6 +182,15 @@ bool FEAngioMaterial::Init()
 	{
 		domainptrs.push_back(&mesh.Domain(domains[i]));
 	}
+	int co = 0;
+	for (auto i = 0; i < mesh.Domains(); i++)
+	{
+		if (std::find(domainptrs.begin(), domainptrs.end(),&mesh.Domain(i)) != domainptrs.end())
+		{
+			meshOffsets[&mesh.Domain(i)] = co;
+		}
+		co += mesh.Domain(i).Elements();
+	}
 	for (unsigned int i=0; i<m_suser.size(); ++i)
 	{
 		if (domains.size())
@@ -243,6 +252,28 @@ bool FEAngioMaterial::Init()
 	}
 
 	return true;
+}
+
+void FEAngioMaterial::SetupSurface()
+{
+	FEMesh * mesh = m_pangio->GetMesh();
+	//setup the exterior_surface
+	assert(domainptrs.size());
+	exterior_surface = mesh->ElementBoundarySurface(domainptrs, true, false);
+	normal_proj = new FENormalProjection(*exterior_surface);
+	normal_proj->SetTolerance(0.001);
+	normal_proj->Init();
+	normal_proj->SetSearchRadius(1.0);
+
+	//now add the exterior_surface element indices to the element data
+	for (auto i = 0; i < exterior_surface->Elements(); i++)
+	{
+		FESurfaceElement & surfe = exterior_surface->Element(i);
+		auto base_eindex = surfe.m_elem[0];
+
+		//TODO: hack fix when exterior_surface moved to be per domain
+		m_pangio->m_fe_element_data[base_eindex + 1].surfacesIndices.push_back(i);
+	}
 }
 
 void FEAngioMaterial::AdjustMeshStiffness()

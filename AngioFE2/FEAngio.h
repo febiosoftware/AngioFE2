@@ -126,11 +126,6 @@ private:
 
 public:	// parameters read directly from file
 
-	//TODO: move this once it is more generic to the elements
-	FESurface * exterior_surface;
-	FESurface * interior_surface;
-	FENormalProjection * normal_proj;
-
 	// miscellaneous
 	unsigned int	m_irseed;			// Seed number for the random number generator
 

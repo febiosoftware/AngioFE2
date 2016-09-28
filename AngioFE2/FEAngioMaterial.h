@@ -1,8 +1,11 @@
 #pragma once
 #include <FEBioMech/FEElasticMaterial.h>
 #include <FECore/FEDataArray.h>
+#include <FECore/FESurface.h>
+#include <FECore/FENormalProjection.h>
 #include "FEAngio.h"
 #include "Culture.h"
+#include <unordered_map>
 
 //-----------------------------------------------------------------------------
 // A new material point class is defined to store the elastic parameters for 
@@ -122,6 +125,8 @@ public:
 
 	void SetBoundaryCondition() const;
 	
+
+	void SetupSurface();
 private:
 	CultureParameters m_cultureParams;
 
@@ -149,9 +154,13 @@ public:
 
 	std::vector<int> domains;
 	std::vector<FEDomain*> domainptrs;
-
+	std::unordered_map<FEDomain *,int> meshOffsets;
+	FESurface * exterior_surface;
+	FENormalProjection * normal_proj;
 private:
 	FEAngio * m_pangio;
+
+	
 
 public:
 	void ApplySym();

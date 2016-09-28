@@ -93,15 +93,16 @@ void BC::CheckBC(Segment &seg, Culture * culture)
 	vec3d lastgood_pt;
 	double rs[2];
 	double g;
-	FESurface * surf = m_angio.exterior_surface;
+	assert(culture->m_pmat);
+	FESurface * surf = culture->m_pmat->exterior_surface;
 	assert(m_angio.m_fe_element_data[se->GetID()].surfacesIndices.size());
 	int hcount = 0;//counts how many times the boundary is handled
 	std::vector<int> & edinices = m_angio.m_fe_element_data[se->GetID()].surfacesIndices;
-	m_angio.normal_proj->SetSearchRadius(seg.length()*2);
+	culture->m_pmat->normal_proj->SetSearchRadius(seg.length() * 2);
 	for (size_t i = 0; i < edinices.size(); i++)
 	{
 		FESurfaceElement & surfe = reinterpret_cast<FESurfaceElement&>(surf->ElementRef(m_angio.m_fe_element_data[se->GetID()].surfacesIndices[i]));
-		if (m_angio.exterior_surface->Intersect(surfe, seg.tip(0).pt.r, -dir, rs, g, 0.0001))//see the epsilon in FIndSolidElement
+		if (culture->m_pmat->exterior_surface->Intersect(surfe, seg.tip(0).pt.r, -dir, rs, g, 0.0001))//see the epsilon in FIndSolidElement
 		{
 			//set last_goodpt
 			lastgood_pt = surf->Local2Global(surfe, rs[0], rs[1]);
@@ -113,12 +114,12 @@ void BC::CheckBC(Segment &seg, Culture * culture)
 		}
 		
 	}
-	FESurfaceElement * surfe = m_angio.normal_proj->Project(seg.tip(0).pt.r, -dir, rs);
+	FESurfaceElement * surfe = culture->m_pmat->normal_proj->Project(seg.tip(0).pt.r, -dir, rs);
 	if (!surfe)
 	{
 		//printf("no surface element found\n");
 		//assert(false);
-		surfe = m_angio.normal_proj->Project3(seg.tip(0).pt.r + (dir * 2.0), -dir, rs);
+		surfe = culture->m_pmat->normal_proj->Project3(seg.tip(0).pt.r + (dir * 2.0), -dir, rs);
 		if (surfe)
 		{
 			lastgood_pt = surf->Local2Global(*surfe, rs[0], rs[1]);
@@ -286,14 +287,14 @@ void BouncyBC::HandleBoundary(Segment & seg, Culture * culture, vec3d lastGoodPt
 	vec3d dir = seg.tip(1).pt.r - seg.tip(0).pt.r;
 	dir.unit();
 
-	FESurfaceElement * surfe = m_angio.normal_proj->Project(seg.tip(0).pt.r, -dir, rs);
+	FESurfaceElement * surfe = culture->m_pmat->normal_proj->Project(seg.tip(0).pt.r, -dir, rs);
 	if (surfe)
 	{
 		Segment reflSeg;
 		reflSeg.tip(0).pt = seg.tip(1).pt;
 		//calculate the growth direction
 		dir.unit();
-		vec3d normal = m_angio.exterior_surface->SurfaceNormal(*surfe, rs[0], rs[1]);
+		vec3d normal = culture->m_pmat->exterior_surface->SurfaceNormal(*surfe, rs[0], rs[1]);
 		vec3d gdir = reflect(dir, normal);
 		gdir.unit();
 
@@ -326,14 +327,14 @@ void BouncyBC::HandleBoundary(Segment & seg, Culture * culture, vec3d lastGoodPt
 		//the segment is very close to the border of the domain
 		//use the direction of the segment to back it off to get a element and normal
 		vec3d starting_point = seg.tip(0).pt.r - (segadjdir * 2.0);
-		surfe = m_angio.normal_proj->Project3(starting_point, -dir, rs);
+		surfe = culture->m_pmat->normal_proj->Project3(starting_point, -dir, rs);
 		if (surfe)
 		{
 			Segment reflSeg;
 			reflSeg.tip(0).pt = seg.tip(1).pt;
 			//calculate the growth direction
 			dir.unit();
-			vec3d normal = m_angio.exterior_surface->SurfaceNormal(*surfe, rs[0], rs[1]);
+			vec3d normal = culture->m_pmat->exterior_surface->SurfaceNormal(*surfe, rs[0], rs[1]);
 			vec3d gdir = reflect(dir, normal);
 			gdir.unit();
 

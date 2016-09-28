@@ -159,25 +159,9 @@ bool FEAngio::Init()
 
 void FEAngio::SetupSurface()
 {
-	FEMesh * mesh = GetMesh();
-	//setup the exterior_surface
-	std::vector<FEDomain *> domains;
-	domains.push_back(&mesh->Domain(0));
-	exterior_surface = mesh->ElementBoundarySurface(domains,true, false);
-	normal_proj = new FENormalProjection(*exterior_surface);
-	normal_proj->SetTolerance(0.001);
-	normal_proj->Init();
-	normal_proj->SetSearchRadius(1.0);
-	interior_surface = mesh->ElementBoundarySurface(domains,false, true);
-
-	//now add the exterior_surface element indices to the element data
-	for (auto i = 0; i < exterior_surface->Elements(); i++)
+	for (int i = 0; i < m_pmat.size(); i++)
 	{
-		FESurfaceElement & surfe = exterior_surface->Element(i);
-		auto base_eindex = surfe.m_elem[0];
-		
-		//TODO: hack fix when exterior_surface moved to be per domain
-		m_fe_element_data[base_eindex + 1].surfacesIndices.push_back(i);
+		m_pmat[i]->SetupSurface();
 	}
 }
 
