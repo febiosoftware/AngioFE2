@@ -91,7 +91,7 @@ struct CultureParameters
 
 	double min_segment_length = 0.1;
 
-	int fragment_seeder = 0;//0 classic fragment seeder, 1 multidomian fragment seeder
+	int fragment_seeder = 1;//0 classic fragment seeder, 1 multidomian fragment seeder
 };
 //used for generating initial segments
 struct SegGenItem

@@ -216,6 +216,7 @@ bool ClassicFragmentSeeder::createInitFrag(Segment& seg)
 bool MultiDomainFragmentSeeder::SeedFragments(SimulationTime& time, Culture * culture)
 {
 	std::default_random_engine reg;
+	reg.seed(m_angio.m_irseed);
 	FEMesh * mesh = m_angio.GetMesh();
 	int elementsInDomains = 0;
 	for (int i = 0; i < culture->m_pmat->domains.size(); i++)

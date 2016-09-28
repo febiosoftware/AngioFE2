@@ -226,7 +226,6 @@ bool FEAngioMaterial::Init()
 				int neln = el.Nodes();
 				
 				// get the nodal coordinates
-				//TODO: understand why m_node is used, these are the adjacent nodes
 				for (int j=0; j<neln; ++j) x[j] = mesh.Node(el.m_node[j]).m_rt;
 
 				// loop over all integration points
@@ -415,7 +414,6 @@ void FEAngioMaterial::AdjustMeshStiffness()
 		alpha = eg.alpha;											// Obtain alpha from the grid element
 		for (int n = 0; n< e.Nodes(); n++)
 		{
-			//hack
 			int id = e.m_node[n];
 			id = mesh.Node(id).GetID();
 			m_pangio->m_fe_node_data[id].alpha = alpha;
@@ -472,7 +470,7 @@ bool FEAngioMaterial::InitCollagenFibers()
 	FEMesh * mesh = m_pangio->GetMesh();
 	std::vector<vec3d> colfibs;
 	colfibs.reserve(mesh->Nodes());
-
+	//modes 1,3 are multimaterila safe
 	switch (m_cultureParams.m_matrix_condition)
 	{
 	case 0: // random orientation
@@ -523,6 +521,16 @@ bool FEAngioMaterial::InitCollagenFibers()
 			
 		}, matls);
 		*/
+		break;
+	case 1: //multimaterila safe method
+
+		m_pangio->ForEachNode([&](FENode & node)
+		{
+			vec3d v = vrand();
+			v.unit();
+			m_pangio->m_fe_node_data[node.GetID()].m_collfib0 = v;
+			m_pangio->m_fe_node_data[node.GetID()].m_collfib = v;
+		}, matls);
 		break;
 	case 3:	// from element's local coordinates
 		m_pangio->ForEachElement([&](FESolidElement & se, FESolidDomain & sd)

@@ -1050,7 +1050,6 @@ vec3d FEAngio::CollagenDirection(GridPoint& pt)
 	//TODO: may be refactored to remove shape function and dependencies 
 	// Obtain shape function weights
 	double shapeF[FEElement::MAX_NODES];
-	//double * shapeF = new double[elem->Nodes()];
 	if (selem)
 		selem->shape_fnc(shapeF, pt.q.x, pt.q.y, pt.q.z);//check these numbers
 
@@ -1064,8 +1063,6 @@ vec3d FEAngio::CollagenDirection(GridPoint& pt)
 
 	// make unit vector
 	coll_angle.unit();
-
-	//delete[] shapeF;
 
 	return coll_angle;
 }
@@ -1171,9 +1168,11 @@ void FEAngio::update_sprout_stress_scaling()
 	//TODO: currently unused but needs moved or removed
 	double y0 = -0.004; double x0 = 3.0; double b = 0.5436; double a = 1.0081;
 
-	if (m_pmat.size())
-		m_pmat[0]->scale = y0 + a/(1 + exp(-(m_time.t - x0)/b));
-	
+	for (int i = 0; i < m_pmat.size(); i++)
+	{
+		m_pmat[i]->scale = y0 + a / (1 + exp(-(m_time.t - x0) / b));
+	}
+		
 	return;
 }
 
