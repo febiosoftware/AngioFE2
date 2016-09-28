@@ -50,7 +50,7 @@ void BC::CheckBC(Segment &seg, Culture * culture)
 	//this is the costliest part of the boundary check if reached
 	if (seg.tip(1).pt.nelem == -1)
 	{
-		m_angio.FindGridPoint(seg.tip(1).pt.r,culture->m_pmat->domainptrs ,seg.tip(1).pt);
+		culture->m_pmat->FindGridPoint(seg.tip(1).pt.r,culture->m_pmat->domainptrs ,seg.tip(1).pt);
 	}	
 	
 	//if both are in the same element just add the segment
@@ -179,7 +179,7 @@ void StopBC::HandleBoundary(Segment & seg, Culture * culture, vec3d lastGoodPt, 
 	FEMesh * mesh = m_angio.GetMesh();
 	seg.tip(1).pt.r = lastGoodPt;
 	seg.SetFlagOn(Segment::BC_DEAD);
-	if (m_angio.FindGridPoint(lastGoodPt, seg.tip(1).pt.ndomain, seg.tip(1).pt.elemindex, seg.tip(1).pt))
+	if (culture->m_pmat->FindGridPoint(lastGoodPt, seg.tip(1).pt.ndomain, seg.tip(1).pt.elemindex, seg.tip(1).pt))
 	{
 		assert(seg.tip(1).pt.nelem != -1);
 		seg.Update();
@@ -237,7 +237,7 @@ void BouncyBC::HandleBoundary(Segment & seg, Culture * culture, vec3d lastGoodPt
 	segadjdir.unit();
 	seg.tip(1).pt.r = lastGoodPt;
 	seg.SetFlagOn(Segment::BC_DEAD);
-	if (m_angio.FindGridPoint(lastGoodPt, seg.tip(1).pt.ndomain, seg.tip(1).pt.elemindex, seg.tip(1).pt))
+	if (culture->m_pmat->FindGridPoint(lastGoodPt, seg.tip(1).pt.ndomain, seg.tip(1).pt.elemindex, seg.tip(1).pt))
 	{
 		assert(seg.tip(1).pt.nelem != -1);
 		seg.Update();

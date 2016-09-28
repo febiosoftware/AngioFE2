@@ -183,7 +183,7 @@ bool ClassicFragmentSeeder::createInitFrag(Segment& seg)
 		// find the element where the second tip is
 		std::vector<FEDomain *> domains;
 		domains.push_back(&mesh->Domain(0));
-		m_angio.FindGridPoint(r1, domains ,p1);
+		m_angio.m_pmat[0]->FindGridPoint(r1, domains ,p1);
 
 		ntries++;
 	} while ((p1.nelem == -1) && (ntries < MAX_TRIES));
@@ -235,7 +235,7 @@ bool MultiDomainFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cu
 		Segment seg;
 		sgi.domain = &mesh->Domain(culture->m_pmat->domains[ddist(reg)]);
 		sgi.ielement = edist(reg);
-		if (createInitFrag(seg, sgi) == false) return false;
+		if (createInitFrag(seg, sgi, culture) == false) return false;
 
 		// Give the segment the appropriate label
 		seg.seed(i);
@@ -258,7 +258,7 @@ bool MultiDomainFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cu
 
 //-----------------------------------------------------------------------------
 // Generates an initial fragment that lies inside the given element
-bool MultiDomainFragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item)
+bool MultiDomainFragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, Culture * culture)
 {
 	//note tip(1) may not be in the same element as the initial fragment
 	// Set seg length to value of growth function at t = 0
@@ -285,7 +285,7 @@ bool MultiDomainFragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item)
 		vec3d r1 = p0.r + seg_vec*seg_length;
 
 		// find the element where the second tip is
-		m_angio.FindGridPoint(r1, domains,p1);
+		culture->m_pmat->FindGridPoint(r1, domains,p1);
 		//need to check the domain is legal
 		ntries++;
 	} while (((p1.nelem == -1) && (ntries < MAX_TRIES)) || (std::find(domains.begin(), domains.end(), p1.ndomain) == domains.end()));
@@ -448,7 +448,7 @@ Segment Culture::GrowSegment(Segment::TIP& tip, bool branch, bool bnew_vessel, v
 	//TODO: check if still needed
 	if (branch)
 	{
-		m_angio.FindGridPoint(seg.tip(1).pos(), m_pmat->domainptrs,seg.tip(1).pt);
+		m_pmat->FindGridPoint(seg.tip(1).pos(), m_pmat->domainptrs,seg.tip(1).pt);
 		//should fill in the  fields of the new segment
 
 		//do a check if the new vessel is in an element

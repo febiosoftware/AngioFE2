@@ -129,7 +129,7 @@ public:
 	MultiDomainFragmentSeeder(CultureParameters * cp, FEAngio & angio) : FragmentSeeder(cp, angio) {}
 private:
 	// Seed an initial fragment within the grid
-	bool createInitFrag(Segment& Seg, SegGenItem & item);
+	bool createInitFrag(Segment& Seg, SegGenItem & item, Culture * culture);
 	std::vector<FEDomain *> domains;
 };
 

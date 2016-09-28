@@ -875,54 +875,6 @@ vec3d FEAngio::FindRST(const vec3d & v ,vec2d rs, FESolidElement * elem) const
 	return positions_local[best_index];
 }
 
-bool FEAngio::FindGridPoint(const vec3d & r, std::vector<FEDomain*> &domains,GridPoint & p) const
-{
-	FEMesh & mesh = m_fem.GetMesh();
-	double natc[3];
-	FESolidElement * se = mesh.FindSolidElement(r, natc);
-	//TODO: Needs fixed when implementing multiple feangio materials
-	//TODO: in init material id's don't match
-	//use the more explict version of this function to handle multiple materials
-	//if (se && se->GetMatID() == m_pmat->GetID())
-	if (se && (std::find(domains.begin(), domains.end(), se->GetDomain()) != domains.end()))
-	{
-		p.r = r;
-		p.q.x = natc[0]; 
-		p.q.y = natc[1];
-		p.q.z = natc[2];
-		p.nelem = se->GetID();
-		//TODO: hack
-		p.elemindex = se->GetID() -1;
-		p.ndomain = se->GetDomain();
-		vec3d pq = Position(p);
-		vec3d pw = p.r;
-		assert((Position(p) - p.r).norm() < 1.0);
-		return true;
-	}
-	return false;
-}
-
-bool FEAngio::FindGridPoint(const vec3d & r, FEDomain * domain, int elemindex, GridPoint & p) const
-{
-	FEMesh & mesh = m_fem.GetMesh();
-	double natc[3];
-	FESolidElement & se = reinterpret_cast<FESolidElement&>(domain->ElementRef(elemindex));
-	if (IsInsideHex8(&se,r, &mesh, natc))
-	{
-		p.r = r;
-		p.q.x = natc[0];
-		p.q.y = natc[1];
-		p.q.z = natc[2];
-		p.nelem = se.GetID();
-		p.elemindex = elemindex;
-		p.ndomain = domain;
-		vec3d pq = Position(p);
-		assert((Position(p) - p.r).norm() < 1.0);
-		return true;
-	}
-	return false;
-}
-
 GridPoint FEAngio::FindGridPoint(FEDomain * domain, int nelem, vec3d& q) const
 {
 	assert(domain != nullptr && nelem >= 0);

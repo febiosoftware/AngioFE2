@@ -240,7 +240,7 @@ bool FEAngioMaterial::Init()
 
 						// calculate the GridPoint data for this point.
 						//TODO: check elastic material for integration point coordinates
-						if (m_pangio->FindGridPoint(r, &dom,i, pt->m_pt) == false)
+						if (FindGridPoint(r, &dom,i, pt->m_pt) == false)
 						{
 							return false;
 						}
@@ -460,6 +460,56 @@ void FEAngioMaterial::AdjustMeshStiffness()
 	}, matls);
 
 	return;
+}
+
+
+bool FEAngioMaterial::FindGridPoint(const vec3d & r, std::vector<FEDomain*> &domains, GridPoint & p) const
+{
+	FEMesh * mesh = m_pangio->GetMesh();
+	double natc[3];
+	FESolidElement * se = mesh->FindSolidElement(r, natc);
+	//TODO: Needs fixed when implementing multiple feangio materials
+	//TODO: in init material id's don't match
+	//use the more explict version of this function to handle multiple materials
+	//if (se && se->GetMatID() == m_pmat->GetID())
+	if (se && (std::find(domains.begin(), domains.end(), se->GetDomain()) != domains.end()))
+	{
+		p.r = r;
+		p.q.x = natc[0];
+		p.q.y = natc[1];
+		p.q.z = natc[2];
+		p.ndomain = se->GetDomain();
+		p.nelem = se->GetID();
+		//TODO: hack
+		p.elemindex = se->GetID() - 1;
+		
+		vec3d pq = m_pangio->Position(p);
+		vec3d pw = p.r;
+		assert((m_pangio->Position(p) - p.r).norm() < 1.0);
+		return true;
+	}
+	return false;
+}
+
+bool FEAngioMaterial::FindGridPoint(const vec3d & r, FEDomain * domain, int elemindex, GridPoint & p) const
+{
+	FEMesh * mesh = m_pangio->GetMesh();
+	double natc[3];
+	FESolidElement & se = reinterpret_cast<FESolidElement&>(domain->ElementRef(elemindex));
+	if (m_pangio->IsInsideHex8(&se, r, mesh, natc))
+	{
+		p.r = r;
+		p.q.x = natc[0];
+		p.q.y = natc[1];
+		p.q.z = natc[2];
+		p.nelem = se.GetID();
+		p.elemindex = elemindex;
+		p.ndomain = domain;
+		vec3d pq = m_pangio->Position(p);
+		assert((m_pangio->Position(p) - p.r).norm() < 1.0);
+		return true;
+	}
+	return false;
 }
 
 bool FEAngioMaterial::InitCollagenFibers()

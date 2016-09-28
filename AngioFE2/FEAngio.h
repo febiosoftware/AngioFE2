@@ -57,8 +57,6 @@ public:
 	static FEAngioMaterial* FindAngioMaterial(FEMaterial* pm);
 	double FindECMDensity(const GridPoint& pt);
 	vec3d CollagenDirection(GridPoint& pt);
-	bool FindGridPoint(const vec3d & r, std::vector<FEDomain*> &domains , GridPoint & p) const;
-	bool FindGridPoint(const vec3d & r, FEDomain * domain, int elemindex, GridPoint & p) const;
 	vec3d LocalToGlobal(FESolidElement * se, vec3d & rst) const;
 	vec3d FindRST(const vec3d & r, vec2d rs, FESolidElement * elem) const;
 	GridPoint FindGridPoint(FEDomain * domain, int nelem, vec3d& q) const;
