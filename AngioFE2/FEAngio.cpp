@@ -446,7 +446,7 @@ void FEAngio::ForEachElement(std::function<void(FESolidElement&, FESolidDomain&)
 	mesh.DomainListFromMaterial(matls, dl);
 	for (size_t i = 0; i < dl.size(); i++)
 	{
-		FESolidDomain & d = reinterpret_cast<FESolidDomain&>(mesh.Domain(i));
+		FESolidDomain & d = reinterpret_cast<FESolidDomain&>(mesh.Domain(dl[i]));
 		for (int j = 0; j < d.Elements(); j++)
 		{
 			FESolidElement & e = reinterpret_cast<FESolidElement&>(d.ElementRef(j));
@@ -469,7 +469,7 @@ void FEAngio::ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<i
 	mesh.DomainListFromMaterial(matls, dl);
 	for (size_t i = 0; i < dl.size(); i++)
 	{
-		FESolidDomain & d = reinterpret_cast<FESolidDomain&>(mesh.Domain(i));
+		FESolidDomain & d = reinterpret_cast<FESolidDomain&>(mesh.Domain(dl[i]));
 		f(d);
 	}
 }

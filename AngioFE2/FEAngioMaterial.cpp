@@ -410,6 +410,7 @@ void FEAngioMaterial::AdjustMeshStiffness()
 
 	m_pangio->ForEachElement([this, &mesh](FESolidElement & e, FESolidDomain & d)
 	{
+		assert(std::find(domainptrs.begin(), domainptrs.end(), &d) != domainptrs.end());
 		vec3d e1; vec3d e2; vec3d e3;						// Basis for the material coordinate system (e1 is the material direction, e2 and e3 are isotropic)
 		double alpha = 0.;									// Obtain the element from the domain
 		int nint = e.GaussPoints();										// Obtain the number of gauss points
@@ -508,7 +509,7 @@ bool FEAngioMaterial::FindGridPoint(const vec3d & r, FEDomain * domain, int elem
 		p.q.y = natc[1];
 		p.q.z = natc[2];
 		p.nelem = se.GetID();
-		p.elemindex = elemindex - meshOffsets.find(domain)->second;
+		p.elemindex = elemindex;
 		p.ndomain = domain;
 		vec3d pq = m_pangio->Position(p);
 		assert((m_pangio->Position(p) - p.r).norm() < 1.0);
