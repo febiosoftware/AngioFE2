@@ -224,7 +224,7 @@ bool MultiDomainFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cu
 	}
 		
 	std::uniform_int_distribution<int> ddist(0, culture->m_pmat->domains.size() - 1);
-	std::uniform_int_distribution<int> edist(0, elementsInDomains);
+	std::uniform_int_distribution<int> edist(0, elementsInDomains -1);
 	SegGenItem sgi;
 
 	for (int i = 0; i < culture_params->m_number_fragments; ++i)
