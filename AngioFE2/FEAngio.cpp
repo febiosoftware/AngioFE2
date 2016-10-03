@@ -224,7 +224,7 @@ void FEAngio::FinalizeFEM()
 	}
 
 	// only output to the logfile (not to the screen)
-	felog.SetMode(Logfile::FILE_ONLY);
+	felog.SetMode(Logfile::LOG_FILE);
 
 	// --- Output initial state of model ---
 
