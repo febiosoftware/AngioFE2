@@ -264,8 +264,8 @@ void BouncyBC::HandleBoundary(Segment & seg, Culture * culture, vec3d lastGoodPt
 		seg.tip(1).pt.q = m_angio.FindRST(lastGoodPt, nrs, se);
 		seg.tip(1).pt.r = lastGoodPt;
 		seg.tip(1).pt.nelem = se->GetID();
-		seg.tip(1).pt.elemindex = se->GetID() - 1; //hack
-		seg.tip(1).pt.ndomain = &mesh->Domain(0); //hack
+		seg.tip(1).pt.ndomain = culture->m_pmat->domainptrs[0]; //hack
+		seg.tip(1).pt.elemindex = se->GetID() - 1 - culture->m_pmat->meshOffsets[seg.tip(1).pt.ndomain];
 		seg.tip(1).pt.r = m_angio.Position(seg.tip(1).pt);
 		seg.Update();
 		seg.tip(0).bactive = false;
