@@ -72,7 +72,9 @@ void Fileout::printStatus(FEAngio& angio)
 		Culture* cult = angio.m_pmat[i]->m_cult;
 		SimulationTime& t = angio.CurrentSimTime();
 
+		
 		cout << endl << "Time: " << t.t << endl;                             // Print out current time to user
+		cout << "Material: " << i << endl;
 		//cout << "dt: " << data.dt << endl;
 		cout << "Segments     : " << cult->Segments() << endl;                             // Print out current number of segments to user
 		cout << "Total Length : " << cult->TotalVesselLength() << endl;                  // Print out the current total length to user
