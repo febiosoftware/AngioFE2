@@ -275,7 +275,6 @@ void FEAngioMaterial::SetupSurface()
 		FESurfaceElement & surfe = exterior_surface->Element(i);
 		auto base_eindex = surfe.m_elem[0];
 
-		//TODO: hack fix when exterior_surface moved to be per domain
 		m_pangio->m_fe_element_data[base_eindex + 1].surfacesIndices.push_back(i);
 	}
 }

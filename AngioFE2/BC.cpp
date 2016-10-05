@@ -51,7 +51,21 @@ void BC::CheckBC(Segment &seg, Culture * culture)
 	if (seg.tip(1).pt.nelem == -1)
 	{
 		culture->m_pmat->FindGridPoint(seg.tip(1).pt.r ,seg.tip(1).pt);
-	}	
+	}
+	//check if the segment is in another angio material
+	if (seg.tip(1).pt.nelem == -1)
+	{
+		FEMesh * mesh = m_angio.GetMesh();
+		double r[3];
+		FESolidElement * se = mesh->FindSolidElement(seg.tip(1).pt.r, r);
+		FEAngioMaterial * angm;
+		if (se && (angm = dynamic_cast<FEAngioMaterial*>(m_angio.m_fem.GetMaterial(se->GetMatID()))))
+		{
+			printf("growing into angio material\n");
+			seg.SetFlagOn(Segment::BC_DEAD);
+			return;
+		}
+	}
 	
 	//if both are in the same element just add the segment
 	if (seg.tip(0).pt.nelem == seg.tip(1).pt.nelem)
