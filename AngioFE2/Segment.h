@@ -10,7 +10,6 @@ class GridPoint
 public:
 	int		nelem;		// element id
 	int		elemindex;
-	int		elembydomainindex;
 	FEDomain *		ndomain=nullptr;    //domain id
 	//TODO: update this on vessel creation and growth
 	vec3d	q;			// natural coordinates
