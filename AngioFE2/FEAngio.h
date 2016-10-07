@@ -124,6 +124,9 @@ private:
 
 public:	// parameters read directly from file
 
+	std::unordered_map<int, FEAngioNodeData> m_fe_node_data;
+	std::unordered_map<int, FEAngioElementData> m_fe_element_data;
+
 	// miscellaneous
 	unsigned int	m_irseed;			// Seed number for the random number generator
 
@@ -141,8 +144,7 @@ private:
 	FEModel&		m_fem;		// the FE model
 	//both nodes and elements id's go from 1 to n+1 for n items
 	//first element is padding so the id can be used to lookup the data for that node
-	std::unordered_map<int, FEAngioNodeData> m_fe_node_data;
-	std::unordered_map<int, FEAngioElementData> m_fe_element_data;
+	
 
 	SimulationTime	m_time;		// simulation time
 

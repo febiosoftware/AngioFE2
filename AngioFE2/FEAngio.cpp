@@ -127,7 +127,7 @@ bool FEAngio::Init()
 	               });
 
 
-	for (int i = 0; i < m_pmat.size(); i++)
+	for (size_t i = 0; i < m_pmat.size(); i++)
 	{
 		m_pmat[i]->FinalizeInit();
 	}
@@ -163,7 +163,7 @@ bool FEAngio::Init()
 
 void FEAngio::SetupSurface()
 {
-	for (int i = 0; i < m_pmat.size(); i++)
+	for (size_t i = 0; i < m_pmat.size(); i++)
 	{
 		m_pmat[i]->SetupSurface();
 	}
@@ -1051,8 +1051,17 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
 			m_pmat[i]->Grow(m_time);
+		}
+		for (size_t i = 0; i < m_pmat.size(); i++)
+		{
 			m_pmat[i]->AdjustMeshStiffness();
+		}
+		for (size_t i = 0; i < m_pmat.size(); i++)
+		{
 			m_pmat[i]->UpdateSproutStressScaling();
+		}
+		for (size_t i = 0; i < m_pmat.size(); i++)
+		{
 			m_pmat[i]->UpdateSprouts(1.0);
 		}
 	}
@@ -1124,7 +1133,7 @@ void FEAngio::update_sprout_stress_scaling()
 	//TODO: currently unused but needs moved or removed
 	double y0 = -0.004; double x0 = 3.0; double b = 0.5436; double a = 1.0081;
 
-	for (int i = 0; i < m_pmat.size(); i++)
+	for (size_t i = 0; i < m_pmat.size(); i++)
 	{
 		m_pmat[i]->scale = y0 + a / (1 + exp(-(m_time.t - x0) / b));
 	}

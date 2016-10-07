@@ -122,6 +122,8 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	ADD_PARAMETER2(m_cultureParams.m_number_fragments, FE_PARAM_INT, FE_RANGE_GREATER_OR_EQUAL(0), "number_fragments" );
 	ADD_PARAMETER(m_cultureParams.vessel_orient_weights, FE_PARAM_VEC3D, "weights");
 	ADD_PARAMETER(m_cultureParams.m_seed, FE_PARAM_INT, "seed");
+
+	ADD_PARAMETER(m_cultureParams.fragment_seeder, FE_PARAM_INT, "fragment_seeder");
 	
 END_PARAMETER_LIST();
 //-----------------------------------------------------------------------------
@@ -655,13 +657,7 @@ void FEAngioMaterial::CreateSprouts(double scale)
 		Segment::TIP& tip = *(*tip_it);
 		if (tip.bactive)
 		{
-			// get the tip
-			const vec3d& r = tip.pos();
-
-			// get the directional unit vector of the tip
-			const vec3d& u = tip.u;
-
-			AddSprout(r, u, tip.pt.ndomain);
+			AddSprout(tip);
 			tip.bdyf_id = Sprouts() - 1;
 		}
 	}
@@ -685,10 +681,13 @@ void FEAngioMaterial::UpdateSprouts(double scale)
 		const Segment::TIP& tip = *(*tip_it);
 		assert(tip.bactive);
 		assert(tip.bdyf_id >= 0);
+		assert(tip.pt.ndomain != nullptr);
+		assert(tip.pt.elemindex > -1);
+		assert(tip.pt.nelem > 0);
 
 		// TODO: What to do with BC==1? Currently, tips that stop growing after hitting boundary
 		//       are no longer active. We should still add a sprout for those
-		AddSprout(tip.pos(), tip.u, tip.pt.ndomain);
+		AddSprout(tip);
 	}
 }
 
@@ -762,6 +761,20 @@ void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t, FEDomain * domai
 	SPROUT s;
 	s.pel = dom->FindElement(r,s.r);
 	s.sprout = t;
+
+	assert(s.pel);
+
+	m_spr.push_back(s);
+}
+
+void FEAngioMaterial::AddSprout(const Segment::TIP & tip)
+{
+	SPROUT s;
+	s.pel = &tip.pt.ndomain->ElementRef(tip.pt.elemindex);
+	s.sprout = tip.u;
+	s.r[0] = tip.pt.q.x;
+	s.r[1] = tip.pt.q.y;
+	s.r[2] = tip.pt.q.z;
 
 	assert(s.pel);
 

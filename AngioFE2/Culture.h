@@ -92,6 +92,8 @@ struct CultureParameters
 	double min_segment_length = 0.1;
 
 	int fragment_seeder = 1;//0 classic fragment seeder, 1 multidomian fragment seeder
+
+	int angio_boundary_type = 1;// 0 same as non angio materials, 1 pass through
 };
 //used for generating initial segments
 struct SegGenItem

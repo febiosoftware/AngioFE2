@@ -106,6 +106,7 @@ public:
 	// at position r with directional vector n
 	void AddSprout(const vec3d& r, const vec3d& n, FEDomain * domain, int elemindex);
 	void AddSprout(const vec3d& r, const vec3d& n, FEDomain * domain);
+	void AddSprout(const Segment::TIP & tip);
 
 	// return number of sprouts
 	int Sprouts() const { return (int) m_spr.size(); }
@@ -131,9 +132,9 @@ public:
 	bool FindGridPoint(const vec3d & r, GridPoint & p) const;
 	bool FindGridPoint(const vec3d & r, FEDomain * domain, int elemindex, GridPoint & p) const;
 private:
-	CultureParameters m_cultureParams;
+	
 
-	Culture * m_cult;
+	
 
 	int mat_id;
 
@@ -160,8 +161,11 @@ public:
 	std::unordered_map<FEDomain *,int> meshOffsets;
 	FESurface * exterior_surface;
 	FENormalProjection * normal_proj;
-private:
+	Culture * m_cult;
 	FEAngio * m_pangio;
+	CultureParameters m_cultureParams;
+private:
+	
 
 	
 

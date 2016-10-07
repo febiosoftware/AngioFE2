@@ -10,19 +10,31 @@
 #include "angio3d.h"
 
 //-----------------------------------------------------------------------------
-BC::BC(FEAngio& angio) : m_angio(angio)
+BC::BC(FEAngio& angio, Culture * c) : m_angio(angio)
 {
+	culture = c;
+	switch (culture->m_cultParams->angio_boundary_type)
+	{
+	case 0:
+		mbc = new SameMBC(c);
+		break;
+	case 1:
+		mbc = new PassThroughMBC(c);
+		break;
+	default:
+		assert(false);
+	}
 }                                   
 
 //-----------------------------------------------------------------------------
 BC::~BC()
 {
-
+	delete mbc;
 }
 
 //-----------------------------------------------------------------------------
 // Checks if a newly-created segment violates the boundary faces of the element in which it occupies
-void BC::CheckBC(Segment &seg, Culture * culture)
+void BC::CheckBC(Segment &seg)
 {
 	
 	//new implementation may be run on all segments will add the segment once the boundaries are safe
@@ -61,9 +73,18 @@ void BC::CheckBC(Segment &seg, Culture * culture)
 		FEAngioMaterial * angm;
 		if (se && (angm = dynamic_cast<FEAngioMaterial*>(m_angio.m_fem.GetMaterial(se->GetMatID()))))
 		{
-			printf("growing into angio material\n");
-			seg.SetFlagOn(Segment::BC_DEAD);
-			return;
+			if (mbc->acceptBoundary(culture->m_pmat, angm))
+			{
+				GridPoint & cpt = seg.tip(1).pt;
+				cpt.q = vec3d(r[0], r[1], r[2]);
+				cpt.ndomain = se->GetDomain();
+				cpt.nelem = se->GetID();
+				cpt.elemindex = se->GetID() - 1 - angm->meshOffsets[cpt.ndomain];
+				mbc->handleBoundary(culture->m_pmat, angm, seg);
+				printf("growing into angio material\n");
+				//seg.SetFlagOn(Segment::BC_DEAD);
+				return;
+			}
 		}
 	}
 	
@@ -124,7 +145,7 @@ void BC::CheckBC(Segment &seg, Culture * culture)
 			seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
 			seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
 			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
-			return HandleBoundary(seg, culture, lastgood_pt, rs, se);
+			return HandleBoundary(seg, lastgood_pt, rs, se);
 		}
 		
 	}
@@ -141,7 +162,7 @@ void BC::CheckBC(Segment &seg, Culture * culture)
 			seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
 			seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
 			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
-			return HandleBoundary(seg, culture, lastgood_pt, rs, se);
+			return HandleBoundary(seg, lastgood_pt, rs, se);
 		}
 		else
 		{
@@ -158,7 +179,7 @@ void BC::CheckBC(Segment &seg, Culture * culture)
 		seg.tip(1).pt.nelem = eindex + 1;
 		
 		FESolidElement & se = reinterpret_cast<FESolidElement&>(seg.tip(1).pt.ndomain->ElementRef(seg.tip(1).pt.elemindex));
-		return HandleBoundary(seg, culture, pos, rs, &se);
+		return HandleBoundary(seg,  pos, rs, &se);
 	}
 } 
 
@@ -187,7 +208,7 @@ bool BC::ChangeOfMaterial(Segment & seg) const
 	return false;
 
 }
-void StopBC::HandleBoundary(Segment & seg, Culture * culture, vec3d lastGoodPt, double * rs, FESolidElement * se)
+void StopBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESolidElement * se)
 {
 	//fill in the pt's data and add the segment
 	//remaining distance is ignored
@@ -240,7 +261,7 @@ void StopBC::HandleBoundary(Segment & seg, Culture * culture, vec3d lastGoodPt, 
 		
 	}
 }
-void BouncyBC::HandleBoundary(Segment & seg, Culture * culture, vec3d lastGoodPt, double * rs, FESolidElement * se)
+void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESolidElement * se)
 {
 	//fill in the pt's data and add the segment
 	//remaining distance is ignored
@@ -379,4 +400,79 @@ void BouncyBC::HandleBoundary(Segment & seg, Culture * culture, vec3d lastGoodPt
 		}
 	}
 	
+}
+//this function splits the segment between the cultures mat0 is the originating material while 
+//mat1 is the new material
+void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1, Segment & seg)
+{
+	GridPoint oldtip = seg.tip(1).pt;
+	vec3d dir = seg.tip(1).pt.r - seg.tip(0).pt.r;
+	FESurface * surf = mat0->exterior_surface;
+	FEElement & se = seg.tip(0).pt.ndomain->ElementRef(seg.tip(0).pt.elemindex);
+	std::vector<int> & edinices = mat0->m_pangio->m_fe_element_data[se.GetID()].surfacesIndices;
+	mat0->normal_proj->SetSearchRadius(seg.length() * 2);
+	double rs[3];
+	double g;
+	
+	for (size_t i = 0; i < edinices.size(); i++)
+	{
+		FESurfaceElement & surfe = reinterpret_cast<FESurfaceElement&>(surf->ElementRef(mat0->m_pangio->m_fe_element_data[se.GetID()].surfacesIndices[i]));
+		if (mat0->exterior_surface->Intersect(surfe, seg.tip(0).pt.r, -dir, rs, g, 0.0001))//see the epsilon in FIndSolidElement
+		{
+			//set last_goodpt
+			seg.tip(1).pt.r = surf->Local2Global(surfe, rs[0], rs[1]);
+			seg.tip(1).pt.q = mat0->m_pangio->FindRST(seg.tip(1).pt.r, vec2d(rs[0], rs[1]), dynamic_cast<FESolidElement*>(&se));
+			seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
+			seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
+			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
+			seg.Update();
+			seg.SetFlagOn(Segment::BC_DEAD);
+			if (seg.length() > mat0->m_cultureParams.min_segment_length)
+				mat0->m_cult->AddSegment(seg);
+			
+		}
+
+	}
+	
+	//project from the opposite direction
+	Segment s2 = seg;
+	s2.SetFlagOff(Segment::BC_DEAD);
+	s2.tip(1).pt = oldtip;
+	s2.tip(0) = seg.tip(1);
+	dir = -dir;
+	
+	surf = mat1->exterior_surface;
+	
+	FEElement & se1 = oldtip.ndomain->ElementRef(oldtip.elemindex);
+	
+	std::vector<int> & edinices1 = mat1->m_pangio->m_fe_element_data[se1.GetID()].surfacesIndices;
+	s2.Update();
+	mat1->normal_proj->SetSearchRadius(s2.length() * 2);
+	for (size_t i = 0; i < edinices1.size(); i++)
+	{
+		FESurfaceElement & surfe = reinterpret_cast<FESurfaceElement&>(surf->ElementRef(mat1->m_pangio->m_fe_element_data[se1.GetID()].surfacesIndices[i]));
+		if (mat1->exterior_surface->Intersect(surfe, oldtip.r, -dir, rs, g, 0.0001))//see the epsilon in FIndSolidElement
+		{
+			//set last_goodpt
+			s2.tip(0).pt.r = surf->Local2Global(surfe, rs[0], rs[1]);
+			s2.tip(0).pt.elemindex = oldtip.elemindex;
+			s2.tip(0).pt.nelem = oldtip.nelem;
+			s2.tip(0).pt.ndomain = oldtip.ndomain;
+			s2.tip(0).pt.q = mat1->m_pangio->FindRST(s2.tip(0).pt.r, vec2d(rs[0], rs[1]), dynamic_cast<FESolidElement*>(&se1));
+			
+			s2.tip(0).bactive = false;
+			
+			s2.tip(0).pt.r = mat1->m_pangio->Position(s2.tip(0).pt);
+			s2.Update();
+			if (s2.length() > mat1->m_cultureParams.min_segment_length)
+			{
+				mat1->m_cult->AddSegment(s2);
+				return;
+			}
+				
+
+		}
+		
+
+	}
 }

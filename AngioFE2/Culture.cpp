@@ -50,10 +50,10 @@ void Culture::ChangeBC(FEAngio & angio, int bcset)
 	switch (bcset)
 	{
 	case BC::STOP:
-		bc = new StopBC(angio);
+		bc = new StopBC(angio, this);
 		break;
 	case BC::BOUNCY:
-		bc = new BouncyBC(angio);
+		bc = new BouncyBC(angio, this);
 		break;
 	}
 }
@@ -217,7 +217,7 @@ bool MultiDomainFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cu
 	reg.seed(m_angio.m_irseed);
 	FEMesh * mesh = m_angio.GetMesh();
 	int elementsInDomains = 0;
-	for (int i = 0; i < culture->m_pmat->domains.size(); i++)
+	for (size_t i = 0; i < culture->m_pmat->domains.size(); i++)
 	{
 		elementsInDomains += m_angio.GetMesh()->Domain(culture->m_pmat->domains[i]).Elements();
 		domains.push_back(&m_angio.GetMesh()->Domain(culture->m_pmat->domains[i]));
@@ -651,7 +651,7 @@ void Culture::AddNewSegment(Segment& seg)
 	//init done elsewhere
 	assert(new_tip.bactive);
 
-	bc->CheckBC(seg, this);
+	bc->CheckBC(seg);
 }
 
 //-----------------------------------------------------------------------------
