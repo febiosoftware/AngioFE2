@@ -204,9 +204,7 @@ bool BC::ChangeOfMaterial(Segment & seg) const
 	FESolidElement * se = dynamic_cast<FESolidElement*>(&sd.ElementRef(seg.tip(0).pt.elemindex));
 	assert(se);//make sure we have an element
 
-
 	return false;
-
 }
 void StopBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESolidElement * se)
 {
@@ -229,16 +227,11 @@ void StopBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESoli
 				return;
 			}
 		}
-		else
-		{
-			
-		}
 	}
 
 	else
 	{
 		//this denotes a mismatch between the FindSolidElement and FESurface output
-		//printf("boundary segment out of bounds attempting to correct this\n");
 		vec2d nrs(rs[0], rs[1]);
 		seg.tip(1).pt.q = m_angio.FindRST(lastGoodPt, nrs, se);
 		seg.tip(1).pt.r = lastGoodPt;
@@ -253,12 +246,6 @@ void StopBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESoli
 		{
 			culture->AddSegment(seg);
 		}
-		else
-		{
-			printf("boundary segment dropped due to zero length\n");
-			//assert(false);
-		}
-		
 	}
 }
 void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESolidElement * se)
@@ -311,13 +298,6 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 		{
 			culture->AddSegment(seg);
 		}
-		else
-		{
-			printf("boundary segment dropped due to zero length\n");
-			return;
-			//assert(false);
-		}
-
 	}
 	assert(seg.tip(1).pt.nelem != -1);
 	vec3d dir = seg.tip(1).pt.r - seg.tip(0).pt.r;
@@ -394,13 +374,9 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 			if (reflSeg.length() >= culture->m_cultParams->min_segment_length)
 				return culture->AddNewSegment(reflSeg);
 		}
-		else
-		{
-			printf("adjustment not working\n");
-		}
 	}
-	
 }
+
 //this function splits the segment between the cultures mat0 is the originating material while 
 //mat1 is the new material
 void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1, Segment & seg)
@@ -429,9 +405,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 			seg.SetFlagOn(Segment::BC_DEAD);
 			if (seg.length() > mat0->m_cultureParams.min_segment_length)
 				mat0->m_cult->AddSegment(seg);
-			
 		}
-
 	}
 	
 	//project from the opposite direction
@@ -469,10 +443,6 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 				mat1->m_cult->AddSegment(s2);
 				return;
 			}
-				
-
 		}
-		
-
 	}
 }

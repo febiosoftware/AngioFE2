@@ -182,7 +182,7 @@ private:
 class FEPressureMaterial : public FEElasticMaterial
 {
 public:
-	FEPressureMaterial(FEModel* pfem) : FEElasticMaterial(pfem){}
+	FEPressureMaterial(FEModel* pfem) : FEElasticMaterial(pfem){ m_p = 0; }
 
 	mat3ds Stress(FEMaterialPoint& mp) override;
 

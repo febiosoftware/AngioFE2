@@ -205,14 +205,6 @@ void Fileout::writeCollFib(FEAngio & angio, bool initial)
 		fprintf(node_stream, "%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", node.GetID() -1, node.m_rt.x,
 			node.m_rt.y, node.m_rt.z, nd.m_collfib.x, nd.m_collfib.y, nd.m_collfib.z);
 	}
-	/*
-	angio.ForEachNode([&node_stream, &angio](FENode & node)
-	{
-		FEAngioNodeData & nd = angio.m_fe_node_data[node.GetID()];
-		fprintf(node_stream, "%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", node.GetID(), node.m_rt.x,
-			node.m_rt.y, node.m_rt.z, nd.m_collfib.x, nd.m_collfib.y, nd.m_collfib.z);
-	});
-	*/
 	fclose(node_stream);
 
 	return;

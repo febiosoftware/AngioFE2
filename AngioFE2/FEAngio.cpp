@@ -1118,7 +1118,6 @@ void FEAngio::Output()
 // FEAngio - adjust_mesh_stiffness
 //		Adjust the stiffness of the mesh based on the microvessel population
 ///////////////////////////////////////////////////////////////////////
-// TODO: vessel lengths are always positive now, so we need to fix the logic here.
 void FEAngio::adjust_mesh_stiffness()
 {
 	for (size_t i = 0; i < m_pmat.size(); i++)

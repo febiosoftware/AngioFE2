@@ -315,26 +315,14 @@ void FEAngioMaterial::AdjustMeshStiffness()
 
 		for (int k = 1; k <= Nsub; k++)									// For each subdivision...
 		{
+			assert(seg.length() > 0.);
 			if (k == 1){													// If this is the first subdivision, find the origin of the segment
-				if (seg.length() > 0.){											// If it's a +1 segment...
-					subunit.tip(0).pt = seg.tip(0).pt;
-				}
-				else{															// If it's a -1 segment...
-					subunit.tip(1).pt.r = seg.tip(1).pos();
-					//					subunit.m_length = -1.;
-					assert(false);
-				}
+				subunit.tip(0).pt = seg.tip(0).pt;
 			}
 
 			// Calculate the subdivision
 			vec3d v = seg.uvect();
-			if (seg.length() > 0.){
-				subunit.tip(1).pt.r = subunit.tip(0).pos() + v*(sub_scale*seg.length());
-			}
-			else{														// If it's a -1 segment...
-				subunit.tip(0).pt.r = subunit.tip(1).pos() + v*(sub_scale*seg.length());
-				assert(false);
-			}
+			subunit.tip(1).pt.r = subunit.tip(0).pos() + v*(sub_scale*seg.length());
 
 			subunit.Update();										// Find the length of the subdivision
 			double intp[3];
@@ -362,15 +350,10 @@ void FEAngioMaterial::AdjustMeshStiffness()
 			}
 
 			// Calculate the orientation of the subdivision
-			if (seg.length() > 0.){										// If it's a +1 segment...
-				vess_vect = subunit.tip(1).pos() - subunit.tip(0).pos();
-			}
-			else{														// If it's a -1 segment...
-				vess_vect = subunit.tip(0).pos() - subunit.tip(1).pos();
-			}
+			vess_vect = subunit.tip(1).pos() - subunit.tip(0).pos();
 
-			if (vess_vect.norm() != 0.)									// Normalize to find the unit vector
-				vess_vect = vess_vect / vess_vect.norm();
+			assert(vess_vect.norm() != 0.);									// Normalize to find the unit vector
+			vess_vect = vess_vect / vess_vect.norm();
 
 			if (elem_num != -1)											// If the midpoint has a real element number...
 			{
@@ -395,12 +378,7 @@ void FEAngioMaterial::AdjustMeshStiffness()
 			}
 
 			// Set the origin of the next subdivision to the end of the current one
-			if (seg.length() > 0.){
-				subunit.tip(0).pt.r = subunit.tip(1).pos();
-			}
-			else{
-				subunit.tip(1).pt.r = subunit.tip(0).pos();
-			}
+			subunit.tip(0).pt.r = subunit.tip(1).pos();
 		}
 	}
 
@@ -475,10 +453,6 @@ bool FEAngioMaterial::FindGridPoint(const vec3d & r, GridPoint & p) const
 	FEMesh * mesh = m_pangio->GetMesh();
 	double natc[3];
 	FESolidElement * se = mesh->FindSolidElement(r, natc);
-	//TODO: Needs fixed when implementing multiple feangio materials
-	//TODO: in init material id's don't match
-	//use the more explict version of this function to handle multiple materials
-	//if (se && se->GetMatID() == m_pmat->GetID())
 	if (se && (std::find(domainptrs.begin(), domainptrs.end(), se->GetDomain()) != domainptrs.end()))
 	{
 		p.r = r;
@@ -532,9 +506,7 @@ bool FEAngioMaterial::InitCollagenFibers()
 	switch (m_cultureParams.m_matrix_condition)
 	{
 	case 0: // random orientation
-		//TODO: loop replaced for consistent answers
-		//TODO: refactor once code is working
-		
+		//TODO: ask jeff if this should be removed?
 		for (int i = 0; i < mesh->Nodes(); i++)
 		{
 			vec3d v = vrand();
@@ -546,41 +518,17 @@ bool FEAngioMaterial::InitCollagenFibers()
 		}
 
 		for (int i = 0; i < mesh->Nodes();i++)
-
-		//m_pangio->ForEachNode([&](FENode & node)
 		{
-			
-
 			// assign the node
 			FENode & node = mesh->Node(i);
-			
-			//m_pangio->m_fe_node_data[node.GetID()].m_collfib0 = v;
-			//m_pangio->m_fe_node_data[node.GetID()].m_collfib = v;
-			//hack
+		
 			vec3d v = colfibs[i];
 			m_pangio->m_fe_node_data[node.GetID()].m_collfib0 = v;
 			m_pangio->m_fe_node_data[node.GetID()].m_collfib = v;
 		}//, matls);
 		
-		/*
-		m_pangio->ForEachNode([&](FENode & node)
-		{
-			if (m_pangio->m_fe_node_data[node.GetID()].m_collfib0.norm() < 0.5)
-			{
-				vec3d v = vrand();
-				if (m_cultureParams.m_bzfibflat) v.z *= 0.25;
-
-				// normalize the vector
-				v.unit();
-
-				m_pangio->m_fe_node_data[node.GetID()].m_collfib0 = v;
-				m_pangio->m_fe_node_data[node.GetID()].m_collfib = v;
-			}
-			
-		}, matls);
-		*/
 		break;
-	case 1: //multimaterila safe method
+	case 1: //multimaterial safe method
 
 		m_pangio->ForEachNode([&](FENode & node)
 		{

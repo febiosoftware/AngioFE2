@@ -17,7 +17,7 @@ class MBC
 {
 public:
 	virtual ~MBC(){}
-	MBC(Culture * c){ culture = c; }
+	explicit MBC(Culture * c){ culture = c; }
 	//returns whether or not this class is going to hanel the boundary between the two angio materials
 	virtual bool acceptBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1) = 0;
 	virtual void handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1, Segment & seg) = 0;
@@ -27,7 +27,7 @@ protected:
 class SameMBC : public MBC
 {
 public:
-	SameMBC(Culture * c): MBC(c){}
+	explicit SameMBC(Culture * c): MBC(c){}
 	~SameMBC(){}
 	//returns whether or not this class is going to hanel the boundary between the two angio materials
 	bool acceptBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1) override { return false; }
@@ -93,7 +93,7 @@ private:
 class PassThroughMBC : public MBC
 {
 public:
-	PassThroughMBC(Culture * c) : MBC(c){}
+	explicit PassThroughMBC(Culture * c) : MBC(c){}
 	~PassThroughMBC(){}
 	bool acceptBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1) override { return true; }
 	void handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1, Segment & seg) override;

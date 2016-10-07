@@ -7,7 +7,6 @@
 using namespace std;
 
 //-----------------------------------------------------------------------------
-class Grid;
 class FEAngio;
 class SimulationTime;
 class GridPoint;
@@ -24,7 +23,6 @@ typedef list<Segment::TIP*>::const_iterator ConstTipIter;
 
 const int MAXPARAMSIZE = 256;
 
-//TODO: consider making this a struct for all of the input parameters per material
 struct CultureParameters
 {
 	CultureParameters();                                                         
@@ -59,7 +57,6 @@ struct CultureParameters
 	bool	m_anastomosis = false; //whether the vessels are allowed to fuse together
 	// vessel_width - Diameter of microvessels (Default: 7 um)
 	double m_vessel_width = 7.0;
-	//TODO: make size of array a constant
 	char m_boundary_condition_type[MAXPARAMSIZE];//currently s for stop, or b for bouncy 
 
 	//parameters for ECM density/alignment

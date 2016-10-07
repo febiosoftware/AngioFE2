@@ -510,7 +510,7 @@ void Culture::BranchSegment(Segment::TIP& tip)
 
 	// Create the new vessel segment (with branch flag and new_vessel flag to true)
 	Segment seg = GrowSegment(tip, true, true);
-	//TODO: handle brnaches going out of bounds better
+
 	// Add it to the culture
 	AddNewSegment(seg);
 }
@@ -695,9 +695,6 @@ void Culture::AddSegment(Segment& seg)
 	rp = seg.tip(1).pt.r;
 	dist = distance(rpo.x, rp.x, rpo.y, rp.y, rpo.z, rp.z);
 	assert(dist < 1.0);
-
-	//TODO: why is this check in place?
-	//assert(seg.length() < 1.5*m_vess_length);
 
 	seg.m_nid = m_nsegs;
 	SimulationTime& sim_time = m_angio.CurrentSimTime();

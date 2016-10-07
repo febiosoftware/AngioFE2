@@ -11,7 +11,6 @@ public:
 	int		nelem;		// element id
 	int		elemindex;
 	FEDomain *		ndomain=nullptr;    //domain id
-	//TODO: update this on vessel creation and growth
 	vec3d	q;			// natural coordinates
 	vec3d	r;			// spatial position
 
@@ -111,7 +110,7 @@ public:
 	int vessel() const { return m_nvessel; }
 
 	int m_nid;			// segment id (unique zero-based ID)
-	int m_nvessel;		// Label that indicates which vessel the segment belongs to //TODO: move back to private once done debugging
+	int m_nvessel;		// Label that indicates which vessel the segment belongs to 
 private:
 	TIP				m_tip[2];		// the two end tips
     double			m_length;       // Length of the segment.

@@ -28,7 +28,7 @@ bool FEPlotAngioStress::Save(FEDomain& d, FEDataStream& str)
 			mat3ds sj = pmat->AngioStress(*(FEAngioMaterialPoint::FindAngioMaterialPoint(&mp)));
 			s += sj;
 		}
-		s /= (double) nint;
+		s /= static_cast<double>(nint);
 
 		str << s;
 	}
@@ -56,7 +56,7 @@ bool FEPlotAngioEffectiveStress::Save(FEDomain& d, FEDataStream& str)
 			mat3ds sj = pmat->Stress(*(FEAngioMaterialPoint::FindAngioMaterialPoint(&mp)));
 			s += pt.m_s - sj;
 		}
-		s /= (double) nint;
+		s /= static_cast<double>(nint);
 
 		str << s;
 	}
@@ -66,7 +66,7 @@ bool FEPlotAngioEffectiveStress::Save(FEDomain& d, FEDataStream& str)
 //-----------------------------------------------------------------------------
 bool FEPlotAngioCollagenFibers::Save(FEMesh& m, FEDataStream& a)
 {
-	if (pfeangio == 0) return false;
+	if (pfeangio == nullptr) return false;
 	//multiple materials average their *
 	for (int i = 0; i < pfeangio->m_fem.GetMesh().Nodes(); i++)
 	{
