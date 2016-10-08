@@ -6,7 +6,6 @@
 Segment::TIP::TIP()
 {
 	bactive = false;
-	bdyf_id = -1;
 	BC = 0;
 	nseed = -1;
 	nvessel = -1;

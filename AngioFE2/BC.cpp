@@ -268,8 +268,6 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 		{
 			seg.tip(0).bactive = false;
 			seg.tip(1).bactive = false;
-			seg.tip(1).bdyf_id = 1;
-			seg.tip(0).bdyf_id = 1;
 			culture->AddSegment(seg);
 		}
 		else
@@ -292,8 +290,6 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 		seg.Update();
 		seg.tip(0).bactive = false;
 		seg.tip(1).bactive = false;
-		seg.tip(1).bdyf_id = 1;
-		seg.tip(0).bdyf_id = 1;
 		if (seg.length() >= culture->m_cultParams->min_segment_length)
 		{
 			culture->AddSegment(seg);
@@ -326,10 +322,7 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 		reflSeg.tip(1).nseed = seg.seed();
 		reflSeg.tip(0).nvessel = seg.m_nvessel;
 		reflSeg.tip(1).nvessel = seg.m_nvessel;
-		reflSeg.tip(1).bdyf_id = seg.tip(1).bdyf_id;
 		reflSeg.Update();
-		reflSeg.tip(1).bdyf_id = 1;
-		reflSeg.tip(0).bdyf_id = 1;
 
 		if (reflSeg.length() >= culture->m_cultParams->min_segment_length)
 			return culture->AddNewSegment(reflSeg);
@@ -366,10 +359,7 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 			reflSeg.tip(1).nseed = seg.seed();
 			reflSeg.tip(0).nvessel = seg.m_nvessel;
 			reflSeg.tip(1).nvessel = seg.m_nvessel;
-			reflSeg.tip(1).bdyf_id = seg.tip(1).bdyf_id;
 			reflSeg.Update();
-			reflSeg.tip(1).bdyf_id = 1;
-			reflSeg.tip(0).bdyf_id = 1;
 
 			if (reflSeg.length() >= culture->m_cultParams->min_segment_length)
 				return culture->AddNewSegment(reflSeg);

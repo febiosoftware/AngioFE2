@@ -39,7 +39,6 @@ public:
 	{
 	public:
 		bool		bactive;	// flag if tip is active
-		int			bdyf_id;	// ID of the body force
 		int			BC;			// something to do with body forces?
 		GridPoint	pt;			// point in grid where this tip lies
 		vec3d		u;			// sprout force vector

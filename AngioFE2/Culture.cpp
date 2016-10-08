@@ -436,9 +436,6 @@ Segment Culture::GrowSegment(Segment::TIP& tip, bool branch, bool bnew_vessel, v
 	seg.tip(0).bactive = false;		// Turn off origin tip of new segment
     seg.tip(1).bactive = true;		// Turn on end tip of new segment
 
-	// move the body force to the new tip
-	seg.tip(1).bdyf_id = tip.bdyf_id;
-
 	// Turn off previous segment tip
 	tip.bactive = false;
 
@@ -532,15 +529,13 @@ void Culture::CreateBranchingForce(Segment& seg)
 	{
 		stip = seg.tip(0);
 		tip = seg.tip(0).pos();															// Obtain the position of the new tip
-		sprout_vect = -seg_vec;	// notice negative sign
-		seg.tip(0).bdyf_id = m_angio.total_bdyf - 1;											// Assign the body force ID
+		sprout_vect = -seg_vec;	// notice negative sign										
 	}
 	else if (seg.tip(1).bactive)
 	{
 		stip = seg.tip(1);
 		tip = seg.tip(1).pos();
 		sprout_vect = seg_vec;
-		seg.tip(1).bdyf_id = m_angio.total_bdyf - 1;
 	}
 	else
 	{
@@ -549,7 +544,6 @@ void Culture::CreateBranchingForce(Segment& seg)
 		stip = seg.tip(1);
 		tip = seg.tip(1).pos();
 		sprout_vect = seg_vec;
-		seg.tip(1).bdyf_id = m_angio.total_bdyf - 1;
 	}
 
 	if (m_pmat)
@@ -661,10 +655,6 @@ void Culture::AddNewSegment(Segment& seg)
 // any active iterators.
 void Culture::AddSegment(Segment& seg)
 {
-	//wreck all bdyf_id
-	seg.tip(1).bdyf_id = 1;
-	seg.tip(0).bdyf_id = 1;
-
 	// let's check a few things
 	assert(seg.tip(0).pt.nelem >= 0);
 	assert(seg.tip(1).pt.nelem >= 0);

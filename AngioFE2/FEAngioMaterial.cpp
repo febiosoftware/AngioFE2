@@ -606,7 +606,6 @@ void FEAngioMaterial::CreateSprouts(double scale)
 		if (tip.bactive)
 		{
 			AddSprout(tip);
-			tip.bdyf_id = Sprouts() - 1;
 		}
 	}
 }
@@ -628,7 +627,6 @@ void FEAngioMaterial::UpdateSprouts(double scale)
 	{
 		const Segment::TIP& tip = *(*tip_it);
 		assert(tip.bactive);
-		assert(tip.bdyf_id >= 0);
 		assert(tip.pt.ndomain != nullptr);
 		assert(tip.pt.elemindex > -1);
 		assert(tip.pt.nelem > 0);
