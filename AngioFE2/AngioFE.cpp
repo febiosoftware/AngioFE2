@@ -33,6 +33,13 @@ FECORE_EXPORT  void PluginInitialize(FECoreKernel& febio)
 	FECoreKernel::SetInstance(&febio);
 }
 
+FECORE_EXPORT void GetPluginVersion(int & major, int & minor, int & patch)
+{
+	major = 1;
+	minor = 0;
+	patch = 1;
+}
+
 //-----------------------------------------------------------------------------
 FECORE_EXPORT int PluginNumClasses()
 {
