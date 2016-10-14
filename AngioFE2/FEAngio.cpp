@@ -476,6 +476,7 @@ void FEAngio::ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<i
 
 vec3d FEAngio::gradient(FESolidElement * se, std::vector<double> & fn, vec3d pt)
 {
+	assert(se);
 	FESolidDomain* domain = dynamic_cast<FESolidDomain*>(se->GetDomain());
 	double Ji[3][3];
 	domain->invjact(*se, Ji, pt.x, pt.y, pt.z);
@@ -486,6 +487,7 @@ vec3d FEAngio::gradient(FESolidElement * se, std::vector<double> & fn, vec3d pt)
 
 	vec3d gradf;
 	size_t N = se->Nodes();
+	assert(N == fn.size());
 	for (size_t i = 0; i<N; ++i)
 	{
 		// calculate global gradient of shape functions
@@ -948,9 +950,9 @@ vec3d FEAngio::Position(const GridPoint& pt) const
 	}
 	return r;
 }
-
-std::vector<double> FEAngio::createVectorOfMaterialParameters(FEDomain & d, FEElement * elem,
-	double FEAngioNodeData::*materialparam, double r, double s, double t)
+//TODO: refactor create materialparameters and genericProjectToPoint
+std::vector<double> FEAngio::createVectorOfMaterialParameters(FEElement * elem,
+	double FEAngioNodeData::*materialparam)
 {
 	FEMesh * mesh = GetMesh();
 	std::vector<double> gx(elem->m_node.size());
@@ -960,10 +962,10 @@ std::vector<double> FEAngio::createVectorOfMaterialParameters(FEDomain & d, FEEl
 	}
 	return gx;
 }
-double FEAngio::genericProjectToPoint(FEDomain & d, FEElement * elem,
-	double FEAngioNodeData::*materialparam, double r, double s, double t)
+double FEAngio::genericProjectToPoint(FEElement * elem,
+	double FEAngioNodeData::*materialparam,const vec3d & pos)
 {
-	std::vector<double> gx = createVectorOfMaterialParameters(d, elem, materialparam, r, s, t);
+	std::vector<double> gx = createVectorOfMaterialParameters( elem, materialparam);
 	//same as project to point that function is not used eleswhere so it has been eliminated
 	double H[FEElement::MAX_NODES];
 	double val = 0.0;
@@ -973,7 +975,7 @@ double FEAngio::genericProjectToPoint(FEDomain & d, FEElement * elem,
 	FESolidElement * se = dynamic_cast<FESolidElement*>(elem);
 	if (se)
 	{
-		se->shape_fnc(H, r, s, t);
+		se->shape_fnc(H, pos.x, pos.y, pos.z);
 		for (size_t i = 0; i < elem->m_node.size(); i++)
 		{
 			val += gx[i] * H[i];

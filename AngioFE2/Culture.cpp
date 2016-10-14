@@ -355,14 +355,35 @@ void Culture::GrowVessels()
 
 		//modify direction based on anisotropy value
 		double dw[2];
-		double da_value = m_angio.genericProjectToPoint(*tip.pt.ndomain, &tip.pt.ndomain->ElementRef(tip.pt.elemindex), &FEAngioNodeData::m_da, tip.pt.q.x, tip.pt.q.y, tip.pt.q.z);
+		double da_value = m_angio.genericProjectToPoint(&tip.pt.ndomain->ElementRef(tip.pt.elemindex), &FEAngioNodeData::m_da, tip.pt.q);
 		DirectionalWeights(da_value, dw);
 		//TODO: this overwrite may not be ideal
 		m_cultParams->vessel_orient_weights.x = dw[0];
 		m_cultParams->vessel_orient_weights.y = dw[1];
 		
-		// Create new vessel segment at the current tip existing segment
-		Segment seg = GrowSegment(tip);
+		//calculate the density gradinet if above the threshold set the grow direction
+		std::vector<double> densities;
+		FESolidElement * se = dynamic_cast<FESolidElement*>(&tip.pt.ndomain->ElementRef(tip.pt.elemindex));
+		densities = m_angio.createVectorOfMaterialParameters(se, &FEAngioNodeData::m_ecm_den);
+		vec3d gradient = m_angio.gradient(se, densities, tip.pt.q);
+		double gradnorm = gradient.norm();
+		Segment seg;
+		if (gradnorm > m_cultParams->density_gradient_threshold)
+		{
+			vec3d currentDirection = FindGrowDirection(tip);
+			currentDirection.unit();
+			vec3d currentDirectionGradientPlane = gradient ^ currentDirection;
+			currentDirectionGradientPlane.unit();
+			vec3d perpendicularToGradient = currentDirectionGradientPlane ^ gradient;
+			perpendicularToGradient.unit();
+			seg = GrowSegment(tip, false, false, perpendicularToGradient);
+		}
+		else
+		{
+			// Create new vessel segment at the current tip existing segment
+			seg = GrowSegment(tip);
+		}
+		
 
 		// Add the segment to the network
 		// This will also enforce the boundary conditions

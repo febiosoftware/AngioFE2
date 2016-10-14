@@ -91,6 +91,8 @@ struct CultureParameters
 	int fragment_seeder = 1;//0 classic fragment seeder, 1 multidomian fragment seeder
 
 	int angio_boundary_type = 1;// 0 same as non angio materials, 1 pass through
+
+	double density_gradient_threshold = 0.01;//set this to be higher to turn off the direction change on encountering different densities
 };
 //used for generating initial segments
 struct SegGenItem

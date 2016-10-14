@@ -154,9 +154,22 @@ void BC::CheckBC(Segment &seg)
 	{
 		//printf("no surface element found\n");
 		//assert(false);
-		surfe = culture->m_pmat->normal_proj->Project3(seg.tip(0).pt.r + (dir * 2.0), -dir, rs);
-		assert(!surfe);
-		printf("segment adjustment failed\n");
+		/*
+		surfe = culture->m_pmat->normal_proj->Project3(seg.tip(0).pt.r, -dir, rs);
+		if (surfe)
+		{
+			lastgood_pt = surf->Local2Global(*surfe, rs[0], rs[1]);
+
+			seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
+			seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
+			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
+			return HandleBoundary(seg, lastgood_pt, rs, se);
+		}
+		else
+		{
+			printf("segment adjustment failed\n");
+		}
+		*/
 	}
 	else
 	{

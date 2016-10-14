@@ -62,11 +62,11 @@ public:
 	GridPoint FindGridPoint(FEDomain * domain, int nelem, vec3d& q) const;
 	vec3d Position(const GridPoint& pt)  const;
 	// Creates a vector of specified paramenter
-	std::vector<double> createVectorOfMaterialParameters(FEDomain & d, FEElement * elem,
-		double FEAngioNodeData::*materialparam, double r, double s, double t);
+	std::vector<double> createVectorOfMaterialParameters(FEElement * elem,
+		double FEAngioNodeData::*materialparam);
 	// gets the value of a parameter at a given point interpolated from the shape function
-	double genericProjectToPoint(FEDomain & d, FEElement * elem,
-		double FEAngioNodeData::*materialparam, double r, double s, double t);
+	double genericProjectToPoint(FEElement * elem,
+		double FEAngioNodeData::*materialparam,const vec3d & pos);
 	
 	//some funtions to replace the loops everywhere in the code
 	//for each excludes non-angio materials
