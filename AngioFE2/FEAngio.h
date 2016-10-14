@@ -77,6 +77,9 @@ public:
 	void ForEachDomain(std::function<void(FESolidDomain&)> f);
 	void ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<int> & matls);
 
+	//calcualtes the gradient at the given natural coordinates
+	static vec3d gradient(FESolidElement * se,std::vector<double> & fn, vec3d pt);
+
 	static bool IsInsideHex8(FESolidElement * se, vec3d y, FEMesh * mesh, double r[3]);
 
 	//these freindships are for displaying/reading the data and are okay

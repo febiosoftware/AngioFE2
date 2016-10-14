@@ -473,6 +473,35 @@ void FEAngio::ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<i
 		f(d);
 	}
 }
+
+vec3d FEAngio::gradient(FESolidElement * se, std::vector<double> & fn, vec3d pt)
+{
+	FESolidDomain* domain = dynamic_cast<FESolidDomain*>(se->GetDomain());
+	double Ji[3][3];
+	domain->invjact(*se, Ji, pt.x, pt.y, pt.z);
+	double Gr[FEElement::MAX_NODES], Gs[FEElement::MAX_NODES], Gt[FEElement::MAX_NODES];
+	se->shape_deriv(Gr, Gs, Gt, pt.x, pt.y, pt.z);
+
+	double Gx, Gy, Gz;
+
+	vec3d gradf;
+	size_t N = se->Nodes();
+	for (size_t i = 0; i<N; ++i)
+	{
+		// calculate global gradient of shape functions
+		// note that we need the transposed of Ji, not Ji itself !
+		Gx = Ji[0][0] * Gr[i] + Ji[1][0] * Gs[i] + Ji[2][0] * Gt[i];
+		Gy = Ji[0][1] * Gr[i] + Ji[1][1] * Gs[i] + Ji[2][1] * Gt[i];
+		Gz = Ji[0][2] * Gr[i] + Ji[1][2] * Gs[i] + Ji[2][2] * Gt[i];
+
+		// calculate pressure gradient
+		gradf.x += Gx*fn[i];
+		gradf.y += Gy*fn[i];
+		gradf.z += Gz*fn[i];
+	}
+
+	return gradf;
+}
 //-----------------------------------------------------------------------------
 static void solve_3x3(double A[3][3], double b[3], double x[3])
 {
