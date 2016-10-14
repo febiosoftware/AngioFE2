@@ -155,19 +155,8 @@ void BC::CheckBC(Segment &seg)
 		//printf("no surface element found\n");
 		//assert(false);
 		surfe = culture->m_pmat->normal_proj->Project3(seg.tip(0).pt.r + (dir * 2.0), -dir, rs);
-		if (surfe)
-		{
-			lastgood_pt = surf->Local2Global(*surfe, rs[0], rs[1]);
-
-			seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
-			seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
-			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
-			return HandleBoundary(seg, lastgood_pt, rs, se);
-		}
-		else
-		{
-			printf("segment adjustment failed\n");
-		}
+		assert(!surfe);
+		printf("segment adjustment failed\n");
 	}
 	else
 	{
@@ -433,6 +422,30 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 				mat1->m_cult->AddSegment(s2);
 				return;
 			}
+		}
+	}
+
+	FESurfaceElement * surfe = mat1->normal_proj->Project(oldtip.r, -dir, rs);
+	if (surfe)
+	{
+		int eindex = surfe->m_elem[0];
+
+		vec3d pos = surf->Local2Global(*surfe, rs[0], rs[1]);
+		s2.tip(0).pt.ndomain = s2.tip(1).pt.ndomain;
+		s2.tip(0).pt.elemindex = eindex - mat1->meshOffsets[s2.tip(1).pt.ndomain];
+		s2.tip(0).pt.nelem = eindex + 1;
+		s2.tip(0).pt.r = surf->Local2Global(*surfe, rs[0], rs[1]);
+		FESolidElement & se2 = reinterpret_cast<FESolidElement&>(s2.tip(1).pt.ndomain->ElementRef(s2.tip(0).pt.elemindex));
+		s2.tip(0).pt.q = mat1->m_pangio->FindRST(s2.tip(0).pt.r, vec2d(rs[0], rs[1]), dynamic_cast<FESolidElement*>(&se2));
+
+		s2.tip(0).bactive = false;
+
+		s2.tip(0).pt.r = mat1->m_pangio->Position(s2.tip(0).pt);
+		s2.Update();
+		if (s2.length() > mat1->m_cultureParams.min_segment_length)
+		{
+			mat1->m_cult->AddSegment(s2);
+			return;
 		}
 	}
 }
