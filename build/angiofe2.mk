@@ -10,7 +10,9 @@ FECORE = $(FEBLIB)/libfecore_$(PLAT).a
 
 FEBIOMECH = $(FEBLIB)/libfebiomech_$(PLAT).a
 
-FEBIOLIBS = $(FEBIOMECH) $(FECORE)
+FEBIOMIX = $(FEBLIB)/libfebiomix_$(PLAT).a
+
+FEBIOLIBS = $(FEBIOMECH) $(FECORE) $(FEBIOMIX)
 
 $(LIB): $(OBJ)
 ifeq ($(findstring lnx,$(PLAT)),lnx)
