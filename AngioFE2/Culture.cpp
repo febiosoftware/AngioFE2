@@ -526,8 +526,38 @@ void Culture::BranchSegment(Segment::TIP& tip)
 	// (it will be deactivated by GrowSegment)
 	tip.bactive = true;
 
-	// Create the new vessel segment (with branch flag and new_vessel flag to true)
-	Segment seg = GrowSegment(tip, true, true);
+	//calculate the density gradinet if above the threshold set the grow direction
+	std::vector<double> densities;
+	FESolidElement * se = dynamic_cast<FESolidElement*>(&tip.pt.ndomain->ElementRef(tip.pt.elemindex));
+	densities = m_angio.createVectorOfMaterialParameters(se, &FEAngioNodeData::m_ecm_den);
+	vec3d gradient = m_angio.gradient(se, densities, tip.pt.q);
+	double gradnorm = gradient.norm();
+	Segment seg;
+	if (gradnorm > m_cultParams->density_gradient_threshold)
+	{
+		vec3d currentDirection = FindGrowDirection(tip);
+		currentDirection.unit();
+		vec3d currentDirectionGradientPlane = gradient ^ currentDirection;
+		currentDirectionGradientPlane.unit();
+		vec3d perpendicularToGradient = currentDirectionGradientPlane ^ gradient;
+		perpendicularToGradient.unit();
+		//do a special calculation 
+		vec3d coll_fib = m_angio.CollagenDirection(tip.pt);
+		vec3d seg_vec = perpendicularToGradient;
+		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
+		seg_vec.unit();
+		gradient.unit();
+		//project the direction onto the plane u - proj_v(u)
+		//note the mag of gradeint is 1
+		seg_vec = seg_vec - (gradient * (seg_vec * gradient));
+
+		seg = GrowSegment(tip, false, true, seg_vec);
+	}
+	else
+	{
+		// Create new vessel segment at the current tip existing segment
+		seg = GrowSegment(tip, true, true);
+	}
 
 	// Add it to the culture
 	AddNewSegment(seg);
