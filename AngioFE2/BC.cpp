@@ -73,15 +73,16 @@ void BC::CheckBC(Segment &seg)
 		FEAngioMaterial * angm;
 		if (se && (angm = dynamic_cast<FEAngioMaterial*>(m_angio.m_fem.GetMaterial(se->GetMatID()))))
 		{
-			if (mbc->acceptBoundary(culture->m_pmat, angm))
+			GridPoint & cpt = seg.tip(1).pt;
+			cpt.q = vec3d(r[0], r[1], r[2]);
+			cpt.ndomain = se->GetDomain();
+			cpt.nelem = se->GetID();
+			cpt.elemindex = se->GetID() - 1 - angm->meshOffsets[cpt.ndomain];
+			seg.Update();
+			if (mbc->acceptBoundary(culture->m_pmat, angm) && (angm != this->culture->m_pmat))
 			{
-				GridPoint & cpt = seg.tip(1).pt;
-				cpt.q = vec3d(r[0], r[1], r[2]);
-				cpt.ndomain = se->GetDomain();
-				cpt.nelem = se->GetID();
-				cpt.elemindex = se->GetID() - 1 - angm->meshOffsets[cpt.ndomain];
 				mbc->handleBoundary(culture->m_pmat, angm, seg);
-				printf("growing into angio material\n");
+				//printf("growing into angio material\n");
 				//seg.SetFlagOn(Segment::BC_DEAD);
 				return;
 			}
@@ -368,6 +369,10 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 		}
 	}
 }
+bool MBC::acceptBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1)
+{
+	return (mat0->m_cultureParams.angio_boundary_groups & mat1->m_cultureParams.angio_boundary_groups) != 0;
+}
 
 //this function splits the segment between the cultures mat0 is the originating material while 
 //mat1 is the new material
@@ -396,7 +401,11 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 			seg.Update();
 			seg.SetFlagOn(Segment::BC_DEAD);
 			if (seg.length() > mat0->m_cultureParams.min_segment_length)
+			{
 				mat0->m_cult->AddSegment(seg);
+				break;
+			}
+				
 		}
 	}
 	
@@ -432,12 +441,13 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 			s2.Update();
 			if (s2.length() > mat1->m_cultureParams.min_segment_length)
 			{
-				mat1->m_cult->AddSegment(s2);
+				mat1->m_cult->bc->CheckBC(s2);
 				return;
 			}
 		}
 	}
-
+	//this section of code produces segments that are far too long
+	/*
 	FESurfaceElement * surfe = mat1->normal_proj->Project(oldtip.r, -dir, rs);
 	if (surfe)
 	{
@@ -457,8 +467,9 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 		s2.Update();
 		if (s2.length() > mat1->m_cultureParams.min_segment_length)
 		{
-			mat1->m_cult->AddSegment(s2);
+			mat1->m_cult->bc->CheckBC(s2);
 			return;
 		}
 	}
+	*/
 }

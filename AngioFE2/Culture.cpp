@@ -91,6 +91,9 @@ bool Culture::Init()
 	case 1:
 		fseeder = new MultiDomainFragmentSeeder(m_cultParams, m_angio);
 		break;
+	case 2:
+		fseeder = new MDByVolumeFragmentSeeder(m_cultParams, m_angio);
+		break;
 	default:
 		assert(false);
 	}
@@ -310,6 +313,147 @@ bool MultiDomainFragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, 
 	// all good
 	return true;
 }
+static size_t findElement(double val, int lo, int high, double * begin, double * end)
+{
+	int mid = lo + (high - lo) / 2;
+	if (val < begin[mid])
+	{
+		return findElement(val, lo, mid -1, begin, end);
+	}
+	else if (val > end[mid])
+	{
+		return findElement(val, mid +1, high, begin, end);
+	}
+	else
+	{
+		return mid;
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Create initial fragments
+bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * culture)
+{
+	std::default_random_engine reg;
+	reg.seed(m_angio.m_irseed);
+	FEMesh * mesh = m_angio.GetMesh();
+	int elementsInDomains = 0;
+	for (size_t i = 0; i < culture->m_pmat->domains.size(); i++)
+	{
+		elementsInDomains += m_angio.GetMesh()->Domain(culture->m_pmat->domains[i]).Elements();
+		domains.push_back(&m_angio.GetMesh()->Domain(culture->m_pmat->domains[i]));
+	}
+	double * totalWeightsBegin = new double[elementsInDomains];
+	double * totalWeightsEnd = new double[elementsInDomains];
+	FEElement ** elements = new FEElement*[elementsInDomains];
+	int k = 0;
+	double cweight = 0.0;
+	for (size_t i = 0; i < domains.size(); i++)
+	{
+		for (size_t j = 0; j < domains[i]->Elements(); j++)
+		{
+			FEElement & el = domains[i]->ElementRef(j);
+			elements[k] = &el;
+			totalWeightsBegin[k] = cweight;
+			cweight += mesh->ElementVolume(el);
+			totalWeightsEnd[k] = cweight;
+			k++;
+		}
+	}
+	std::uniform_real_distribution<double> voluchoice(0, cweight);
+	SegGenItem sgi;
+
+	for (int i = 0; i < culture_params->m_number_fragments; ++i)
+	{
+		//do a binary search to find the element that contains the volume
+		double vol = voluchoice(reg);
+		int ei = findElement(vol, 0, elementsInDomains - 1, totalWeightsBegin, totalWeightsEnd);
+		// Create an initial segment
+		Segment seg;
+		FEElement * elem = elements[ei];
+		sgi.ielement = elem->GetID() -1 - culture->m_pmat->meshOffsets[elem->GetDomain()];
+		sgi.domain = elem->GetDomain();
+		
+		if (createInitFrag(seg, sgi, culture) == false) return false;
+
+		// Give the segment the appropriate label
+		seg.seed(i);
+
+		// Set the segment vessel as the segment label
+		seg.vessel(seg.seed());
+
+		// add it to the list
+		culture->AddSegment(seg);
+	}
+
+	// init vessel counter
+	culture->m_num_vessel = culture_params->m_number_fragments;
+
+	// Update the active tip container
+	culture->FindActiveTips();
+
+	delete[] totalWeightsBegin;
+	delete[] totalWeightsEnd;
+	delete[] elements;
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Generates an initial fragment that lies inside the given element
+bool MDByVolumeFragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, Culture * culture)
+{
+	//note tip(1) may not be in the same element as the initial fragment
+	// Set seg length to value of growth function at t = 0
+	double seg_length = culture_params->m_initial_vessel_length;
+
+	// Since the creation of such a segment may fail (i.e. too close to boundary)
+	// we loop until we find one.
+	const int MAX_TRIES = 10;
+	int ntries = 0;
+	GridPoint p0, p1;
+	do
+	{
+		// generate random natural coordinates
+		vec3d q = vrand();
+
+		// set the position of the first tip
+		p0 = m_angio.FindGridPoint(item.domain, item.ielement, q);
+
+		// Determine vessel orientation based off of collagen fiber orientation
+		vec3d seg_vec = vrand();
+		seg_vec.unit();
+
+		// End of new segment is origin plus length component in each direction	
+		vec3d r1 = p0.r + seg_vec*seg_length;
+
+		// find the element where the second tip is
+		culture->m_pmat->FindGridPoint(r1, p1);
+		//need to check the domain is legal
+		ntries++;
+	} while (((p1.nelem == -1) && (ntries < MAX_TRIES)) || (std::find(domains.begin(), domains.end(), p1.ndomain) == domains.end()));
+
+	if (p1.nelem == -1)  return false;
+
+	// assign the grid points
+	seg.tip(0).pt = p0;
+	seg.tip(1).pt = p1;
+
+	// update length and unit vector
+	seg.Update();
+
+	// make both tips active
+	seg.tip(0).bactive = true;
+	seg.tip(1).bactive = true;
+
+	// decide if this initial segment is allowed to branch
+	if (frand() < culture_params->m_initial_branch_probability) seg.SetFlagOn(Segment::INIT_BRANCH);
+
+	// Mark segment as an initial fragment
+	seg.SetFlagOn(Segment::INIT_SPROUT);
+
+	// all good
+	return true;
+}
 
 //-----------------------------------------------------------------------------
 // Vessel elongation is represented by the addition of new line segments at the locations of the active sprouts.
@@ -377,17 +521,19 @@ void Culture::GrowVessels()
 			vec3d perpendicularToGradient = currentDirectionGradientPlane ^ gradient;
 			perpendicularToGradient.unit();
 			seg = GrowSegment(tip, false, false, perpendicularToGradient);
+			AddNewSegment(seg);
 		}
 		else
 		{
 			// Create new vessel segment at the current tip existing segment
 			seg = GrowSegment(tip);
+			AddNewSegment(seg);
 		}
 		
 
 		// Add the segment to the network
 		// This will also enforce the boundary conditions
-		AddNewSegment(seg);
+		
     }
 }
 

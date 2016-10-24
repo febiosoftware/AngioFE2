@@ -66,6 +66,8 @@ inline double frand() { return (double) rand() / RAND_MAX; }
 
 // generates a random vector in the unit cube [-1, +1]
 //TODO: This doesn't generate a truly random vector since there will be bias towards corners.
+//when generating a direction with this function the vectors will be ~30% different from a uniform distribution of
+//directions
 inline vec3d vrand() { return vec3d(2.0*(frand()-0.5), 2.0*(frand()-0.5), 2*(frand() - 0.5)); }
 
 //see https://www.opengl.org/sdk/docs/man/html/reflect.xhtml

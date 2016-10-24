@@ -60,7 +60,7 @@ struct CultureParameters
 	char m_boundary_condition_type[MAXPARAMSIZE];//currently s for stop, or b for bouncy 
 
 	//parameters for ECM density/alignment
-	int m_matrix_condition = 0; // flag indicating how the collagen fibers are oriented initially ( 0 = random, 3 = along local element direction)
+	int m_matrix_condition = 0; // flag indicating how the collagen fibers are oriented initially ( 0 = random classic mode, 1 multimaterial mode,  3 = along local element direction)
 	double m_matrix_density = 3.0;//mg/ml 3.0 default
 
 	//symmety
@@ -91,6 +91,7 @@ struct CultureParameters
 	int fragment_seeder = 1;//0 classic fragment seeder, 1 multidomian fragment seeder
 
 	int angio_boundary_type = 1;// 0 same as non angio materials, 1 pass through
+	int angio_boundary_groups = 1;//each bit in this parameter fragments can only travel between the groups they are in
 
 	double density_gradient_threshold = 0.01;//set this to be higher to turn off the direction change on encountering different densities
 };
@@ -128,6 +129,17 @@ class MultiDomainFragmentSeeder : public FragmentSeeder
 public:
 	bool SeedFragments(SimulationTime& time, Culture * culture) override;
 	MultiDomainFragmentSeeder(CultureParameters * cp, FEAngio & angio) : FragmentSeeder(cp, angio) {}
+private:
+	// Seed an initial fragment within the grid
+	bool createInitFrag(Segment& Seg, SegGenItem & item, Culture * culture);
+	std::vector<FEDomain *> domains;
+};
+
+class MDByVolumeFragmentSeeder : public FragmentSeeder
+{
+public:
+	bool SeedFragments(SimulationTime& time, Culture * culture) override;
+	MDByVolumeFragmentSeeder(CultureParameters * cp, FEAngio & angio) : FragmentSeeder(cp, angio) {}
 private:
 	// Seed an initial fragment within the grid
 	bool createInitFrag(Segment& Seg, SegGenItem & item, Culture * culture);
@@ -242,4 +254,6 @@ public:
 	friend class BouncyBC;
 	friend class BC;
 	friend class StopBC;
+	friend class MBC;
+	friend class PassThroughMBC;
 };

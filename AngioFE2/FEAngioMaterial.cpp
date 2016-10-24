@@ -124,7 +124,8 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	ADD_PARAMETER(m_cultureParams.m_seed, FE_PARAM_INT, "seed");
 
 	ADD_PARAMETER(m_cultureParams.fragment_seeder, FE_PARAM_INT, "fragment_seeder");
-
+	ADD_PARAMETER(m_cultureParams.angio_boundary_type, FE_PARAM_INT, "angio_boundary_type");
+	ADD_PARAMETER(m_cultureParams.angio_boundary_groups, FE_PARAM_INT, "angio_boundary_groups");
 	ADD_PARAMETER(m_cultureParams.density_gradient_threshold, FE_PARAM_DOUBLE, "density_gradient_threshold");
 	
 END_PARAMETER_LIST();
