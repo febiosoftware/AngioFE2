@@ -479,7 +479,7 @@ void FEAngio::ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<i
 vec3d FEAngio::uniformRandomDirection()
 {
 	//to revert this set this to return vrand
-	double theta = ztopi(rengine);
+	double theta = zto2pi(rengine);
 	double phi = zto2pi(rengine);
 	double sintheta = sin(theta);
 	vec3d dir(sintheta * cos(phi), sintheta * sin(phi), cos(theta));
