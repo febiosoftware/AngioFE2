@@ -149,6 +149,7 @@ bool ClassicFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cultur
 
 //-----------------------------------------------------------------------------
 // Generates an initial fragment that lies inside the grid.
+// the classic mode still uses a biased growth direction
 bool ClassicFragmentSeeder::createInitFrag(Segment& seg)
 {
 	FEMesh * mesh = m_angio.GetMesh();
@@ -216,8 +217,6 @@ bool ClassicFragmentSeeder::createInitFrag(Segment& seg)
 // Create initial fragments
 bool MultiDomainFragmentSeeder::SeedFragments(SimulationTime& time, Culture * culture)
 {
-	std::default_random_engine reg;
-	reg.seed(m_angio.m_irseed);
 	FEMesh * mesh = m_angio.GetMesh();
 	int elementsInDomains = 0;
 	for (size_t i = 0; i < culture->m_pmat->domains.size(); i++)
@@ -234,8 +233,8 @@ bool MultiDomainFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cu
 	{
 		// Create an initial segment
 		Segment seg;
-		sgi.domain = &mesh->Domain(culture->m_pmat->domains[ddist(reg)]);
-		sgi.ielement = edist(reg);
+		sgi.domain = &mesh->Domain(culture->m_pmat->domains[ddist(m_angio.rengine)]);
+		sgi.ielement = edist(m_angio.rengine);
 		if (createInitFrag(seg, sgi, culture) == false) return false;
 
 		// Give the segment the appropriate label
@@ -279,7 +278,7 @@ bool MultiDomainFragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, 
 		p0 = m_angio.FindGridPoint(item.domain, item.ielement, q);
 
 		// Determine vessel orientation based off of collagen fiber orientation
-		vec3d seg_vec = vrand();
+		vec3d seg_vec = m_angio.uniformRandomDirection();
 		seg_vec.unit();
 
 		// End of new segment is origin plus length component in each direction	
@@ -334,8 +333,6 @@ static size_t findElement(double val, int lo, int high, double * begin, double *
 // Create initial fragments
 bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * culture)
 {
-	std::default_random_engine reg;
-	reg.seed(m_angio.m_irseed);
 	FEMesh * mesh = m_angio.GetMesh();
 	int elementsInDomains = 0;
 	for (size_t i = 0; i < culture->m_pmat->domains.size(); i++)
@@ -366,7 +363,7 @@ bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cul
 	for (int i = 0; i < culture_params->m_number_fragments; ++i)
 	{
 		//do a binary search to find the element that contains the volume
-		double vol = voluchoice(reg);
+		double vol = voluchoice(m_angio.rengine);
 		int ei = findElement(vol, 0, elementsInDomains - 1, totalWeightsBegin, totalWeightsEnd);
 		// Create an initial segment
 		Segment seg;
@@ -420,7 +417,7 @@ bool MDByVolumeFragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, C
 		p0 = m_angio.FindGridPoint(item.domain, item.ielement, q);
 
 		// Determine vessel orientation based off of collagen fiber orientation
-		vec3d seg_vec = vrand();
+		vec3d seg_vec = m_angio.uniformRandomDirection();
 		seg_vec.unit();
 
 		// End of new segment is origin plus length component in each direction	

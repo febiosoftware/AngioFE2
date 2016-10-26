@@ -48,6 +48,8 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem)
 
 	// Input random seed number
 	m_irseed = 0;
+	ztopi = std::uniform_real_distribution<double>(0, pi);
+	zto2pi = std::uniform_real_distribution<double>(0, 2 * pi);
 }
 
 //-----------------------------------------------------------------------------
@@ -106,6 +108,7 @@ bool FEAngio::Init()
 		posseed = static_cast<unsigned int>(time(0));
 	}
 	m_irseed = posseed;
+	rengine.seed(m_irseed);
 	srand(m_irseed);
 
 	// Print out the seed number for the random generator
@@ -472,6 +475,15 @@ void FEAngio::ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<i
 		FESolidDomain & d = reinterpret_cast<FESolidDomain&>(mesh.Domain(dl[i]));
 		f(d);
 	}
+}
+vec3d FEAngio::uniformRandomDirection()
+{
+	//to revert this set this to return vrand
+	double theta = ztopi(rengine);
+	double phi = zto2pi(rengine);
+	double sintheta = sin(theta);
+	vec3d dir(sintheta * cos(phi), sintheta * sin(phi), cos(theta));
+	return dir;
 }
 
 vec3d FEAngio::gradient(FESolidElement * se, std::vector<double> & fn, vec3d pt)

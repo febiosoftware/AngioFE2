@@ -10,6 +10,7 @@
 #include <vector>
 #include <functional>
 #include <unordered_map>
+#include <random>
 #include <FECore/FESurface.h>
 
 
@@ -77,6 +78,8 @@ public:
 	void ForEachDomain(std::function<void(FESolidDomain&)> f);
 	void ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<int> & matls);
 
+	vec3d uniformRandomDirection();
+
 	//calcualtes the gradient at the given natural coordinates
 	static vec3d gradient(FESolidElement * se,std::vector<double> & fn, vec3d pt);
 
@@ -143,6 +146,8 @@ public:	// parameters read directly from file
 	std::vector<FEAngioMaterial*>	m_pmat;	//!< the angio-material pointer
 	std::vector<int>                m_pmat_ids;
 
+	std::mt19937_64 rengine;
+
 private:
 	FEModel&		m_fem;		// the FE model
 	//both nodes and elements id's go from 1 to n+1 for n items
@@ -153,4 +158,7 @@ private:
 
     time_t m_start;			// time of start
 	Fileout fileout;		// output manager
+	
+	std::uniform_real_distribution<double> ztopi;
+	std::uniform_real_distribution<double> zto2pi;
 };

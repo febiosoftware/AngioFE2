@@ -510,6 +510,7 @@ bool FEAngioMaterial::InitCollagenFibers()
 	{
 	case 0: // random orientation
 		//TODO: ask jeff if this should be removed?
+		//this mode is the old way of doing things and should only be used for verifying that the test suite still passes
 		for (int i = 0; i < mesh->Nodes(); i++)
 		{
 			vec3d v = vrand();
@@ -535,7 +536,7 @@ bool FEAngioMaterial::InitCollagenFibers()
 
 		m_pangio->ForEachNode([&](FENode & node)
 		{
-			vec3d v = vrand();
+			vec3d v = m_pangio->uniformRandomDirection();
 			v.unit();
 			m_pangio->m_fe_node_data[node.GetID()].m_collfib0 = v;
 			m_pangio->m_fe_node_data[node.GetID()].m_collfib = v;
