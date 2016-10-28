@@ -4,6 +4,7 @@
 #include "BC.h"
 #include "Segment.h"
 #include <vector>
+#include <fstream>
 using namespace std;
 
 //-----------------------------------------------------------------------------
@@ -88,10 +89,13 @@ struct CultureParameters
 
 	double min_segment_length = 0.1;
 
-	int fragment_seeder = 1;//0 classic fragment seeder, 1 multidomian fragment seeder
+	int fragment_seeder = 1;//0 classic fragment seeder, 1 multidomian fragment seeder, 2 by volume fragment seeder, 3 from file
+
+	char vessel_file[MAXPARAMSIZE];//only used if seeding from file
 
 	int angio_boundary_type = 1;// 0 same as non angio materials, 1 pass through
 	int angio_boundary_groups = 1;//each bit in this parameter fragments can only travel between the groups they are in
+
 
 	double density_gradient_threshold = 0.01;//set this to be higher to turn off the direction change on encountering different densities
 };
@@ -113,6 +117,8 @@ public:
 protected:
 	FEAngio & m_angio;
 	CultureParameters * culture_params;
+	std::vector<FEDomain *> domains;
+	virtual bool createInitFrag(Segment& Seg, SegGenItem & item, Culture * culture);
 };
 
 class ClassicFragmentSeeder : public FragmentSeeder
@@ -130,9 +136,6 @@ public:
 	bool SeedFragments(SimulationTime& time, Culture * culture) override;
 	MultiDomainFragmentSeeder(CultureParameters * cp, FEAngio & angio) : FragmentSeeder(cp, angio) {}
 private:
-	// Seed an initial fragment within the grid
-	bool createInitFrag(Segment& Seg, SegGenItem & item, Culture * culture);
-	std::vector<FEDomain *> domains;
 };
 
 class MDByVolumeFragmentSeeder : public FragmentSeeder
@@ -141,9 +144,15 @@ public:
 	bool SeedFragments(SimulationTime& time, Culture * culture) override;
 	MDByVolumeFragmentSeeder(CultureParameters * cp, FEAngio & angio) : FragmentSeeder(cp, angio) {}
 private:
-	// Seed an initial fragment within the grid
-	bool createInitFrag(Segment& Seg, SegGenItem & item, Culture * culture);
-	std::vector<FEDomain *> domains;
+};
+
+class MDAngVessFileFragmentSeeder :public FragmentSeeder
+{
+public:
+	bool SeedFragments(SimulationTime& time, Culture * culture) override;
+	MDAngVessFileFragmentSeeder(CultureParameters * cp, FEAngio & angio) : FragmentSeeder(cp, angio) {}
+private:
+	std::ifstream infile;
 };
 
 //-----------------------------------------------------------------------------

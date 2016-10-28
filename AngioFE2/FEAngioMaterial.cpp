@@ -127,6 +127,7 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	ADD_PARAMETER(m_cultureParams.angio_boundary_type, FE_PARAM_INT, "angio_boundary_type");
 	ADD_PARAMETER(m_cultureParams.angio_boundary_groups, FE_PARAM_INT, "angio_boundary_groups");
 	ADD_PARAMETER(m_cultureParams.density_gradient_threshold, FE_PARAM_DOUBLE, "density_gradient_threshold");
+	ADD_PARAMETER(m_cultureParams.vessel_file, FE_PARAM_STRING, "vessel_file");
 	
 END_PARAMETER_LIST();
 //-----------------------------------------------------------------------------

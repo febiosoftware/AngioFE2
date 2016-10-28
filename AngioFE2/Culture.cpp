@@ -7,6 +7,7 @@
 #include "FEAngioMaterial.h"
 #include "FECore/FEMesh.h"
 #include <random>
+#include <regex>
 #define _USE_MATH_DEFINES
 
 void DirectionalWeights(double da, double dw[2]);
@@ -93,6 +94,9 @@ bool Culture::Init()
 		break;
 	case 2:
 		fseeder = new MDByVolumeFragmentSeeder(m_cultParams, m_angio);
+		break;
+	case 3:
+		fseeder = new MDAngVessFileFragmentSeeder(m_cultParams, m_angio);
 		break;
 	default:
 		assert(false);
@@ -258,7 +262,7 @@ bool MultiDomainFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cu
 
 //-----------------------------------------------------------------------------
 // Generates an initial fragment that lies inside the given element
-bool MultiDomainFragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, Culture * culture)
+bool FragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, Culture * culture)
 {
 	//note tip(1) may not be in the same element as the initial fragment
 	// Set seg length to value of growth function at t = 0
@@ -312,6 +316,7 @@ bool MultiDomainFragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, 
 	// all good
 	return true;
 }
+
 static size_t findElement(double val, int lo, int high, double * begin, double * end)
 {
 	int mid = lo + (high - lo) / 2;
@@ -396,59 +401,69 @@ bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cul
 }
 
 //-----------------------------------------------------------------------------
-// Generates an initial fragment that lies inside the given element
-bool MDByVolumeFragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, Culture * culture)
+// Create initial fragments
+bool MDAngVessFileFragmentSeeder::SeedFragments(SimulationTime& time, Culture * culture)
 {
-	//note tip(1) may not be in the same element as the initial fragment
-	// Set seg length to value of growth function at t = 0
-	double seg_length = culture_params->m_initial_vessel_length;
-
-	// Since the creation of such a segment may fail (i.e. too close to boundary)
-	// we loop until we find one.
-	const int MAX_TRIES = 10;
-	int ntries = 0;
-	GridPoint p0, p1;
-	do
+	FEMesh * mesh = m_angio.GetMesh();
+	SegGenItem sgi;
+	infile.open(culture_params->vessel_file);
+	if (infile.fail())
 	{
-		// generate random natural coordinates
-		vec3d q = vrand();
+		printf("error while opening input file\n");
+		return false;
+	}
+	std::string line;
+	int i = 1;
+	vec3d p1, p2;
+	std::regex whitespace("\\s+");
+	while (std::getline(infile, line))
+	{
+		
+		//any lines starting with a nondigit are considered comments
+		if (!isdigit(line[0]))
+		{
+			continue;
+		}
+		int festate=0;
+		double length = 0.0f, segtime = 0;
+		line = regex_replace(line, whitespace, " ");
+		if (9 != sscanf(line.c_str(), "%d %lf %lf %lf %lf %lf %lf %lf %lf %lf", &festate, &segtime, &p1.x, &p1.y, &p1.z, &p2.x, &p2.y, &p2.z, &length))
+		{
+			//improperly formatted line
+			//this line is skipped
+			continue;
+		}
+			
+		// Create an initial segment
+		Segment seg;
+		
 
-		// set the position of the first tip
-		p0 = m_angio.FindGridPoint(item.domain, item.ielement, q);
+		//find the elements that contain the point
+		bool rv = culture->m_pmat->FindGridPoint(p1, seg.tip(0).pt);
+		assert(rv);
+		rv = culture->m_pmat->FindGridPoint(p2, seg.tip(1).pt);
+		assert(rv);
+		// Give the segment the appropriate label
+		seg.seed(i);
 
-		// Determine vessel orientation based off of collagen fiber orientation
-		vec3d seg_vec = m_angio.uniformRandomDirection();
-		seg_vec.unit();
+		// Set the segment vessel as the segment label
+		seg.vessel(seg.seed());
 
-		// End of new segment is origin plus length component in each direction	
-		vec3d r1 = p0.r + seg_vec*seg_length;
+		seg.Update();
+		seg.tip(0).bactive = true;
+		seg.tip(1).bactive = true;
+		// add it to the list
+		culture->AddSegment(seg);
+		i++;
+	}
+	infile.close();
 
-		// find the element where the second tip is
-		culture->m_pmat->FindGridPoint(r1, p1);
-		//need to check the domain is legal
-		ntries++;
-	} while (((p1.nelem == -1) && (ntries < MAX_TRIES)) || (std::find(domains.begin(), domains.end(), p1.ndomain) == domains.end()));
+	// init vessel counter
+	culture->m_num_vessel = culture_params->m_number_fragments;
 
-	if (p1.nelem == -1)  return false;
+	// Update the active tip container
+	culture->FindActiveTips();
 
-	// assign the grid points
-	seg.tip(0).pt = p0;
-	seg.tip(1).pt = p1;
-
-	// update length and unit vector
-	seg.Update();
-
-	// make both tips active
-	seg.tip(0).bactive = true;
-	seg.tip(1).bactive = true;
-
-	// decide if this initial segment is allowed to branch
-	if (frand() < culture_params->m_initial_branch_probability) seg.SetFlagOn(Segment::INIT_BRANCH);
-
-	// Mark segment as an initial fragment
-	seg.SetFlagOn(Segment::INIT_SPROUT);
-
-	// all good
 	return true;
 }
 
