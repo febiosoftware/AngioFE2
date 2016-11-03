@@ -387,6 +387,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 	double rs[3];
 	double g;
 	
+	bool found = false;
 	for (size_t i = 0; i < edinices.size(); i++)
 	{
 		FESurfaceElement & surfe = reinterpret_cast<FESurfaceElement&>(surf->ElementRef(mat0->m_pangio->m_fe_element_data[se.GetID()].surfacesIndices[i]));
@@ -403,11 +404,38 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 			if (seg.length() > mat0->m_cultureParams.min_segment_length)
 			{
 				mat0->m_cult->AddSegment(seg);
+				found = true;
 				break;
 			}
 				
 		}
 	}
+	if (!found)
+	{
+		FESurfaceElement * surfe = culture->m_pmat->normal_proj->Project(seg.tip(0).pt.r, -dir, rs);
+		if (surfe)
+		{
+			int eindex = surfe->m_elem[0];
+
+			vec3d pos = surf->Local2Global(*surfe, rs[0], rs[1]);
+			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
+			seg.tip(1).pt.elemindex = eindex - culture->m_pmat->meshOffsets[seg.tip(1).pt.ndomain];
+			seg.tip(1).pt.nelem = eindex + 1;
+
+			FESolidElement & se = reinterpret_cast<FESolidElement&>(seg.tip(1).pt.ndomain->ElementRef(seg.tip(1).pt.elemindex));
+			seg.tip(1).pt.r = surf->Local2Global(*surfe, rs[0], rs[1]);
+			seg.tip(1).pt.q = mat0->m_pangio->FindRST(seg.tip(1).pt.r, vec2d(rs[0], rs[1]), dynamic_cast<FESolidElement*>(&se));
+
+			seg.Update();
+			seg.SetFlagOn(Segment::BC_DEAD);
+			if (seg.length() > mat0->m_cultureParams.min_segment_length)
+			{
+				mat0->m_cult->AddSegment(seg);
+			}
+
+		}
+	}
+	
 	
 	//project from the opposite direction
 	Segment s2 = seg;
