@@ -90,6 +90,7 @@ public:
 	friend class FEPlotAngioCollagenFibers;
 	friend class FEPlotAngioECMDensity;
 	friend class FEPlotAngioECMAlpha;
+	friend class FEPlotAngioGradient;
 	//the following friendships are bad and need removed eventually
 	//TODO: remove the freindship, creation in the old way requires this
 	//or consider making the node and element data public

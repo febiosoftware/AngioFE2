@@ -19,7 +19,9 @@ FEPluginFactory_T<FEPlotAngioStress         , FEPLOTDATA_ID> plot_angio_stress  
 FEPluginFactory_T<FEPlotAngioEffectiveStress, FEPLOTDATA_ID> plot_angio_eff_stress("angio effective stress");
 FEPluginFactory_T<FEPlotAngioCollagenFibers , FEPLOTDATA_ID> plot_angio_fibers    ("angio collagen fiber"  );
 FEPluginFactory_T<FEPlotAngioECMDensity     , FEPLOTDATA_ID> plot_angio_ecm       ("angio ECM density"     );
-FEPluginFactory_T<FEPlotAngioECMAlpha     , FEPLOTDATA_ID> plot_angio_alpha       ("angio ECM alpha"     );
+FEPluginFactory_T<FEPlotAngioECMAlpha       , FEPLOTDATA_ID> plot_angio_alpha     ("angio ECM alpha"       );
+FEPluginFactory_T<FEPlotAngioGradient       , FEPLOTDATA_ID> plot_angio_gradient  ("angio gradient"        );
+FEPluginFactory_T<FEPlotAngioGradientCenter ,FEPLOTDATA_ID> plot_angio_gradient_center("angio gradient center");
 
 //-----------------------------------------------------------------------------
 FECORE_EXPORT unsigned int GetSDKVersion()
@@ -43,22 +45,39 @@ FECORE_EXPORT void GetPluginVersion(int & major, int & minor, int & patch)
 //-----------------------------------------------------------------------------
 FECORE_EXPORT int PluginNumClasses()
 {
-	return 9;
+	return 11;
 }
 
 //-----------------------------------------------------------------------------
 FECORE_EXPORT FECoreFactory * PluginGetFactory(int i)
 {
-	if      (i==0) return &angiofe_task_factory;
-	else if (i==1) return &angio_sprout_factory;
-	else if (i==2) return &angio_mat_factory;
-	else if (i==3) return &pressure_mat_factory;
-	else if (i==4) return &plot_angio_stress;
-	else if (i==5) return &plot_angio_eff_stress;
-	else if (i==6) return &plot_angio_fibers;
-	else if (i==7) return &plot_angio_ecm;
-	else if (i==8) return &plot_angio_alpha;
-	else return 0;
+	switch (i)
+	{
+	case 0:
+		return &angiofe_task_factory;
+	case 1:
+		return &angio_sprout_factory;
+	case 2:
+		return &angio_mat_factory;
+	case 3:
+		return &pressure_mat_factory;
+	case 4:
+		return &plot_angio_stress;
+	case 5:
+		return &plot_angio_eff_stress;
+	case 6:
+		return &plot_angio_fibers;
+	case 7:
+		return &plot_angio_ecm;
+	case 8:
+		return &plot_angio_alpha;
+	case 9:
+		return &plot_angio_gradient;
+	case 10:
+		return &plot_angio_gradient_center;
+	default:
+		return nullptr;
+	}
 }
 
 //-----------------------------------------------------------------------------

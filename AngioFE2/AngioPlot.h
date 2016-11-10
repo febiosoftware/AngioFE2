@@ -10,6 +10,14 @@ public:
 };
 
 //-----------------------------------------------------------------------------
+class FEPlotAngioGradientCenter : public FEDomainData
+{
+public:
+	FEPlotAngioGradientCenter(FEModel* pfem) : FEDomainData(PLT_VEC3F, FMT_ITEM){}
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+
+//-----------------------------------------------------------------------------
 class FEPlotAngioEffectiveStress : public FEDomainData
 {
 public:
@@ -23,6 +31,13 @@ class FEPlotAngioCollagenFibers : public FENodeData
 public:
 	FEPlotAngioCollagenFibers(FEModel* pfem) : FENodeData(PLT_VEC3F, FMT_ITEM){}
 	bool Save(FEMesh& m, FEDataStream& a)  override;
+};
+
+class FEPlotAngioGradient : public FENodeData
+{
+public:
+	FEPlotAngioGradient(FEModel * pfem) : FENodeData(PLT_VEC3F, FMT_ITEM){}
+	bool Save(FEMesh & m, FEDataStream & a) override;
 };
 
 //-----------------------------------------------------------------------------
