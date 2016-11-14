@@ -113,6 +113,7 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	ADD_PARAMETER(m_cultureParams.m_boundary_condition_type, FE_PARAM_STRING, "boundary_condition_type");
 
 	ADD_PARAMETER2(m_cultureParams.m_matrix_condition, FE_PARAM_INT, FE_RANGE_CLOSED(0,4), "matrix_condition");
+	ADD_PARAMETER(m_cultureParams.ecm_control, FE_PARAM_INT, "ecm_seeder");
 	ADD_PARAMETER2(m_cultureParams.m_matrix_density, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "matrix_density");
 
 	ADD_PARAMETER(m_cultureParams.m_symmetry_plane, FE_PARAM_VEC3D, "symmetryplane");
@@ -178,6 +179,21 @@ bool FEAngioMaterial::Init()
 	//culture must be initialized here  so pangio is defined
 	assert(m_pangio);
 	m_cult = new Culture(*m_pangio, this, &m_cultureParams);
+
+	switch (m_cultureParams.ecm_control)
+	{
+	case 0:
+		ecm_initializer = new ECMInitializerConstant();
+		break;
+	case 1:
+		ecm_initializer = new ECMInitializerSpecified();
+		break;
+	case 2:
+		ecm_initializer = new ECMInitializerNoOverwrite();
+		break;
+	default:
+		assert(false);
+	}
 
 	// add the user sprouts
 	std::vector<int> matls;
@@ -809,6 +825,14 @@ void FEAngioMaterial::Update()
 {
 	m_cult->Update();
 }
+void FEAngioMaterial::UpdateECM()
+{
+	ecm_initializer->updateECMdensity(this);
+}
+bool FEAngioMaterial::Overwrite() const
+{
+	return ecm_initializer->overwrite();
+}
 bool FEAngioMaterial::InitCulture()
 {
 	return m_cult->Init();
@@ -816,49 +840,140 @@ bool FEAngioMaterial::InitCulture()
 //this function accumulates the the anistropy and ecm_density, n_tag is incremented to be used to take the average
 bool FEAngioMaterial::InitECMDensity(FEAngio * angio)
 {
-	if (m_cultureParams.m_matrix_density == 0.0)
-	{
-		std::vector<int> matls;
-		matls.push_back(GetID());
-		FEMesh * mesh = angio->GetMesh();
-		angio->ForEachElement([this, angio, mesh](FESolidElement & se, FESolidDomain & sd)
-		{
-			double den[FEElement::MAX_INTPOINTS];
-			double anis[FEElement::MAX_INTPOINTS];
-			double pden[FEElement::MAX_INTPOINTS];
-			double panis[FEElement::MAX_INTPOINTS];
-			for (int n = 0; n<se.GaussPoints(); ++n)
-			{
-				// generate a coordinate transformation at this integration point
-				FEMaterialPoint* mpoint = se.GetMaterialPoint(n);
-				FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(mpoint);
-				den[n] = angioPt->m_D;
-				anis[n] = angioPt->m_DA;
-			}
-			se.project_to_nodes(den, pden);
-			se.project_to_nodes(anis, panis);
-			for (int k = 0; k < se.Nodes(); k++)
-			{
-				angio->m_fe_node_data[mesh->Node(se.m_node[k]).GetID()].m_ecm_den0 += pden[k];
-				angio->m_fe_node_data[mesh->Node(se.m_node[k]).GetID()].m_ntag++;
-				angio->m_fe_node_data[mesh->Node(se.m_node[k]).GetID()].m_da += panis[k];
-			}
-		}, matls);
-	}
-	else
-	{
-		std::vector<int> matls;
-		matls.push_back(GetID());
-		angio->ForEachNode([this, angio](FENode & node)
-		{
-			angio->m_fe_node_data[node.GetID()].m_ecm_den0 += this->m_cultureParams.m_matrix_density;
-			angio->m_fe_node_data[node.GetID()].m_ntag++;
-			angio->m_fe_node_data[node.GetID()].m_da = this->GetAnisotropy();
-		}, matls);
-	}
-
+	ecm_initializer->seedECMDensity(this);
 	return true;
 }
+void ECMInitializerConstant::seedECMDensity(FEAngioMaterial * mat)
+{
+	std::vector<int> matls;
+	matls.push_back(mat->GetID());
+	mat->m_pangio->ForEachNode([this, mat](FENode & node)
+	{
+		mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den0 = mat->m_cultureParams.m_matrix_density;
+		mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den  = mat->m_cultureParams.m_matrix_density;
+		mat->m_pangio->m_fe_node_data[node.GetID()].m_da = mat->GetAnisotropy();
+	}, matls);
+}
+void ECMInitializer::updateECMdensity(FEAngioMaterial * mat)
+{
+	std::vector<int> matls;
+	matls.push_back(mat->GetID());
+	FEMesh * mesh = mat->m_pangio->GetMesh();
+	mat->m_pangio->ForEachElement([mesh, mat](FESolidElement & elem, FESolidDomain & d)
+	{
+		//these will hold the natural coordinates once the project to nodes is complete 
+		double nr[FEElement::MAX_NODES];
+		double ns[FEElement::MAX_NODES];
+		double nt[FEElement::MAX_NODES];
+		//these hold the natural coordinates of the integration points (r,s,t)
+		double gr[FEElement::MAX_NODES];
+		double gs[FEElement::MAX_NODES];
+		double gt[FEElement::MAX_NODES];
+		//TODO: if needed get FEBIO to expose the vectors that contain these to avoid this copy
+		for (int i = 0; i < elem.Nodes(); i++)
+		{
+			gr[i] = elem.gr(i);
+			gs[i] = elem.gs(i);
+			gt[i] = elem.gt(i);
+		}
+
+		elem.project_to_nodes(gr, nr);
+		elem.project_to_nodes(gs, ns);
+		elem.project_to_nodes(gt, nt);
+
+		// For each node in the element...
+		for (int j = 0; j<elem.Nodes(); ++j)
+		{
+			// get the node
+			int nnum = elem.m_node[j];
+			nnum = mesh->Node(nnum).GetID();
+			// get the ecm density and collagen fiber
+			double ecm_den = mat->m_pangio->m_fe_node_data[nnum].m_ecm_den0;
+			vec3d coll_fib = mat->m_pangio->m_fe_node_data[nnum].m_collfib0;
+
+			/*
+			//clamp n* to [1,-1]
+			nr[j] = min(max(nr[j], -1), 1);
+			ns[j] = min(max(ns[j], -1), 1);
+			nt[j] = min(max(nt[j], -1), 1);
+			*/
+
+			//round to nearest integer
+			nr[j] = round(nr[j]);
+			ns[j] = round(ns[j]);
+			nt[j] = round(nt[j]);
+
+			// Calculate the deformation gradient tensor and jacobian at the node
+			mat3d F;
+			double Jacob = d.defgrad(elem, F, nr[j], ns[j], nt[j]);
+
+			//make sure the function is differentiable and preserves orientation
+			assert(Jacob > 0.0);
+
+			// Update the collagen fiber orientation vector into the current configuration using F		
+			coll_fib = F*coll_fib;
+			coll_fib.unit();
+
+			// Update matrix density using the Jacobian
+			ecm_den = ecm_den / Jacob;
+
+			// accumulate fiber directions and densities
+			mat->m_pangio->m_fe_node_data[nnum].m_collfib += coll_fib;
+			mat->m_pangio->m_fe_node_data[nnum].m_ecm_den += ecm_den;
+
+
+			// increment counter
+			mat->m_pangio->m_fe_node_data[nnum].m_ntag++;
+		}
+	}, matls);
+}
+
+void ECMInitializerSpecified::seedECMDensity(FEAngioMaterial * mat)
+{
+	std::vector<int> matls;
+	matls.push_back(mat->GetID());
+	FEMesh * mesh = mat->m_pangio->GetMesh();
+	mat->m_pangio->ForEachElement([this, mat, mesh](FESolidElement & se, FESolidDomain & sd)
+	{
+		double den[FEElement::MAX_INTPOINTS];
+		double anis[FEElement::MAX_INTPOINTS];
+		double pden[FEElement::MAX_INTPOINTS];
+		double panis[FEElement::MAX_INTPOINTS];
+		for (int n = 0; n<se.GaussPoints(); ++n)
+		{
+			// generate a coordinate transformation at this integration point
+			FEMaterialPoint* mpoint = se.GetMaterialPoint(n);
+			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(mpoint);
+			den[n] = angioPt->m_D;
+			anis[n] = angioPt->m_DA;
+		}
+		se.project_to_nodes(den, pden);
+		se.project_to_nodes(anis, panis);
+		for (int k = 0; k < se.Nodes(); k++)
+		{
+			mat->m_pangio->m_fe_node_data[mesh->Node(se.m_node[k]).GetID()].m_ecm_den0 += pden[k];
+			mat->m_pangio->m_fe_node_data[mesh->Node(se.m_node[k]).GetID()].m_ntag++;
+			mat->m_pangio->m_fe_node_data[mesh->Node(se.m_node[k]).GetID()].m_da += panis[k];
+		}
+	}, matls);
+}
+
+void ECMInitializerNoOverwrite::seedECMDensity(FEAngioMaterial * mat)
+{
+	std::vector<int> matls;
+	matls.push_back(mat->GetID());
+	mat->m_pangio->ForEachNode([this, mat](FENode & node)
+	{
+		if (mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den0 == 0.0)
+		{
+			mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den0 = mat->m_cultureParams.m_matrix_density;
+			mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den  = mat->m_cultureParams.m_matrix_density;
+			mat->m_pangio->m_fe_node_data[node.GetID()].m_da = mat->GetAnisotropy();
+		}
+	}, matls);
+}
+
+
 
 double FEAngioMaterial::GetAnisotropy() const
 {

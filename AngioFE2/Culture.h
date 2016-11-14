@@ -62,6 +62,7 @@ struct CultureParameters
 
 	//parameters for ECM density/alignment
 	int m_matrix_condition = 0; // flag indicating how the collagen fibers are oriented initially ( 0 = random classic mode, 1 multimaterial mode,  3 = along local element direction)
+	int ecm_control = 0; //flag indicating how the ecm density and anisotropy are initialized: 0 constant mode, 1 specified mode, 2 no overwrite 
 	double m_matrix_density = 3.0;//mg/ml 3.0 default
 
 	//symmety

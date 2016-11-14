@@ -508,7 +508,8 @@ void Culture::GrowVessels()
 	for (TipIter it = m_active_tips.begin(); it != m_active_tips.end(); ++it)
 	{
 		Segment::TIP& tip = *(*it);
-
+		if (!tip.bactive)
+			continue; //this may happen when the segment has grown into the boundary but has not yet been removed from the active tip list
 		//modify direction based on anisotropy value
 		double dw[2];
 		double da_value = m_angio.genericProjectToPoint(&tip.pt.ndomain->ElementRef(tip.pt.elemindex), &FEAngioNodeData::m_da, tip.pt.q);

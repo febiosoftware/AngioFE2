@@ -6,6 +6,7 @@
 #include "FEAngioMaterial.h"
 #include "FECore/FEMesh.h"
 #include <unordered_map>
+#include <algorithm>
 
 extern FEAngio* pfeangio;
 
@@ -38,6 +39,7 @@ bool FEPlotAngioStress::Save(FEDomain& d, FEDataStream& str)
 
 bool FEPlotAngioGradientCenter::Save(FEDomain& d, FEDataStream& str)
 {
+	//note the interpolation in postview may make this look incorrect
 	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
 	if (pmat == nullptr) return false;
 
@@ -105,7 +107,7 @@ bool FEPlotAngioCollagenFibers::Save(FEMesh& m, FEDataStream& a)
 }
 bool FEPlotAngioGradient::Save(FEMesh & m, FEDataStream & a)
 {
-	//this doesnt appear to work for materials outside of the first one
+	//this has problems on the boundaries between materials
 	std::unordered_map<int, vec3d> gradients;
 	if (pfeangio == nullptr) return false;
 	//
@@ -135,11 +137,17 @@ bool FEPlotAngioGradient::Save(FEMesh & m, FEDataStream & a)
 		std::vector<double> densities;
 		densities = pfeangio->createVectorOfMaterialParameters(&se, &FEAngioNodeData::m_ecm_den);
 
+
+		
 		for (int i = 0; i < se.m_node.size(); i++)
 		{
 			vec3d pt = vec3d(nr[i], ns[i], nt[i]);
 			FENode & node = mesh.Node(se.m_node[i]);
-			gradients[node.GetID()] = pfeangio->gradient(&se, densities, pt); 
+			
+			if (dynamic_cast<FEAngioMaterial*>(d.GetMaterial())->Overwrite() || (gradients.count(node.GetID()) == 0 ))
+			{
+				gradients[node.GetID()] = pfeangio->gradient(&se, densities, pt);
+			}
 		}
 		
 	});

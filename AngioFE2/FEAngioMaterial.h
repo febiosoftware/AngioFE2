@@ -42,6 +42,34 @@ public:
 public:
 	static FEAngioMaterialPoint* FindAngioMaterialPoint(FEMaterialPoint* mp);
 };
+class FEAngioMaterial;
+//the interface for the seeding of the extra cellular matrix
+//interfaces can be used for a number of objectives
+//these include controlling what happens on the boundaries and seeding according to a distribution
+
+//needs to set the intitial ecm density and anisotropy
+//if the density has not yet been modified it will be 0.0
+class ECMInitializer
+{
+public:
+	virtual ~ECMInitializer(){}
+	virtual void seedECMDensity(FEAngioMaterial * mat) = 0;
+	virtual bool overwrite(){ return true; }
+	virtual void updateECMdensity(FEAngioMaterial * mat);
+};
+class ECMInitializerConstant : public ECMInitializer
+{
+	void seedECMDensity(FEAngioMaterial * mat) override;
+};
+class ECMInitializerSpecified : public ECMInitializer
+{
+	void seedECMDensity(FEAngioMaterial * mat) override;
+};
+class ECMInitializerNoOverwrite : public ECMInitializer
+{
+	void seedECMDensity(FEAngioMaterial * mat) override;
+	bool overwrite() override{ return false; }
+};
 
 //-----------------------------------------------------------------------------
 // Class implementing a stress induced by a non-local point force
@@ -77,6 +105,10 @@ public:
 	void Grow(SimulationTime& time);
 
 	void Update();
+
+	void UpdateECM();
+
+	bool Overwrite() const;
 
 	int GetSeed() const{ return m_cultureParams.m_seed; }
 
@@ -132,7 +164,7 @@ public:
 	bool FindGridPoint(const vec3d & r, GridPoint & p) const;
 	bool FindGridPoint(const vec3d & r, FEDomain * domain, int elemindex, GridPoint & p) const;
 private:
-	
+	ECMInitializer * ecm_initializer;
 
 	
 

@@ -269,9 +269,7 @@ bool FEAngio::InitECMDensity()
 		//nneds to be run only once per node
 		if (m_fe_node_data[node.GetID()].m_ntag)
 		{
-			m_fe_node_data[node.GetID()].m_ecm_den0 /= static_cast<double>(m_fe_node_data[node.GetID()].m_ntag);
 			m_fe_node_data[node.GetID()].m_ecm_den = m_fe_node_data[node.GetID()].m_ecm_den0;
-			//m_fe_node_data[node.GetID()].m_da /= static_cast<double>(m_fe_node_data[node.GetID()].m_ntag);
 			m_fe_node_data[node.GetID()].m_ntag = 0;
 		}
 	});
@@ -290,78 +288,16 @@ void FEAngio::UpdateECM()
 	{
 		m_fe_node_data[node.GetID()].m_collfib = vec3d(0, 0, 0);
 		m_fe_node_data[node.GetID()].m_ecm_den = 0.0;
+		m_fe_node_data[node.GetID()].m_ntag = 0;
 		//REFACTOR: why reset not just overwrite
 	});
 
 	//this portion will be harder
 	// For each element within the grid...
-	ForEachElement([this, &mesh](FESolidElement & elem, FESolidDomain & d)
+	for (int i = 0; i < m_pmat.size(); i++)
 	{
-		//these will hold the natural coordinates once the project to nodes is complete 
-		double nr[FEElement::MAX_NODES];
-		double ns[FEElement::MAX_NODES];
-		double nt[FEElement::MAX_NODES];
-		//these hold the natural coordinates of the integration points (r,s,t)
-		double gr[FEElement::MAX_NODES];
-		double gs[FEElement::MAX_NODES];
-		double gt[FEElement::MAX_NODES];
-		//TODO: if needed get FEBIO to expose the vectors that contain these to avoid this copy
-		for (int i = 0; i < elem.Nodes(); i++)
-		{
-			gr[i] = elem.gr(i);
-			gs[i] = elem.gs(i);
-			gt[i] = elem.gt(i);
-		}
-
-		elem.project_to_nodes(gr, nr);
-		elem.project_to_nodes(gs, ns);
-		elem.project_to_nodes(gt, nt);
-
-		// For each node in the element...
-		for (int j = 0; j<elem.Nodes(); ++j)
-		{
-			// get the node
-			int nnum = elem.m_node[j];
-			nnum = mesh.Node(nnum).GetID();
-			// get the ecm density and collagen fiber
-			double ecm_den = m_fe_node_data[nnum].m_ecm_den0;
-			vec3d coll_fib = m_fe_node_data[nnum].m_collfib0;
-
-			/*
-			//clamp n* to [1,-1]
-			nr[j] = min(max(nr[j], -1), 1);
-			ns[j] = min(max(ns[j], -1), 1);
-			nt[j] = min(max(nt[j], -1), 1);
-			*/
-
-			//round to nearest integer
-			nr[j] = round(nr[j]);
-			ns[j] = round(ns[j]);
-			nt[j] = round(nt[j]);
-
-			// Calculate the deformation gradient tensor and jacobian at the node
-			mat3d F;
-			double Jacob = d.defgrad(elem, F, nr[j], ns[j], nt[j]);
-			
-			//make sure the function is differentiable and preserves orientation
-			assert(Jacob > 0.0);
-
-			// Update the collagen fiber orientation vector into the current configuration using F		
-			coll_fib = F*coll_fib;
-			coll_fib.unit();
-
-			// Update matrix density using the Jacobian
-			ecm_den = ecm_den / Jacob;
-
-			// accumulate fiber directions and densities
-			m_fe_node_data[nnum].m_collfib += coll_fib;
-			m_fe_node_data[nnum].m_ecm_den += ecm_den;
-
-
-			// increment counter
-			m_fe_node_data[nnum].m_ntag++;
-		}
-	  });
+		m_pmat[i]->UpdateECM();
+	}
 
 	// normalize fiber vector and average ecm density
 	ForEachNode([this](FENode & node)

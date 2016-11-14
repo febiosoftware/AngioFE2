@@ -77,7 +77,7 @@ void BC::CheckBC(Segment &seg)
 			cpt.q = vec3d(r[0], r[1], r[2]);
 			cpt.ndomain = se->GetDomain();
 			cpt.nelem = se->GetID();
-			cpt.elemindex = se->GetID() - 1 - angm->meshOffsets[cpt.ndomain];
+			cpt.elemindex = se->GetID() - 1 - angm->meshOffsets.at(cpt.ndomain);
 			seg.Update();
 			if (mbc->acceptBoundary(culture->m_pmat, angm) && (angm != this->culture->m_pmat))
 			{
@@ -137,17 +137,21 @@ void BC::CheckBC(Segment &seg)
 	culture->m_pmat->normal_proj->SetSearchRadius(seg.length() * 2);
 	for (size_t i = 0; i < edinices.size(); i++)
 	{
-		FESurfaceElement & surfe = reinterpret_cast<FESurfaceElement&>(surf->ElementRef(m_angio.m_fe_element_data[se->GetID()].surfacesIndices[i]));
-		if (culture->m_pmat->exterior_surface->Intersect(surfe, seg.tip(0).pt.r, -dir, rs, g, 0.0001))//see the epsilon in FIndSolidElement
+		if (surf->Elements() > m_angio.m_fe_element_data[se->GetID()].surfacesIndices[i])
 		{
-			//set last_goodpt
-			lastgood_pt = surf->Local2Global(surfe, rs[0], rs[1]);
+			FESurfaceElement & surfe = reinterpret_cast<FESurfaceElement&>(surf->ElementRef(m_angio.m_fe_element_data[se->GetID()].surfacesIndices[i]));
+			if (culture->m_pmat->exterior_surface->Intersect(surfe, seg.tip(0).pt.r, -dir, rs, g, 0.0001))//see the epsilon in FIndSolidElement
+			{
+				//set last_goodpt
+				lastgood_pt = surf->Local2Global(surfe, rs[0], rs[1]);
 
-			seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
-			seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
-			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
-			return HandleBoundary(seg, lastgood_pt, rs, se);
+				seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
+				seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
+				seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
+				return HandleBoundary(seg, lastgood_pt, rs, se);
+			}
 		}
+		
 		
 	}
 	FESurfaceElement * surfe = culture->m_pmat->normal_proj->Project(seg.tip(0).pt.r, -dir, rs);
@@ -178,7 +182,7 @@ void BC::CheckBC(Segment &seg)
 			
 		vec3d pos = surf->Local2Global(*surfe, rs[0], rs[1]);
 		seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
-		seg.tip(1).pt.elemindex = eindex - culture->m_pmat->meshOffsets[seg.tip(1).pt.ndomain];
+		seg.tip(1).pt.elemindex = eindex - culture->m_pmat->meshOffsets.at(seg.tip(1).pt.ndomain);
 		seg.tip(1).pt.nelem = eindex + 1;
 		
 		FESolidElement & se = reinterpret_cast<FESolidElement&>(seg.tip(1).pt.ndomain->ElementRef(seg.tip(1).pt.elemindex));
@@ -240,7 +244,7 @@ void StopBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESoli
 		seg.tip(1).pt.r = lastGoodPt;
 		seg.tip(1).pt.nelem = se->GetID();
 		seg.tip(1).pt.ndomain = culture->m_pmat->domainptrs[0]; //hack
-		seg.tip(1).pt.elemindex = se->GetID() - 1 - culture->m_pmat->meshOffsets[seg.tip(1).pt.ndomain];
+		seg.tip(1).pt.elemindex = se->GetID() - 1 - culture->m_pmat->meshOffsets.at(seg.tip(1).pt.ndomain);
 		seg.tip(1).pt.r = m_angio.Position(seg.tip(1).pt);
 		seg.Update();
 		seg.tip(0).bactive = false;
@@ -288,7 +292,7 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 		seg.tip(1).pt.r = lastGoodPt;
 		seg.tip(1).pt.nelem = se->GetID();
 		seg.tip(1).pt.ndomain = culture->m_pmat->domainptrs[0]; //hack
-		seg.tip(1).pt.elemindex = se->GetID() - 1 - culture->m_pmat->meshOffsets[seg.tip(1).pt.ndomain];
+		seg.tip(1).pt.elemindex = se->GetID() - 1 - culture->m_pmat->meshOffsets.at(seg.tip(1).pt.ndomain);
 		seg.tip(1).pt.r = m_angio.Position(seg.tip(1).pt);
 		seg.Update();
 		seg.tip(0).bactive = false;
@@ -419,7 +423,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 
 			vec3d pos = surf->Local2Global(*surfe, rs[0], rs[1]);
 			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
-			seg.tip(1).pt.elemindex = eindex - culture->m_pmat->meshOffsets[seg.tip(1).pt.ndomain];
+			seg.tip(1).pt.elemindex = eindex - culture->m_pmat->meshOffsets.at(seg.tip(1).pt.ndomain);
 			seg.tip(1).pt.nelem = eindex + 1;
 
 			FESolidElement & se = reinterpret_cast<FESolidElement&>(seg.tip(1).pt.ndomain->ElementRef(seg.tip(1).pt.elemindex));
@@ -485,7 +489,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 
 			vec3d pos = surf->Local2Global(*surfe, rs[0], rs[1]);
 			s2.tip(1).pt.ndomain = s2.tip(0).pt.ndomain;
-			s2.tip(1).pt.elemindex = eindex - mat1->meshOffsets[s2.tip(1).pt.ndomain];
+			s2.tip(1).pt.elemindex = eindex - mat1->meshOffsets.at(s2.tip(1).pt.ndomain);
 			s2.tip(1).pt.nelem = eindex + 1;
 
 			FESolidElement & se = reinterpret_cast<FESolidElement&>(s2.tip(1).pt.ndomain->ElementRef(s2.tip(1).pt.elemindex));
