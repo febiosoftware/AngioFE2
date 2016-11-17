@@ -11,17 +11,19 @@
 #include "AngioPlot.h"
 
 //-----------------------------------------------------------------------------
-FEPluginFactory_T<AngioFETask               , FETASK_ID    > angiofe_task_factory ("angio" );
-FEPluginFactory_T<FESproutBodyForce         , FEBODYLOAD_ID> angio_sprout_factory ("sprout");
-FEPluginFactory_T<FEAngioMaterial           , FEMATERIAL_ID> angio_mat_factory    ("angio" );
-FEPluginFactory_T<FEPressureMaterial        , FEMATERIAL_ID> pressure_mat_factory ("pressure" );
-FEPluginFactory_T<FEPlotAngioStress         , FEPLOTDATA_ID> plot_angio_stress    ("angio stress");
-FEPluginFactory_T<FEPlotAngioEffectiveStress, FEPLOTDATA_ID> plot_angio_eff_stress("angio effective stress");
-FEPluginFactory_T<FEPlotAngioCollagenFibers , FEPLOTDATA_ID> plot_angio_fibers    ("angio collagen fiber"  );
-FEPluginFactory_T<FEPlotAngioECMDensity     , FEPLOTDATA_ID> plot_angio_ecm       ("angio ECM density"     );
-FEPluginFactory_T<FEPlotAngioECMAlpha       , FEPLOTDATA_ID> plot_angio_alpha     ("angio ECM alpha"       );
-FEPluginFactory_T<FEPlotAngioGradient       , FEPLOTDATA_ID> plot_angio_gradient  ("angio gradient"        );
-FEPluginFactory_T<FEPlotAngioGradientCenter ,FEPLOTDATA_ID> plot_angio_gradient_center("angio gradient center");
+FEPluginFactory_T<AngioFETask                , FETASK_ID    > angiofe_task_factory         ("angio"                 );
+FEPluginFactory_T<FESproutBodyForce          , FEBODYLOAD_ID> angio_sprout_factory         ("sprout"                );
+FEPluginFactory_T<FEAngioMaterial            , FEMATERIAL_ID> angio_mat_factory            ("angio"                 );
+FEPluginFactory_T<FEPressureMaterial         , FEMATERIAL_ID> pressure_mat_factory         ("pressure"              );
+FEPluginFactory_T<FEPlotAngioStress          , FEPLOTDATA_ID> plot_angio_stress            ("angio stress"          );
+FEPluginFactory_T<FEPlotAngioEffectiveStress , FEPLOTDATA_ID> plot_angio_eff_stress        ("angio effective stress");
+FEPluginFactory_T<FEPlotAngioCollagenFibers  , FEPLOTDATA_ID> plot_angio_fibers            ("angio collagen fiber"  );
+FEPluginFactory_T<FEPlotAngioECMDensity      , FEPLOTDATA_ID> plot_angio_ecm               ("angio ECM density"     );
+FEPluginFactory_T<FEPlotAngioECMAlpha        , FEPLOTDATA_ID> plot_angio_alpha             ("angio ECM alpha"       );
+FEPluginFactory_T<FEPlotAngioGradient        , FEPLOTDATA_ID> plot_angio_gradient          ("angio gradient"        );
+FEPluginFactory_T<FEPlotAngioGradientCenter  , FEPLOTDATA_ID> plot_angio_gradient_center   ("angio gradient center" );
+FEPluginFactory_T<FEPlotAngioMaterialHop     , FEPLOTDATA_ID> plot_angio_material_hop      ("angio material hop"    );
+FEPluginFactory_T<FEPlotAngioSegmentBadGrowth, FEPLOTDATA_ID> plot_angio_segment_bad_growth("angio bad growth"      );
 
 //-----------------------------------------------------------------------------
 FECORE_EXPORT unsigned int GetSDKVersion()
@@ -45,7 +47,7 @@ FECORE_EXPORT void GetPluginVersion(int & major, int & minor, int & patch)
 //-----------------------------------------------------------------------------
 FECORE_EXPORT int PluginNumClasses()
 {
-	return 11;
+	return 13;
 }
 
 //-----------------------------------------------------------------------------
@@ -75,6 +77,10 @@ FECORE_EXPORT FECoreFactory * PluginGetFactory(int i)
 		return &plot_angio_gradient;
 	case 10:
 		return &plot_angio_gradient_center;
+	case 11:
+		return &plot_angio_material_hop;
+	case 12:
+		return &plot_angio_segment_bad_growth;
 	default:
 		return nullptr;
 	}

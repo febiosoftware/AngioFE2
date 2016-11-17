@@ -385,6 +385,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 	GridPoint oldtip = seg.tip(1).pt;
 	vec3d dir = seg.tip(1).pt.r - seg.tip(0).pt.r;
 	FESurface * surf = mat0->exterior_surface;
+	double tdist = seg.length();
 	FEElement & se = seg.tip(0).pt.ndomain->ElementRef(seg.tip(0).pt.elemindex);
 	std::vector<int> & edinices = mat0->m_pangio->m_fe_element_data[se.GetID()].surfacesIndices;
 	mat0->normal_proj->SetSearchRadius(seg.length() * 2);
@@ -432,9 +433,10 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 
 			seg.Update();
 			seg.SetFlagOn(Segment::BC_DEAD);
-			if (seg.length() > mat0->m_cultureParams.min_segment_length)
+			if ((seg.length() > mat0->m_cultureParams.min_segment_length) && (seg.length() < tdist))
 			{
 				mat0->m_cult->AddSegment(seg);
+				found0 = true;
 			}
 
 		}
@@ -443,7 +445,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 	
 	//project from the opposite direction
 	bool found1 = false;
-	Segment s2 = seg;
+	Segment s2= seg;//copies the seed and segment number 
 	s2.SetFlagOff(Segment::BC_DEAD);
 	s2.tip(1).pt = oldtip;
 	s2.tip(0) = seg.tip(1);
@@ -482,27 +484,45 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 	}
 	if (!found1)
 	{
-		FESurfaceElement * surfe = culture->m_pmat->normal_proj->Project(s2.tip(0).pt.r, -dir, rs);
+		FESurfaceElement * surfe = mat1->normal_proj->Project(s2.tip(1).pt.r, -dir, rs);
 		if (surfe)
 		{
 			int eindex = surfe->m_elem[0];
 
 			vec3d pos = surf->Local2Global(*surfe, rs[0], rs[1]);
-			s2.tip(1).pt.ndomain = s2.tip(0).pt.ndomain;
-			s2.tip(1).pt.elemindex = eindex - mat1->meshOffsets.at(s2.tip(1).pt.ndomain);
-			s2.tip(1).pt.nelem = eindex + 1;
+			s2.tip(0).pt.ndomain = s2.tip(1).pt.ndomain;
+			s2.tip(0).pt.elemindex = eindex - mat1->meshOffsets.at(s2.tip(1).pt.ndomain);
+			s2.tip(0).pt.nelem = eindex + 1;
 
-			FESolidElement & se = reinterpret_cast<FESolidElement&>(s2.tip(1).pt.ndomain->ElementRef(s2.tip(1).pt.elemindex));
-			s2.tip(1).pt.r = surf->Local2Global(*surfe, rs[0], rs[1]);
-			s2.tip(1).pt.q = mat1->m_pangio->FindRST(s2.tip(1).pt.r, vec2d(rs[0], rs[1]), dynamic_cast<FESolidElement*>(&se));
+			FESolidElement & se = reinterpret_cast<FESolidElement&>(s2.tip(1).pt.ndomain->ElementRef(s2.tip(0).pt.elemindex));
+			s2.tip(0).pt.r = surf->Local2Global(*surfe, rs[0], rs[1]);
+			s2.tip(0).pt.q = mat1->m_pangio->FindRST(s2.tip(0).pt.r, vec2d(rs[0], rs[1]), dynamic_cast<FESolidElement*>(&se));
 
 			s2.Update();
-			s2.SetFlagOn(Segment::BC_DEAD);
-			if (s2.length() > mat1->m_cultureParams.min_segment_length)
+			if ((s2.length() > mat1->m_cultureParams.min_segment_length) && (s2.length() < tdist))
 			{
+				s2.tip(1).bactive = true;
+				s2.tip(0).bactive = false;
 				mat1->m_cult->AddSegment(s2);
+				found1 = true;
 			}
 
 		}
+	}
+
+	//add a handler for when the endpoints aren't close
+	if ((found1 && found0) || (!found0 && found1))
+	{
+		if ((seg.tip(1).pt.r - s2.tip(0).pt.r).norm() > mat0->m_cultureParams.min_segment_length)
+		{
+			printf("warning growing entirely through a material\n");
+			mat0->m_pangio->m_fe_element_data[se.GetID()].flags |= 1;
+			
+		}
+	}
+	else if ((found0 && !found1))
+	{
+		printf("olny one segment found\n");
+		mat0->m_pangio->m_fe_element_data[se.GetID()].flags |= 2;
 	}
 }

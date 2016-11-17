@@ -6,6 +6,7 @@ FEAngioElementData::FEAngioElementData()
 {
 	alpha = 0.0;
 	fiber_orient = vec3d();
+	flags = 0;
 }
 
 FEAngioNodeData::FEAngioNodeData()

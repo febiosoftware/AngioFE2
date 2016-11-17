@@ -35,6 +35,10 @@ bool FEPlotAngioStress::Save(FEDomain& d, FEDataStream& str)
 		str << s;
 	}
 	return true;
+}
+
+FEPlotAngioGradientCenter::FEPlotAngioGradientCenter(FEModel* pfem): FEDomainData(PLT_VEC3F, FMT_ITEM)
+{
 };
 
 bool FEPlotAngioGradientCenter::Save(FEDomain& d, FEDataStream& str)
@@ -55,6 +59,50 @@ bool FEPlotAngioGradientCenter::Save(FEDomain& d, FEDataStream& str)
 		vec3d grad = pfeangio->gradient(&el, densities, zero);
 
 		str << grad;
+	}
+	return true;
+};
+FEPlotAngioMaterialHop::FEPlotAngioMaterialHop(FEModel* pfem) : FEDomainData(PLT_FLOAT, FMT_ITEM)
+{
+};
+
+bool FEPlotAngioMaterialHop::Save(FEDomain& d, FEDataStream& str)
+{
+	//note the interpolation in postview may make this look incorrect
+	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	if (pmat == nullptr) return false;
+
+	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
+	int NE = dom.Elements();
+	for (int i = 0; i<NE; ++i)
+	{
+		FESolidElement& el = dom.Element(i);
+
+		float val =  static_cast<float>((pmat->m_pangio->m_fe_element_data[el.GetID()].flags & 1));
+
+		str << val;
+	}
+	return true;
+};
+FEPlotAngioSegmentBadGrowth::FEPlotAngioSegmentBadGrowth(FEModel* pfem) : FEDomainData(PLT_FLOAT, FMT_ITEM)
+{
+};
+
+bool FEPlotAngioSegmentBadGrowth::Save(FEDomain& d, FEDataStream& str)
+{
+	//note the interpolation in postview may make this look incorrect
+	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	if (pmat == nullptr) return false;
+
+	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
+	int NE = dom.Elements();
+	for (int i = 0; i<NE; ++i)
+	{
+		FESolidElement& el = dom.Element(i);
+
+		float val = static_cast<float>((pmat->m_pangio->m_fe_element_data[el.GetID()].flags & 2));
+
+		str << val;
 	}
 	return true;
 };

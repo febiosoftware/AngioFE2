@@ -13,10 +13,26 @@ public:
 class FEPlotAngioGradientCenter : public FEDomainData
 {
 public:
-	FEPlotAngioGradientCenter(FEModel* pfem) : FEDomainData(PLT_VEC3F, FMT_ITEM){}
+	FEPlotAngioGradientCenter(FEModel* pfem);
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
+//-----------------------------------------------------------------------------
+class FEPlotAngioMaterialHop : public FEDomainData
+{
+public:
+	FEPlotAngioMaterialHop(FEModel* pfem);
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+
+
+//-----------------------------------------------------------------------------
+class FEPlotAngioSegmentBadGrowth : public FEDomainData
+{
+public:
+	FEPlotAngioSegmentBadGrowth(FEModel* pfem);
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
 //-----------------------------------------------------------------------------
 class FEPlotAngioEffectiveStress : public FEDomainData
 {
