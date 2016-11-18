@@ -16,6 +16,7 @@ CultureParameters::CultureParameters()
 {
 	m_boundary_condition_type[0] = 's';
 	m_boundary_condition_type[1] = '\0';
+	vessel_file[0] = '\0';
 }
 
 //-----------------------------------------------------------------------------
@@ -292,7 +293,7 @@ bool FragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, Culture * c
 		culture->m_pmat->FindGridPoint(r1,p1);
 		//need to check the domain is legal
 		ntries++;
-	} while (((p1.nelem == -1) && (ntries < MAX_TRIES)) || (std::find(domains.begin(), domains.end(), p1.ndomain) == domains.end()));
+	} while (((p1.nelem == -1) || (std::find(domains.begin(), domains.end(), p1.ndomain) == domains.end())) && (ntries < MAX_TRIES));
 
 	if (p1.nelem == -1)  return false;
 

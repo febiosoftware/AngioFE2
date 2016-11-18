@@ -489,6 +489,8 @@ bool FEAngioMaterial::FindGridPoint(const vec3d & r, GridPoint & p) const
 		assert((m_pangio->Position(p) - p.r).norm() < 1.0);
 		return true;
 	}
+	p.ndomain = nullptr;
+	p.nelem = -1;
 	return false;
 }
 
