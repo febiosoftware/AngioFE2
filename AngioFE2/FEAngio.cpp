@@ -111,11 +111,6 @@ bool FEAngio::Init()
 	rengine.seed(m_irseed);
 	srand(m_irseed);
 
-	// Print out the seed number for the random generator
-	fileout.printrandseed(m_irseed);
-
-
-
 	ForEachNode([this](FENode & node)
 	{
 		//nodes may be accessed multiple times by the current implementation

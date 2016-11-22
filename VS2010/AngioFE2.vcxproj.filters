@@ -60,6 +60,9 @@
     <ClInclude Include="..\AngioFE2\targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="kdtree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\AngioFE2\AngioFE.cpp">

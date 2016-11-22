@@ -67,6 +67,7 @@ void Fileout::closeTracking()
 //-----------------------------------------------------------------------------
 void Fileout::printStatus(FEAngio& angio)
 {
+	//now updated to a form which can be easily consumed by excel
 	for (size_t i = 0; i < angio.m_pmat.size(); i++)
 	{
 		Culture* cult = angio.m_pmat[i]->m_cult;
@@ -243,12 +244,6 @@ void Fileout::printtime(FEAngio& angio)
 	    << floor(t_seconds/60) << " minutes)." << endl << endl;                // Show the user how long the simulation took (in seconds)
     
     logstream << endl << "Simulation time: " << t_seconds << " seconds (" << floor(t_seconds/60) << " minutes)." << endl << endl;  
-}
-
-//-----------------------------------------------------------------------------
-void Fileout::printrandseed(int randseed)
-{
-	logstream << endl << "Rand seed:" << randseed << endl << endl;
 }
 
 //-----------------------------------------------------------------------------

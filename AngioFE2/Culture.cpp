@@ -406,7 +406,6 @@ bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cul
 bool MDAngVessFileFragmentSeeder::SeedFragments(SimulationTime& time, Culture * culture)
 {
 	FEMesh * mesh = m_angio.GetMesh();
-	SegGenItem sgi;
 	infile.open(culture_params->vessel_file);
 	if (infile.fail())
 	{
