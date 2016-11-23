@@ -19,7 +19,10 @@ using namespace std;
 //-----------------------------------------------------------------------------
 Fileout::Fileout()
 {
-    logstream.open("out_log.ang");
+    logstream.open("out_log.csv");
+	//write the headers
+	logstream << "Time,Material,Segments,Total Length,Vessels,Branch Points,Anastamoses,Active Tips,Sprouts" << endl;
+
     //stream3 = fopen("tracking.ang","wt");   // tracking.ang: time step, model time, total length in culture, number of branches in culture
 	m_stream = fopen("out_data.ang","wt");                                        // data.ang: Store 3D coordinates of begining and end of each vessel segment
 																			// as well as total length of the segment}
@@ -86,17 +89,10 @@ void Fileout::printStatus(FEAngio& angio)
 		cout << "Sprouts      : " << angio.m_pmat[i]->Sprouts() << endl;
 		cout << endl;
 
-		logstream << endl << "Time: " << t.t << endl;                        // Print out current time to log file
-		//logstream << "dt: " << data.dt << endl;
-		logstream << "Segments     : " << cult->Segments() << endl;                        // Print out current number of segments to log file
-		logstream << "Total Length : " << cult->TotalVesselLength() << endl;             // Print out the current total length to log file
-		logstream << "Vessels      : " << cult->m_num_vessel << endl;
-		logstream << "Branch Points: " << cult->m_num_branches << endl;            // Print out the current number of branches to log file
-		logstream << "Anastomoses  : " << cult->m_num_anastom << endl << endl;       // Print out the current number of anastomoses to log file
-		logstream << "Anastomoses  : " << cult->m_num_anastom << endl;            // Print out the current number of anastomoses to user
-		logstream << "Active tips  : " << cult->ActiveTips() << endl;
-		logstream << "Sprouts      : " << angio.m_pmat[i]->Sprouts() << endl;
-		logstream << endl;
+		//Time,Material,Segments,Total Length,Vessels,Branch Points,Anastamoses,Active Tips,Sprouts
+		logstream << t.t << "," << i << "," << cult->Segments() << "," << cult->TotalVesselLength() << 
+			"," << cult->m_num_vessel << "," << cult->m_num_branches << "," << cult->m_num_anastom << "," 
+			<< cult->ActiveTips() << "," << angio.m_pmat[i]->Sprouts() << endl;
 	}
 	
         
