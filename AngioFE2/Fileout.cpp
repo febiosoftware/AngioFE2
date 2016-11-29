@@ -104,20 +104,6 @@ void Fileout::dataout(FEAngio &feangio)
 {
     writeData(feangio);                                    // Create and write to 'data.ang'
 	
-    //writeGrid(data, grid);                              // Create and write to 'grid.ang'
-   
-    //writeNodes(angio.data, angio.grid);
-    
-    //writeEconn(angio.data, angio.grid);
-    
-    //writeBC(angio.grid);
-    
-    //writeGrad(data, grid);                              // Create and write to 'grad.ang'
-    
-    //writeAngle(frag);                                   // Create and write to 'angle.ang'
-
-    printtime(feangio);                                        // Display the run-time to the user
-
     return;
 }
 
@@ -229,17 +215,6 @@ void Fileout::writeECMDen(FEAngio & angio)
 	fclose(node_stream);
 
 	return;
-}
-
-//-----------------------------------------------------------------------------
-void Fileout::printtime(FEAngio& angio)
-{
-	double t_seconds = angio.RunTime();                 // Calculate the simulation time in seconds
-	
-	cout << endl << "Simulation time: " << t_seconds << " seconds (" 
-	    << floor(t_seconds/60) << " minutes)." << endl << endl;                // Show the user how long the simulation took (in seconds)
-    
-    logstream << endl << "Simulation time: " << t_seconds << " seconds (" << floor(t_seconds/60) << " minutes)." << endl << endl;  
 }
 
 //-----------------------------------------------------------------------------

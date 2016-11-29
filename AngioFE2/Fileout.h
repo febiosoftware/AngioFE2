@@ -31,7 +31,6 @@ public:
 	void writeEconn(FEAngio& angio);
 	void writeCollFib(FEAngio & angio, bool initial);
 	void writeECMDen(FEAngio & angio);
-	void printtime(FEAngio& angio);
 	void save_vessel_state(FEAngio& angio);
 	void save_active_tips(FEAngio& angio);
 	void save_bdy_forces(FEAngio& angio);

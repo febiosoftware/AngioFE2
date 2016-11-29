@@ -289,7 +289,7 @@ void FEAngio::UpdateECM()
 
 	//this portion will be harder
 	// For each element within the grid...
-	for (int i = 0; i < m_pmat.size(); i++)
+	for (size_t i = 0; i < m_pmat.size(); i++)
 	{
 		m_pmat[i]->UpdateECM();
 	}

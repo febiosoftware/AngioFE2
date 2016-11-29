@@ -200,7 +200,7 @@ bool FEAngioMaterial::Init()
 	matls.push_back(this->GetID());
 	FEMesh& mesh = GetFEModel()->GetMesh();
 	mesh.DomainListFromMaterial(matls, domains);
-	for (auto i = 0; i < domains.size(); i++)
+	for (size_t i = 0; i < domains.size(); i++)
 	{
 		domainptrs.push_back(&mesh.Domain(domains[i]));
 	}

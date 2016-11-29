@@ -187,7 +187,7 @@ bool FEPlotAngioGradient::Save(FEMesh & m, FEDataStream & a)
 
 
 		
-		for (int i = 0; i < se.m_node.size(); i++)
+		for (size_t i = 0; i < se.m_node.size(); i++)
 		{
 			vec3d pt = vec3d(nr[i], ns[i], nt[i]);
 			FENode & node = mesh.Node(se.m_node[i]);

@@ -513,7 +513,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 	//add a handler for when the endpoints aren't close
 	if ((found1 && found0) || (!found0 && found1))
 	{
-		if ((seg.tip(1).pt.r - s2.tip(0).pt.r).norm() > mat0->m_cultureParams.min_segment_length)
+		if ((seg.tip(1).pt.r - s2.tip(0).pt.r).norm() >(2.0 * mat0->m_cultureParams.min_segment_length))
 		{
 			printf("warning growing entirely through a material\n");
 			mat0->m_pangio->m_fe_element_data[se.GetID()].flags |= 1;
