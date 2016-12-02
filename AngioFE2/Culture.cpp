@@ -78,9 +78,6 @@ bool Culture::Init()
 	double d = m_cultParams->m_y0 + m_cultParams->m_culture_a / (1.0 + exp(m_cultParams->m_x0 / m_cultParams->m_culture_b)); // Initial value of growth curve (t = 0)
 	m_vess_length = d;
 
-	// If branching is turned off, we set the branching chance to zero
-	if (m_cultParams->m_branch == false) m_cultParams->m_branch_chance = 0.0;
-
 	// make sure the initial length is initialized 
 	if (m_cultParams->m_initial_vessel_length <= 0.0) m_cultParams->m_initial_vessel_length = m_vess_length;
 
@@ -657,10 +654,7 @@ void Culture::BranchVessels(SimulationTime& time)
 			double den_scale = FindDensityScale(it->tip(k).pt);
 
 			// calculate actual branching probability
-			// TODO: This formula makes no sense to me.
-			double t = time.t;
-			double dt = time.dt;
-			double bprob = den_scale*dt*m_cultParams->m_branch_chance/t;
+			double bprob = den_scale*m_cultParams->GetBranchProbility(time.dt);
 			assert(bprob < 1.0);
 
 			// If branching is turned on determine if the segment forms a new branch
@@ -914,7 +908,7 @@ vec3d Culture::FindGrowDirection(Segment::TIP& tip) const
 	// Component of new vessel orientation resulting from previous vessel direction        
 	vec3d per_dir = tip.u;
 
-	vec3d new_dir = (coll_dir*m_cultParams->vessel_orient_weights.x + per_dir*m_cultParams->vessel_orient_weights.y)/(m_cultParams->vessel_orient_weights.x+m_cultParams->vessel_orient_weights.y);
+	vec3d new_dir = mix(per_dir, coll_dir, m_cultParams->GetWeightInterpolation(m_pmat->m_pangio->CurrentSimTime().dt));
 	new_dir.unit();
 
 	return new_dir;

@@ -25,8 +25,9 @@ Fileout::Fileout()
 
     //stream3 = fopen("tracking.ang","wt");   // tracking.ang: time step, model time, total length in culture, number of branches in culture
 	m_stream = fopen("out_data.ang","wt");                                        // data.ang: Store 3D coordinates of begining and end of each vessel segment
-																			// as well as total length of the segment}
-	m_stream2 = fopen("out_vess_state.ang","wt");						// Open the stream for the vessel state data file		
+	// as well as total length of the segment}
+	m_stream2 = fopen("out_vess_state.ang", "wt");
+	//m_stream2 = fopen("out_vess_state.ang","wb");						// Open the stream for the vessel state data file		
 	bf_stream = fopen("out_bf_state.ang","wt");						// Open the stream for the body force state data file
 
 	time_stream = fopen("out_time.ang","wt");						// Open the stream for the time and state data file
@@ -39,6 +40,7 @@ Fileout::Fileout()
 Fileout::~Fileout()
 {
     logstream.close();
+	//fputc(EOF, m_stream2);
 	fclose(m_stream2);
 	fclose(bf_stream);
 	fclose(time_stream);
@@ -229,9 +231,16 @@ void Fileout::save_vessel_state(FEAngio& angio)
 		const SegmentList& seg_list = cult->GetSegmentList();
 		for (ConstSegIter it = seg_list.begin(); it != seg_list.end(); ++it)	// Iterate through all segments in frag list container (it)
 		{
+			//const double tob = it->GetTimeOfBirth();
 			const vec3d& r0 = it->tip(0).pos();
 			const vec3d& r1 = it->tip(1).pos();
 			fprintf(m_stream2, "%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", angio.FE_state, it->GetTimeOfBirth(), r0.x, r0.y, r0.z, r1.x, r1.y, r1.z, it->length());  // Write to out_vess_state.ang
+			
+			//fwrite(&angio.FE_state, sizeof(int), 1, m_stream2);
+			//fwrite(&tob, sizeof(double), 1, m_stream2);
+			//fwrite(&r0, sizeof(vec3d), 1, m_stream2);
+			//fwrite(&r1, sizeof(vec3d), 1, m_stream2);
+
 		}
 	}
 }

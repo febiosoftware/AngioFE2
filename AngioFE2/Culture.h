@@ -24,8 +24,11 @@ typedef list<Segment::TIP*>::const_iterator ConstTipIter;
 
 const int MAXPARAMSIZE = 256;
 
-struct CultureParameters
+
+//contains the material parameters and the accessor fucntions when the variables are made dependent on time
+class CultureParameters
 {
+public:
 	CultureParameters();                                                         
 
 	//not currently exposed
@@ -53,7 +56,6 @@ struct CultureParameters
 	// If the shortest distance vector between a segment and any other segment is less than this value
 	//TODO: I think making this a percentage of the growth length makes more sense.
 	double m_anastomosis_distance = 25;
-	double	m_branch_chance = 0.1;    // Probability of forming a new branch
 	bool	m_branch= false; //whether the vessels are allowed to branch
 	bool	m_anastomosis = false; //whether the vessels are allowed to fuse together
 	// vessel_width - Diameter of microvessels (Default: 7 um)
@@ -99,6 +101,16 @@ struct CultureParameters
 
 
 	double density_gradient_threshold = 0.01;//set this to be higher to turn off the direction change on encountering different densities
+
+	const bool io = true;
+	friend class FEParamContainer;
+	friend class FEAngioMaterial;
+	double GetBranchProbility(double dt)const{ return m_branch_chance * dt; }
+	double GetWeightInterpolation(double dt) const { return m_weight_interpolation * dt; }
+private:
+	double	m_branch_chance = 0.1;    // Probability of forming a new branch
+	double m_weight_interpolation = 0.1; //used to control the amount of affect of the collagen direction vs the previous direction for an approximation over 1t
+
 };
 //used for generating initial segments
 struct SegGenItem

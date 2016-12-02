@@ -225,18 +225,20 @@ void FEAngio::FinalizeFEM()
 	felog.SetMode(Logfile::LOG_FILE);
 
 	// --- Output initial state of model ---
+	if (m_pmat[0]->m_cultureParams.io)
+	{
+		// Output initial microvessel state
+		fileout.save_vessel_state(*this);
 
-	// Output initial microvessel state
-	fileout.save_vessel_state(*this);
+		// save active tips
+		fileout.save_active_tips(*this);
 
-	// save active tips
-	fileout.save_active_tips(*this);
+		// Output time information
+		fileout.save_time(*this);
 
-	// Output time information
-	fileout.save_time(*this);
-
-	// Output initial collagen fiber orientation
-	fileout.writeCollFib(*this, true);
+		// Output initial collagen fiber orientation
+		fileout.writeCollFib(*this, true);
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -303,6 +305,8 @@ void FEAngio::UpdateECM()
 			m_fe_node_data[node.GetID()].m_ecm_den /= (double)m_fe_node_data[node.GetID()].m_ntag;
 			m_fe_node_data[node.GetID()].m_collfib.unit();
 			m_fe_node_data[node.GetID()].m_ntag = 0;
+			//maybe worry about density creep
+			m_fe_node_data[node.GetID()].m_ecm_den0 = m_fe_node_data[node.GetID()].m_ecm_den;
 		}
 	});
 }
@@ -1049,23 +1053,26 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		}
 
 		++FE_state;
+		if (m_pmat[0]->m_cultureParams.io)
+		{
+			// Save the current vessel state
+			fileout.save_vessel_state(*this);
 
-		// Save the current vessel state
-		fileout.save_vessel_state(*this);
+			// save active tips
+			fileout.save_active_tips(*this);
 
-		// save active tips
-		fileout.save_active_tips(*this);
+			// Output time information	
+			fileout.save_time(*this);
 
-		// Output time information	
-		fileout.save_time(*this);
-		
-		// Print the status of angio3d to the user    
-		fileout.printStatus(*this);
+			// Print the status of angio3d to the user    
+			fileout.printStatus(*this);
+		}
 	}
 	else if (nwhen == CB_SOLVED)
 	{
 		// do the final output
-		Output();
+		if (m_pmat[0]->m_cultureParams.io)
+			Output();
 	}
 }
 

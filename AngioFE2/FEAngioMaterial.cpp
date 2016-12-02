@@ -613,14 +613,6 @@ bool FEAngioMaterial::InitCollagenFibers()
 }
 void FEAngioMaterial::CreateSprouts(double scale)
 {
-	double magnitude = scale*m_cultureParams.m_sprout_force;								// Scale the sprout magnitude
-
-	// Ramp up the sprout force magnitude up to time t = 4.0 days
-	if (m_pangio->m_time.t == 0.0)
-		magnitude = (1.0 / 4.0)*0.001*scale;
-	else if (m_pangio->m_time.t < 4.0)
-		magnitude = (1.0 / 4.0)*m_pangio->m_time.t*scale;
-
 	//#pragma omp parallel for
 	const SegmentTipList& tip_list = m_cult->GetActiveTipList();
 	for (ConstTipIter tip_it = tip_list.begin(); tip_it != tip_list.end(); ++tip_it)
@@ -635,13 +627,6 @@ void FEAngioMaterial::CreateSprouts(double scale)
 
 void FEAngioMaterial::UpdateSprouts(double scale)
 {
-	double magnitude = scale*m_cultureParams.m_sprout_force;								// Magnitude of the sprout force
-	// Ramp up the sprout force magnitude up to time t = 4.0 days
-	if (m_pangio->m_time.t == 0.0)
-		magnitude = (1.0 / 4.0)*0.001*scale;
-	else if (m_pangio->m_time.t < 4.0)
-		magnitude = (1.0 / 4.0)*m_pangio->m_time.t*scale;
-
 	ClearSprouts();
 
 	//#pragma omp parallel for
@@ -787,35 +772,65 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 	assert(angioPt.m_pt.elemindex >= 0);
 	y = CurrentPosition(&d->ElementRef(angioPt.m_pt.elemindex), angioPt.m_pt.q.x, angioPt.m_pt.q.x, angioPt.m_pt.q.x);
 		
-
-	//#pragma omp parallel for shared(s)
-	for (int i=0; i<NS; ++i)
+	if (sym_on)
 	{
-		SPROUT& sp = m_spr[i];
-		
-		// current position of sprout force
-		vec3d x = CurrentPosition(sp.pel, sp.r[0], sp.r[1], sp.r[2]);
+		//#pragma omp parallel for shared(s)
+		for (int i = 0; i<NS; ++i)
+		{
+			SPROUT& sp = m_spr[i];
 
-		vec3d r = y - x;
-		double l = r.unit();
+			// current position of sprout force
+			vec3d x = CurrentPosition(sp.pel, sp.r[0], sp.r[1], sp.r[2]);
 
-		sp.sprout.unit();															// Normalize the sprout direction vector
-			
-		double theta = acos(sp.sprout*r);											// Calculate theta, the angle between r and the sprout vector
+			vec3d r = y - x;
+			double l = r.unit();
 
-		//TODO: some of this may be precalculated
-		double p = den_scale*scale*m_cultureParams.sprout_s_mag*(pow(cos(theta / 2), m_cultureParams.sprout_s_width))*exp(-m_cultureParams.sprout_s_range*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
+			sp.sprout.unit();															// Normalize the sprout direction vector
 
-		//double p = sprout_s_mag*exp(-sprout_s_range*l);
+			double theta = acos(sp.sprout*r);											// Calculate theta, the angle between r and the sprout vector
 
-		mat3ds si = dyad(r)*p;
+			//TODO: some of this may be precalculated
+			double p = den_scale*scale*m_cultureParams.sprout_s_mag*(pow(cos(theta / 2), m_cultureParams.sprout_s_width))*exp(-m_cultureParams.sprout_s_range*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
 
-		if (sym_on == true)															// If symmetry is turned on, apply symmetry
+			//double p = sprout_s_mag*exp(-sprout_s_range*l);
+
+			mat3ds si = dyad(r)*p;
+														// If symmetry is turned on, apply symmetry
 			MirrorSym(y, si, sp, den_scale);
 
-//#pragma omp critical
-		s += si;
+			//#pragma omp critical
+			s += si;
+		}
 	}
+	else
+	{
+		//#pragma omp parallel for shared(s)
+		for (int i = 0; i<NS; ++i)
+		{
+			SPROUT& sp = m_spr[i];
+
+			// current position of sprout force
+			vec3d x = CurrentPosition(sp.pel, sp.r[0], sp.r[1], sp.r[2]);
+
+			vec3d r = y - x;
+			double l = r.unit();
+
+			sp.sprout.unit();															// Normalize the sprout direction vector
+
+			double theta = acos(sp.sprout*r);											// Calculate theta, the angle between r and the sprout vector
+
+			//TODO: some of this may be precalculated
+			double p = den_scale*scale*m_cultureParams.sprout_s_mag*(pow(cos(theta / 2), m_cultureParams.sprout_s_width))*exp(-m_cultureParams.sprout_s_range*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
+
+			//double p = sprout_s_mag*exp(-sprout_s_range*l);
+
+			mat3ds si = dyad(r)*p;
+
+			//#pragma omp critical
+			s += si;
+		}
+	}
+	
 	return s;
 }
 
