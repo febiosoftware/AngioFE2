@@ -110,6 +110,8 @@ public:
 
 	bool Overwrite() const;
 
+	vec3d CollagenDirection(GridPoint& pt);
+
 	bool InitECMDensity(FEAngio * angio);
 
 	// Calculate Cauchy-stress

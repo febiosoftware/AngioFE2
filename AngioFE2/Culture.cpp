@@ -578,7 +578,7 @@ Segment Culture::GrowSegment(Segment::TIP& tip, bool branch, bool bnew_vessel, v
 		// TODO: what's the logic here? Why the 0.5 factor?
 		//      If the vessel is aligned with the collagen (and the initial fragments are)
 		//      then  the new branch will overlap the old segment. 
-		vec3d coll_fib = m_angio.CollagenDirection(tip.pt);
+		vec3d coll_fib = m_pmat->CollagenDirection(tip.pt);
 		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
 		seg_vec.unit();
 
@@ -695,7 +695,7 @@ void Culture::BranchSegment(Segment::TIP& tip)
 		vec3d perpendicularToGradient = currentDirectionGradientPlane ^ gradient;
 		perpendicularToGradient.unit();
 		//do a special calculation 
-		vec3d coll_fib = m_angio.CollagenDirection(tip.pt);
+		vec3d coll_fib = m_pmat->CollagenDirection(tip.pt);
 		vec3d seg_vec = perpendicularToGradient;
 		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
 		seg_vec.unit();
@@ -903,7 +903,7 @@ void Culture::AddSegment(Segment& seg)
 vec3d Culture::FindGrowDirection(Segment::TIP& tip) const
 {
     // Find the component of the new vessel direction determined by collagen fiber orientation    
-    vec3d coll_dir = m_angio.CollagenDirection(tip.pt);
+    vec3d coll_dir = m_pmat->CollagenDirection(tip.pt);
 
 	// Component of new vessel orientation resulting from previous vessel direction        
 	vec3d per_dir = tip.u;

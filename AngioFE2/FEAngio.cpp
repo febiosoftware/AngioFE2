@@ -967,36 +967,6 @@ double FEAngio::FindECMDensity(const GridPoint& pt)
 	return 0.0;
 }
 
-vec3d FEAngio::CollagenDirection(GridPoint& pt)
-{
-	assert(pt.elemindex >= 0);
-	assert(pt.ndomain != nullptr);
-	FEMesh & mesh = m_fem.GetMesh();
-	// get the element
-	FEElement * elem = &pt.ndomain->ElementRef(pt.elemindex);
-
-	FESolidElement * selem = dynamic_cast<FESolidElement *>(elem);
-	
-	//TODO: may be refactored to remove shape function and dependencies 
-	// Obtain shape function weights
-	double shapeF[FEElement::MAX_NODES];
-	if (selem)
-		selem->shape_fnc(shapeF, pt.q.x, pt.q.y, pt.q.z);//check these numbers
-
-	// Determine component of new vessel direction due to nodal collagen fiber orientation
-	vec3d coll_angle(0, 0, 0);
-	for (int i = 0; i<8; ++i)
-	{
-		int n = elem->m_node[i];
-		coll_angle += m_fe_node_data[mesh.Node(n).GetID()].m_collfib*shapeF[i];
-	}
-
-	// make unit vector
-	coll_angle.unit();
-
-	return coll_angle;
-}
-
 //-----------------------------------------------------------------------------
 // Initialize nodal collagen fiber directions
 bool FEAngio::InitCollagenFibers()
