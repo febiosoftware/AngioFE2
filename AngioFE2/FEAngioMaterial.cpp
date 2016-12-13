@@ -122,7 +122,6 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	ADD_PARAMETER2(m_cultureParams.m_sprout_force, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "sprout_force");
 	ADD_PARAMETER2(m_cultureParams.m_number_fragments, FE_PARAM_INT, FE_RANGE_GREATER_OR_EQUAL(0), "number_fragments" );
 	ADD_PARAMETER(m_cultureParams.vessel_orient_weights, FE_PARAM_VEC3D, "weights");
-	ADD_PARAMETER(m_cultureParams.m_seed, FE_PARAM_INT, "seed");
 
 	ADD_PARAMETER(m_cultureParams.fragment_seeder, FE_PARAM_INT, "fragment_seeder");
 	ADD_PARAMETER(m_cultureParams.angio_boundary_type, FE_PARAM_INT, "angio_boundary_type");

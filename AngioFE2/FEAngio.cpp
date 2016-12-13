@@ -98,11 +98,7 @@ bool FEAngio::Init()
 	if (InitFEM() == false) return false;
 
 	// Seed the random number generator based on the sum of the seeds of the materials ie set the seed only once in any material
-	unsigned int posseed = 0;
-	for (size_t i = 0; i < m_pmat.size(); i++)
-	{
-		posseed += m_pmat[i]->GetSeed();
-	}
+	unsigned int posseed = static_cast<unsigned int>(m_fem.GetGlobalConstant("seed"));
 	if (!posseed)
 	{
 		posseed = static_cast<unsigned int>(time(0));

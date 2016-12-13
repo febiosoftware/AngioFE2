@@ -78,7 +78,6 @@ public:
 
 	int m_number_fragments = 0;//number of fragments to seed in the material
 
-	int m_seed =0;
 	//TODO: not currently exposed
 	int tries_per_segment = 10;// number of times the algorithm will retry finding an initial segment
 	//when all weights of the elemetns are equal 1 will work but this needs increased in porportion to the maximun difference in element weights

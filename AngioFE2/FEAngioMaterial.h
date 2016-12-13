@@ -110,8 +110,6 @@ public:
 
 	bool Overwrite() const;
 
-	int GetSeed() const{ return m_cultureParams.m_seed; }
-
 	bool InitECMDensity(FEAngio * angio);
 
 	// Calculate Cauchy-stress
