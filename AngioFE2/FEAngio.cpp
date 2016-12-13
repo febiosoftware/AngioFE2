@@ -41,8 +41,6 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem)
 	
 	FE_state = 0;
 
-	m_ntime = 1;
-
 	// initialize time stepping parameters
 	m_time.dt = 0.25;
 

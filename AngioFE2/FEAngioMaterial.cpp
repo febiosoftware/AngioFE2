@@ -84,6 +84,7 @@ FEAngioMaterialPoint* FEAngioMaterialPoint::FindAngioMaterialPoint(FEMaterialPoi
 			vector<FEMaterialPoint*> mixtureVector = mixtureP->m_mp;
 			for(unsigned int i=0; i<mixtureVector.size(); i++)
 			{
+				//TODO: is the recursion needed or not(is this search too deep?)
 				angioPt = FindAngioMaterialPoint(mixtureVector[i]);
 				if(angioPt)
 				{

@@ -130,6 +130,7 @@ private:
 
 public:	// parameters read directly from file
 
+	//consider converting these to vectors or arrays as the multidomain simulations require the nde/element ids to be sequential
 	std::unordered_map<int, FEAngioNodeData> m_fe_node_data;
 	std::unordered_map<int, FEAngioElementData> m_fe_element_data;
 
@@ -137,7 +138,6 @@ public:	// parameters read directly from file
 	unsigned int	m_irseed;			// Seed number for the random number generator
 
     double	half_cell_l;			// Half the length of one grid element in the x direction, use in determining variable time step
-    int		m_ntime;				// number of total time steps ?
     
 	int		total_bdyf;
 	int		FE_state;			// State counter to count the number of solved FE states
