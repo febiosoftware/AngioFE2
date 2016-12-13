@@ -22,6 +22,7 @@ CultureParameters::CultureParameters()
 //-----------------------------------------------------------------------------
 Culture::Culture(FEAngio& angio, FEAngioMaterial * matl, CultureParameters * cp) : m_angio(angio)
 {
+	assert(matl && cp);
 	m_cultParams = cp;
 
 	m_num_zdead = 0;
@@ -350,7 +351,7 @@ bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cul
 	double cweight = 0.0;
 	for (size_t i = 0; i < domains.size(); i++)
 	{
-		for (size_t j = 0; j < domains[i]->Elements(); j++)
+		for (int j = 0; j < domains[i]->Elements(); j++)
 		{
 			FEElement & el = domains[i]->ElementRef(j);
 			elements[k] = &el;
@@ -722,8 +723,7 @@ void Culture::BranchSegment(Segment::TIP& tip)
 void Culture::CreateBranchingForce(Segment& seg)
 {
 	m_angio.total_bdyf = 0;																// Obtain the total number of sprouts
-	if (m_pmat) m_angio.total_bdyf = m_pmat->Sprouts();
-	else m_angio.total_bdyf = m_angio.m_pbf->Sprouts();
+	m_angio.total_bdyf = m_pmat->Sprouts();
 
 	vec3d tip, sprout_vect;
 	vec3d seg_vec = seg.uvect();
@@ -750,16 +750,8 @@ void Culture::CreateBranchingForce(Segment& seg)
 		sprout_vect = seg_vec;
 	}
 
-	if (m_pmat)
-	{
-		m_pmat->AddSprout(tip, sprout_vect, stip.pt.ndomain, stip.pt.elemindex);
-		m_angio.total_bdyf = m_pmat->Sprouts();
-	}
-	else
-	{
-		m_angio.m_pbf->AddSprout(tip, sprout_vect);						// Add the new sprout component to the sprout force field
-		m_angio.total_bdyf = m_angio.m_pbf->Sprouts();												// Update the total number of sprouts
-	}
+	m_pmat->AddSprout(tip, sprout_vect, stip.pt.ndomain, stip.pt.elemindex);
+	m_angio.total_bdyf = m_pmat->Sprouts();
 }
 
 //-----------------------------------------------------------------------------

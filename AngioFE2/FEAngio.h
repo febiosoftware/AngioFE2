@@ -142,7 +142,6 @@ public:	// parameters read directly from file
 	int		total_bdyf;
 	int		FE_state;			// State counter to count the number of solved FE states
 
-	FESproutBodyForce*	m_pbf;	//!< sprout body-force
 	std::vector<FEAngioMaterial*>	m_pmat;	//!< the angio-material pointer
 	std::vector<int>                m_pmat_ids;
 

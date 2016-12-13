@@ -485,9 +485,9 @@ bool FEAngio::IsInsideHex8(FESolidElement * se, vec3d y, FEMesh * mesh, double r
 {
 	assert(se->Type() == FE_HEX8G8);
 	vec3d x[FEElement::MAX_NODES];
-	size_t j;
+	int j;
 	// get the element nodal coordinates
-	auto neln = se->Nodes();
+	int neln = se->Nodes();
 	for (j = 0; j<neln; ++j) x[j] = mesh->Node(se->m_node[j]).m_rt;
 
 	// first, as a quick check, we see if y lies in the bounding box defined by x
