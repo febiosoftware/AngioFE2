@@ -9,6 +9,11 @@
 #include "FESproutBodyForce.h"
 #include "FEAngioMaterial.h"
 #include "AngioPlot.h"
+#ifdef SVN
+#include "svnrev.h"
+#else
+#define SVNREVISION 0
+#endif
 
 //-----------------------------------------------------------------------------
 FEPluginFactory_T<AngioFETask                , FETASK_ID    > angiofe_task_factory         ("angio"                 );
@@ -41,7 +46,7 @@ FECORE_EXPORT void GetPluginVersion(int & major, int & minor, int & patch)
 {
 	major = 1;
 	minor = 0;
-	patch = 1;
+	patch = SVNREVISION;
 }
 
 //-----------------------------------------------------------------------------
