@@ -108,6 +108,8 @@ public:
 	// get the vessel value
 	int vessel() const { return m_nvessel; }
 
+	double length_to_branch=0.0;
+
 	int m_nid;			// segment id (unique zero-based ID)
 	int m_nvessel;		// Label that indicates which vessel the segment belongs to 
 private:

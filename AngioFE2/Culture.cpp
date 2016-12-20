@@ -8,6 +8,7 @@
 #include "FECore/FEMesh.h"
 #include <random>
 #include <regex>
+#include <map>
 #define _USE_MATH_DEFINES
 
 void DirectionalWeights(double da, double dw[2]);
@@ -102,8 +103,162 @@ bool Culture::Init()
 	}
 
 	// do the initial seeding
-	return fseeder->SeedFragments(m_angio.CurrentSimTime(), this);
+	if (!fseeder->SeedFragments(m_angio.CurrentSimTime(), this))
+		return false;
+	SetLengthToBranch();
+	InitialBranching();
+	return true;
 }
+void Culture::SetLengthToBranch()
+{
+	std::normal_distribution<double> nd(m_cultParams->average_length_to_branch_point, m_cultParams->std_deviation);
+	auto iter = m_frag.begin();
+	while (iter != m_frag.end())
+	{
+		iter->length_to_branch = nd(m_pmat->m_pangio->rengine) - iter->length();
+		++iter;
+	}
+}
+
+void Culture::InitialBranching()
+{
+	std::normal_distribution<double> nd(m_cultParams->average_length_to_branch_point, m_cultParams->std_deviation);
+	//consider that the segment is growing from tip 0 to tip 1
+	std::map<double, std::map<int, Segment *>> regrowth;
+	bool new_branch = false;
+	//segments must be processed in chronological order with ties being broken by vessel_id
+	auto iter = m_frag.begin();
+	while (iter != m_frag.end())
+	{
+		if (iter->length_to_branch < 0.0)
+		{
+
+			new_branch = true;
+			//consider making the following a function
+			//calculate the ratio of time when this segment diveged
+			double bt = (iter->length() + iter->length_to_branch) / iter->length();
+
+			//values closer to zero happened earlier chronologically
+			//make sure that the branch should have happened in this grow step
+			assert(bt >= 0 && bt <= 1.0);
+			if (regrowth.count(bt))
+			{
+				regrowth.find(bt)->second.insert(std::pair<int, Segment *>(iter->m_nid, &(*iter)));
+			}
+			else
+			{
+				std::map<int, Segment *> temp;
+				regrowth.insert(std::pair<double, std::map<int, Segment *>>(bt, temp));
+				regrowth.find(bt)->second.insert(std::pair<int, Segment *>(iter->m_nid, &(*iter)));
+			}
+		}
+		++iter;
+	}
+
+	//now create branches and recalculate distance to branch
+	auto iterr = regrowth.begin();
+	while (iterr != regrowth.end())
+	{
+		auto iterk = iterr->second.begin();
+		while (iterk != iterr->second.end())
+		{
+			//branch length
+			double bl = (1.0 - iterr->first)* iterk->second->length();
+			assert(bl > 0.0);
+			//add the branch 
+			Segment nseg = *iterk->second;
+			//update the branch point of the base segment
+			iterk->second->length_to_branch += nd(m_pmat->m_pangio->rengine);
+			if (iterk->second->length_to_branch < 0.0)
+			{
+				//add this back to regrowth
+				//calculate the ratio of time when this segment diveged
+				double bt = (iterk->second->length() + iterk->second->length_to_branch) / iterk->second->length();
+
+				//values closer to zero happened earlier chronologically
+				//make sure that the branch should have happened in this grow step
+				assert(bt >= 0 && bt <= 1.0);
+				if (regrowth.count(bt))
+				{
+					regrowth.find(bt)->second.insert(std::pair<int, Segment *>(iterk->second->m_nid, iterk->second));
+				}
+				else
+				{
+					std::map<int, Segment *> temp;
+					regrowth.insert(std::pair<double, std::map<int, Segment *>>(bt, temp));
+					regrowth.find(bt)->second.insert(std::pair<int, Segment *>(iterk->second->m_nid, iterk->second));
+				}
+			}
+
+			//find the position of the astil
+			//check the order of the tips
+			vec3d astil = mix(iterk->second->tip(0).pt.r, iterk->second->tip(1).pt.r, iterr->first);
+			Segment::TIP nt0 = iterk->second->tip(0);
+			Segment::TIP nt1 = iterk->second->tip(1);
+
+			
+			
+			if (m_pmat->FindGridPoint(astil, nt0.pt.ndomain, nt0.pt.elemindex, nt0.pt))
+			{
+				nseg = GrowSegmentBranching(nt0, bl);
+				AddNewSegment(nseg);
+			}
+			else if (m_pmat->FindGridPoint(astil, nt1.pt.ndomain, nt1.pt.elemindex, nt1.pt))
+			{
+				nseg = GrowSegmentBranching(nt1, bl);
+				AddNewSegment(nseg);
+			}
+			else
+			{
+				assert(false);
+			}
+			//increment the branch count
+			m_num_branches++;
+
+			//calculate the distance until the branch branches
+			double utnb = nd(m_pmat->m_pangio->rengine);
+
+			//if the segment would go out of bounds it needs special handling
+			if (nseg.GetFlag(Segment::BC_DEAD))
+			{
+				//special handling of encountering a boundary condition
+				//nothing needs done on stop
+				//bouncy and passthrough will be more difficult
+			}
+			else
+			{
+				nseg.length_to_branch += utnb;
+				if (nseg.length_to_branch < 0.0)
+				{
+					//add this back to the datastructure
+
+					double bt = (nseg.length() + nseg.length_to_branch) / nseg.length();
+
+					//values closer to zero happened earlier chronologically
+					//make sure that the branch should have happened in this grow step
+					assert(bt >= 0 && bt <= 1.0);
+					if (regrowth.count(bt))
+					{
+						regrowth.find(bt)->second.insert(std::pair<int, Segment *>(iter->m_nid, &nseg));
+					}
+					else
+					{
+						std::map<int, Segment *> temp;
+						regrowth.insert(std::pair<double, std::map<int, Segment *>>(bt, temp));
+						regrowth.find(bt)->second.insert(std::pair<int, Segment *>(iter->m_nid, &nseg));
+					}
+				}
+			}
+
+
+			++iterk;
+		}
+		
+		++iterr;
+	}
+
+}
+
 //currently all weights are set to 1 but in the future override this and change it to use the segment volume or something else 
 void Culture::SetWeights(vector<SegGenItem> & weights, std::vector<FEDomain*> & domains)
 {
@@ -633,6 +788,50 @@ Segment Culture::GrowSegment(Segment::TIP& tip, bool branch, bool bnew_vessel, v
 	return seg;
 }
 
+Segment Culture::GrowSegmentBranching(Segment::TIP& tip, double length)
+{
+	// this is the new segment length
+	double seg_length = length;
+
+	// determine the growth direction
+	vec3d seg_vec = FindGrowDirection(tip);
+
+	//      If the vessel is aligned with the collagen (and the initial fragments are)
+	//      then  the new branch will overlap the old segment. 
+	vec3d coll_fib = m_pmat->CollagenDirection(tip.pt);
+	seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
+	seg_vec.unit();
+
+
+	// Create a new segment
+	Segment seg;
+
+	// transer seed label
+	seg.seed(tip.nseed);
+
+	seg.vessel(m_num_vessel++);
+
+	// create a new vessel
+	// the first point is a copy of the last point of the source segment
+	seg.tip(0).pt = tip.pt;
+
+	// position the end point
+	seg.tip(1).pt.r = seg.tip(0).pos() + seg_vec*seg_length;
+
+	seg.tip(0).bactive = false;		// Turn off origin tip of new segment
+	seg.tip(1).bactive = true;		// Turn on end tip of new segment
+
+	// Turn off previous segment tip
+	tip.bactive = false;
+
+	m_pmat->FindGridPoint(seg.tip(1).pos(), seg.tip(1).pt);
+
+	// update length and unit vector
+	seg.Update();
+
+	return seg;
+}
+
 //-----------------------------------------------------------------------------
 // Branching phase of the growth step.
 void Culture::BranchVessels(SimulationTime& time)
@@ -650,6 +849,46 @@ void Culture::BranchVessels(SimulationTime& time)
 		{
 			// pick an end randomly
 			int k = ( frand() < 0.5 ? k = 0 : k = 1);
+
+			// find the density scale factor
+			double den_scale = FindDensityScale(it->tip(k).pt);
+
+			// calculate actual branching probability
+			double bprob = den_scale*m_cultParams->GetBranchProbility(time.dt);
+			assert(bprob < 1.0);
+
+			// If branching is turned on determine if the segment forms a new branch
+			if (frand() < bprob)
+			{
+				// Turn off the initial branch flag
+				it->SetFlagOff(Segment::INIT_BRANCH);
+				BranchSegment(it->tip(k));
+
+				// Increase the number of branches.
+				m_num_branches++;
+			}
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Branching phase of the growth step.
+void Culture::BranchVessels2(SimulationTime& time)
+{
+	std::map<double, std::map<int, Segment *> > remaining_segments;//uses two keys the time and the vessel id
+	// Elongate the active vessel tips
+	for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
+	{
+		// decide if this segment can branch
+		bool branch = true;
+		if (it->GetFlag(Segment::BC_DEAD)) branch = false;	// Make sure segment has not reached a boundary
+		if (it->GetFlag(Segment::ANAST)) branch = false;	// and has not undegone anastimoses.
+		if (it->tip(0).bactive || it->tip(1).bactive) branch = false;	// don't branch segments that are actively growing
+		int vessel = it->m_nvessel;
+		if (branch || it->GetFlag(Segment::INIT_BRANCH))
+		{
+			// pick an end randomly
+			int k = (frand() < 0.5 ? k = 0 : k = 1);
 
 			// find the density scale factor
 			double den_scale = FindDensityScale(it->tip(k).pt);

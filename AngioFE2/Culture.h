@@ -46,7 +46,7 @@ public:
 
 	//dont expose
 	double	m_initial_vessel_length = 0.0;	// initial vessel length
-	double	m_initial_branch_probability = 0.2697;     // Probability that initial segments will branch
+	double	m_initial_branch_probability = 0.0;     // Probability that initial segments will branch
 	bool m_bzfibflat = false;//flatten the fibers in the z direction
 
 	//parameters adjustable by the user for vessel network morphology
@@ -100,6 +100,10 @@ public:
 
 
 	double density_gradient_threshold = 0.01;//set this to be higher to turn off the direction change on encountering different densities
+
+	double average_length_to_branch_point = 40.0;//sets the average length before a branch is encountered
+	double std_deviation = 5.0;
+	//consider allowing the user to specify the distribution and any paramters associated with the distribution that is used
 
 	const bool io = true;
 	friend class FEParamContainer;
@@ -181,6 +185,13 @@ public:
 	// initialize
 	bool Init();
 
+	//set the initial length to a branch point
+	void SetLengthToBranch();
+
+	//branch the initial segments this is a special case as both tips are likely active 
+	//on steps other than the first only one tip should be active
+	void InitialBranching();
+
 	// Perform a growth step
 	void Grow(SimulationTime& time);
 
@@ -236,6 +247,9 @@ private:
 	// branching phase
 	void BranchVessels(SimulationTime& time);
 
+	// branching phase
+	void BranchVessels2(SimulationTime& time);
+
 	// create a branch
 	void BranchSegment(Segment::TIP& it);
 
@@ -244,6 +258,8 @@ private:
 
 	// Grow a segment
 	Segment GrowSegment(Segment::TIP& it, bool branch = false, bool bnew_vessel = false, vec3d growthDirection = vec3d());
+
+	Segment GrowSegmentBranching(Segment::TIP& it, double length);
 
 	// Create a new segment connecting two existing segments that are fusing through anastomosis
 	static Segment ConnectSegment(Segment& it, Segment& it2, int k, int kk);
