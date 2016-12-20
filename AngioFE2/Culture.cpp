@@ -105,6 +105,10 @@ bool Culture::Init()
 	// do the initial seeding
 	if (!fseeder->SeedFragments(m_angio.CurrentSimTime(), this))
 		return false;
+	previous_average_segment_length = m_cultParams->average_length_to_branch_point;
+	previous_standard_deviation = m_cultParams->std_deviation;
+	segment_length_distribution = normal_distribution<double>(previous_average_segment_length, previous_standard_deviation);
+
 	SetLengthToBranch();
 	InitialBranching();
 	return true;
@@ -619,7 +623,11 @@ bool MDAngVessFileFragmentSeeder::SeedFragments(SimulationTime& time, Culture * 
 
 	return true;
 }
+//used to synchonize the growth of the cultures this is needed to maintain the chronological usage of rng
+void Culture::CombinedGrowthStep(std::vector<Culture *> cultures)
+{
 
+}
 //-----------------------------------------------------------------------------
 // Vessel elongation is represented by the addition of new line segments at the locations of the active sprouts.
 void Culture::Grow(SimulationTime& time)

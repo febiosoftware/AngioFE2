@@ -5,6 +5,7 @@
 #include "Segment.h"
 #include <vector>
 #include <fstream>
+#include <random>
 using namespace std;
 
 //-----------------------------------------------------------------------------
@@ -195,6 +196,8 @@ public:
 	// Perform a growth step
 	void Grow(SimulationTime& time);
 
+	static void CombinedGrowthStep(std::vector<Culture *> cultures);
+
 	// Reposition the vessels based on the FE solution
 	void Update();
 
@@ -279,6 +282,12 @@ private:
 	FEAngio&	m_angio;
 	
 	FragmentSeeder * fseeder = nullptr;
+	//used to determine when/where segments should branch
+	//if the distribution is changed via load curve it must at a must-point that is shared between two simulations with different dt for the results to approximate the same network
+	normal_distribution<double> segment_length_distribution;
+	double previous_average_segment_length;
+	double previous_standard_deviation;
+
 public:
 	double	m_vess_length;	// new segment length
 	int		m_num_vessel;   // Counter that indicates the next vessel ID number of new Segments
@@ -287,6 +296,8 @@ public:
 	
 	int m_num_anastom;	// Counter indicating the number of anastomoses formed during the simulation
 	int m_num_zdead;
+
+	
 
 	friend class BouncyBC;
 	friend class BC;
