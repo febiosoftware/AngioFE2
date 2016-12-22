@@ -988,12 +988,15 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		// grab the time information
 		
 		m_time.dt = fem.GetCurrentStep()->m_dt;
-
+		/*
 		// do a growth step
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
 			m_pmat[i]->Grow(m_time);
 		}
+		*/
+		FragmentBranching::Grow(); //new grow method
+
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
 			m_pmat[i]->AdjustMeshStiffness();

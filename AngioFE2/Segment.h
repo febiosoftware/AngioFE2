@@ -42,9 +42,11 @@ public:
 		int			BC;			// something to do with body forces?
 		GridPoint	pt;			// point in grid where this tip lies
 		vec3d		u;			// sprout force vector
-
+		Segment * parent;
 		int		nseed;		// seed where this tip started from (TODO: I want to remove this)
 		int		nvessel;	// vessel this seed is part of
+
+		double length_to_branch = 0.0;//determines hwo much farther the tip must grow before it branches
 
 		const vec3d& pos() const { return pt.r; }
 
@@ -52,6 +54,7 @@ public:
 	};
 
     Segment();
+	Segment(const Segment &obj);
 	virtual ~Segment();
     
 	// update the segment data
@@ -107,8 +110,6 @@ public:
 
 	// get the vessel value
 	int vessel() const { return m_nvessel; }
-
-	double length_to_branch=0.0;
 
 	int m_nid;			// segment id (unique zero-based ID)
 	int m_nvessel;		// Label that indicates which vessel the segment belongs to 

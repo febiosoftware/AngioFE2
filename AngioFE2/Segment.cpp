@@ -25,6 +25,17 @@ Segment::Segment()
     
 	// initialize status flags
 	m_nflag = 0;
+
+	tip(0).parent = this;
+	tip(1).parent = this;
+}
+Segment::Segment(const Segment &obj)
+{
+	//can i just do what ever would have been done before for the rest of the parameters
+	memcpy(this, &obj, sizeof(Segment));
+	//update the parent pointers
+	tip(0).parent = this;
+	tip(1).parent = this;
 }
 
 //-----------------------------------------------------------------------------
