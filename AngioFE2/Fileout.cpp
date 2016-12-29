@@ -6,7 +6,6 @@
 #include "Fileout.h"
 #include "Segment.h"
 #include "Culture.h"
-#include "angio3d.h"
 #include "Elem.h"
 #include "FEAngio.h"
 #include <iostream>
@@ -56,17 +55,12 @@ void Fileout::writeTracking(FEAngio& angio)
 		SimulationTime& t = angio.CurrentSimTime();
 		fprintf(m_stream3, "%-12.7f %-12.7f %-12.7f %-5i\n", t.dt, t.t, l, cult->m_num_branches);   // Write to tracking.ang
 	}
-	
-    
-    return;
 }
 
 //-----------------------------------------------------------------------------
 void Fileout::closeTracking()
 {
     fclose(m_stream3);                                                        // Close stream to 'tracking.ang' (stream3) 
-    
-    return;
 }
 
 //-----------------------------------------------------------------------------
@@ -96,17 +90,12 @@ void Fileout::printStatus(FEAngio& angio)
 			"," << cult->m_num_vessel << "," << cult->m_num_branches << "," << cult->m_num_anastom << "," 
 			<< cult->ActiveTips() << "," << angio.m_pmat[i]->Sprouts() << endl;
 	}
-	
-        
-    return;
 }
 
 //-----------------------------------------------------------------------------
 void Fileout::dataout(FEAngio &feangio)
 {
     writeData(feangio);                                    // Create and write to 'data.ang'
-	
-    return;
 }
 
 //-----------------------------------------------------------------------------
@@ -128,8 +117,6 @@ void Fileout::writeData(FEAngio &angio)
 	}
 	
 	fclose(m_stream);
-	
-	return;
 }
 
 //-----------------------------------------------------------------------------
@@ -142,13 +129,8 @@ void Fileout::writeNodes(FEAngio& angio)
 	{
 		fprintf(stream2, "%-5.2i %-12.7f %-12.7f %-12.7f\n", node.GetID(), node.m_rt.x, node.m_rt.y, node.m_rt.z);
 	});
-
-	    
-	
-	                                                                      	
+                                                                   	
 	fclose(stream2);                                                        
-	
-	return;
 }
 
 //-----------------------------------------------------------------------------
@@ -180,7 +162,6 @@ void Fileout::writeCollFib(FEAngio & angio, bool initial)
 	else
 		node_stream = fopen("out_coll_fib.ang","wt");
 
-	//fprintf(node_stream,"%-5s %-12s %-12s %-12s %-12s %-12s\n","ID"," X "," Y "," Z ","THETA","ETA");	
 	FEMesh * mesh = angio.GetMesh();
 	for (int i = 0; i < mesh->Nodes(); i++)
 	{
@@ -191,8 +172,6 @@ void Fileout::writeCollFib(FEAngio & angio, bool initial)
 			node.m_rt.y, node.m_rt.z, nd.m_collfib.x, nd.m_collfib.y, nd.m_collfib.z);
 	}
 	fclose(node_stream);
-
-	return;
 }
 
 //-----------------------------------------------------------------------------
@@ -202,7 +181,6 @@ void Fileout::writeECMDen(FEAngio & angio)
 	
 	node_stream = fopen("out_ecm_den.ang","wt");
 
-	//fprintf(node_stream,"%-5s %-12s %-12s %-12s %-12s %-12s\n","ID"," X "," Y "," Z ","ECM_DEN","ECM_DEN0");	
 	FEMesh * mesh = angio.GetMesh();
 	for (int i = 0; i < mesh->Nodes(); i++)
 	{
@@ -215,8 +193,6 @@ void Fileout::writeECMDen(FEAngio & angio)
 
 
 	fclose(node_stream);
-
-	return;
 }
 
 //-----------------------------------------------------------------------------
@@ -231,15 +207,9 @@ void Fileout::save_vessel_state(FEAngio& angio)
 		const SegmentList& seg_list = cult->GetSegmentList();
 		for (ConstSegIter it = seg_list.begin(); it != seg_list.end(); ++it)	// Iterate through all segments in frag list container (it)
 		{
-			//const double tob = it->GetTimeOfBirth();
 			const vec3d& r0 = it->tip(0).pos();
 			const vec3d& r1 = it->tip(1).pos();
 			fprintf(m_stream2, "%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", angio.FE_state, it->GetTimeOfBirth(), r0.x, r0.y, r0.z, r1.x, r1.y, r1.z, it->length());  // Write to out_vess_state.ang
-			
-			//fwrite(&angio.FE_state, sizeof(int), 1, m_stream2);
-			//fwrite(&tob, sizeof(double), 1, m_stream2);
-			//fwrite(&r0, sizeof(vec3d), 1, m_stream2);
-			//fwrite(&r1, sizeof(vec3d), 1, m_stream2);
 
 		}
 	}
@@ -266,18 +236,7 @@ void Fileout::save_active_tips(FEAngio& angio)
 				fprintf(m_stream4, "%-5.2d %-5.2d %-12.7f %-12.7f %-12.7f\n", angio.FE_state, 0, r.x, r.y, r.z);
 			}
 		}
-
-		FEAngioMaterial* pm = angio.m_pmat[i];
-		int N = pm->Sprouts();
-		for (int i = 0; i<N; ++i)
-		{
-			FEAngioMaterial::SPROUT& si = pm->GetSprout(i);
-
-			vec3d r = pm->CurrentPosition(si.pel, si.r[0], si.r[1], si.r[2]);
-			fprintf(m_stream4, "%-5.2d %-5.2d %-12.7f %-12.7f %-12.7f\n", angio.FE_state, 1, r.x, r.y, r.z);
-		}
 	}
-	
 }
 
 //-----------------------------------------------------------------------------
@@ -303,8 +262,6 @@ void Fileout::save_bdy_forces(FEAngio& angio)
 				fprintf(bf_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n",angio.FE_state, t.t, prc->value<vec3d>().x, prc->value<vec3d>().y, prc->value<vec3d>().z, prc->value<vec3d>().x + 1.0, prc->value<vec3d>().y + 1.0, prc->value<vec3d>().z + 1.0, 1.73); 
 		}
 	}
-
-	return;
 }
 
 //-----------------------------------------------------------------------------
@@ -318,8 +275,6 @@ void Fileout::save_time(FEAngio& angio)
 	
 //	fprintf(time_stream,"%-5.2i %-12.7f %-12.7f\n",angio.FE_state, angio.m_time.t, ((double)angio.FE_state - 1.0)*angio.FE_time_step);	// Print out the FE state, the vessel growth model time, and the FE time
 	fprintf(time_stream,"%-5.2i %-12.7f \n",angio.FE_state, t.t);	// Print out the FE state, the vessel growth model time, and the FE time
-	
-	return;
 }
 
 //-----------------------------------------------------------------------------
@@ -334,6 +289,4 @@ void Fileout::output_params(FEAngio& angio)
 	//fprintf(param_stream,"phi_stiff_factor = %5.5f \n",angio.phi_stiff_factor);	// Print the displacement stiffness factor
 	fprintf(param_stream,"total_body_force = %10.5i \n",angio.total_bdyf);		// Print the total number of body forces
 	fclose(param_stream);												// Close the parameter output file
-
-	return;
 }
