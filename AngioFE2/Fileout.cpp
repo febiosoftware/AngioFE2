@@ -32,7 +32,8 @@ Fileout::Fileout()
 	time_stream = fopen("out_time.ang","wt");						// Open the stream for the time and state data file
 	time_write_headers = true;										// Set the time and state data file to write the headers on its first output
 
-	m_stream4 = fopen("out_active_tips.txt", "wt");		// active tips
+	m_stream4 = fopen("out_active_tips.csv", "wt");		// active tips
+	fprintf(m_stream4, "%-5s,%-12s,%-12s,%-12s\n", "State", "X", "Y", "Z");
 }
 
 //-----------------------------------------------------------------------------
@@ -219,7 +220,7 @@ void Fileout::save_vessel_state(FEAngio& angio)
 // Save active points
 void Fileout::save_active_tips(FEAngio& angio)
 {
-	fprintf(m_stream4,"%-5s %-12s %-12s %-12s %-12s\n","State","Time","X","Y","Z");
+	
 
 	double t = angio.CurrentSimTime().t;
 	
@@ -233,7 +234,7 @@ void Fileout::save_active_tips(FEAngio& angio)
 			if (tip.bactive)
 			{
 				const vec3d& r = tip.pos();
-				fprintf(m_stream4, "%-5.2d %-5.2d %-12.7f %-12.7f %-12.7f\n", angio.FE_state, 0, r.x, r.y, r.z);
+				fprintf(m_stream4, "%-5.2d,%-12.7f,%-12.7f,%-12.7f\n", angio.FE_state, r.x, r.y, r.z);
 			}
 		}
 	}
