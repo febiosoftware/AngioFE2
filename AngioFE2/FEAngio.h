@@ -78,6 +78,7 @@ public:
 	void ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<int> & matls);
 
 	vec3d uniformRandomDirection();
+	vec3d uniformInUnitCube();
 
 	//calcualtes the gradient at the given natural coordinates
 	static vec3d gradient(FESolidElement * se,std::vector<double> & fn, vec3d pt);
@@ -160,4 +161,5 @@ private:
 	
 	std::uniform_real_distribution<double> ztopi;
 	std::uniform_real_distribution<double> zto2pi;
+	std::uniform_real_distribution<double> n1to1;
 };

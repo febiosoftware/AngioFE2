@@ -107,10 +107,11 @@ bool Culture::Init()
 	case 0:
 		fbrancher = new NoFragmentBranching(this);
 		break;
-		/* removed until fully implemeented
+		
 	case 1:
 		fbrancher = new ForwardFragmentBranching(this);
 		break;
+		/* removed until fully implemeented
 	case 2:
 		fbrancher = new PsuedoDeferedFragmentBranching(this);
 		break;
@@ -122,170 +123,10 @@ bool Culture::Init()
 	// do the initial seeding
 	if (!fseeder->SeedFragments(m_angio.CurrentSimTime(), this))
 		return false;
-	previous_average_segment_length = m_cultParams->average_length_to_branch_point;
-	previous_standard_deviation = m_cultParams->std_deviation;
-	segment_length_distribution = normal_distribution<double>(previous_average_segment_length, previous_standard_deviation);
 
-	FragmentBranching::SetupBranchPoints();
-	FragmentBranching::GrowInitialBranches();
 	return true;
 }
-void Culture::SetLengthToBranch()
-{
-	auto iter = m_frag.begin();
-	while (iter != m_frag.end())
-	{
-		//note the lenghts are divided by two so the average branch point distance is maintained
-		//TODO: this maintains the average length to branch for the entire vessel but the standard deviation of initial branch points is halved
-		//shoudl this use a custom distribution for seeding
-		iter->tip(0).length_to_branch = (segment_length_distribution(m_pmat->m_pangio->rengine) - iter->length()) / 2;
-		iter->tip(1).length_to_branch = (segment_length_distribution(m_pmat->m_pangio->rengine) - iter->length()) / 2;
-		++iter;
-	}
-}
 
-void Culture::InitialBranching()
-{
-	//consider that the tips are growing, this creates a special case when seeding the fragments
-	//the tip does matter as both tips could be up for regrowth
-	std::map<double, std::map<int, Segment::TIP*>> regrowth;
-	bool new_branch = false;
-	//segments must be processed in chronological order with ties being broken by vessel_id
-	auto iter = m_frag.begin();
-
-	while (iter != m_frag.end())
-	{
-		for (int i = 0; i < 2; i++)
-		{
-			//if the tip is not active do nothing
-			if ((iter->tip(i).length_to_branch < 0.0) && iter->tip(i).bactive)
-			{
-				//consider making the following a function
-				//calculate the ratio of time when this segment diveged
-				double bt = ((iter->length()/2) + iter->tip(i).length_to_branch) / (iter->length()/2);
-
-				//values closer to zero happened earlier chronologically
-				//make sure that the branch should have happened in this grow step
-				assert(bt >= 0 && bt <= 1.0);
-				if (regrowth.count(bt))
-				{
-					regrowth.find(bt)->second.insert(std::pair<int,  Segment::TIP*>(iter->m_nid, &iter->tip(i)));
-				}
-				else
-				{
-					std::map<int, Segment::TIP*> temp;
-					regrowth.insert(std::pair<double, std::map<int, Segment::TIP*>>(bt, temp));
-					regrowth.find(bt)->second.insert(std::pair<int, Segment::TIP*>(iter->m_nid, &(iter->tip(i))));
-				}
-			}
-		}
-		++iter;
-	}
-
-	//now create branches and recalculate distance to branch
-	auto iterr = regrowth.begin();
-	while (iterr != regrowth.end())
-	{
-		auto iterk = iterr->second.begin();
-		while (iterk != iterr->second.end())
-		{
-			//branch length
-			double bl = (1.0 - iterr->first)* iterk->second->parent->length()/2;
-			assert(bl > 0.0);
-			//add the branch 
-			Segment nseg = *iterk->second->parent;
-			//update the branch point of the base segment
-			iterk->second->length_to_branch += segment_length_distribution(m_pmat->m_pangio->rengine);
-			if (iterk->second->length_to_branch < 0.0)
-			{
-				//add this back to regrowth
-				//calculate the ratio of time when this segment diveged
-				double bt = ((iterk->second->parent->length()/2) + iterk->second->length_to_branch) / (iterk->second->parent->length()/2);
-
-				//values closer to zero happened earlier chronologically
-				//make sure that the branch should have happened in this grow step
-				assert(bt >= 0 && bt <= 1.0);
-				if (regrowth.count(bt))
-				{
-					regrowth.find(bt)->second.insert(std::pair<int, Segment::TIP*>(iterk->second->parent->m_nid, iterk->second));
-				}
-				else
-				{
-					std::map<int, Segment::TIP*> temp;
-					regrowth.insert(std::pair<double, std::map<int, Segment::TIP*>>(bt, temp));
-					regrowth.find(bt)->second.insert(std::pair<int, Segment::TIP*>(iterk->second->parent->m_nid, iterk->second));
-				}
-			}
-
-			//find the position of the astil
-			//check the order of the tips
-			//consider only the portion of the segment from the midpoint to the current tip
-			vec3d astil = mix(mix(iterk->second->parent->tip(0).pt.r, iterk->second->parent->tip(1).pt.r, 0.5), iterk->second->pos(), iterr->first);
-			Segment::TIP nt0 = iterk->second->parent->tip(0);
-			Segment::TIP nt1 = iterk->second->parent->tip(1);
-
-			
-			
-			if (m_pmat->FindGridPoint(astil, nt0.pt.ndomain, nt0.pt.elemindex, nt0.pt))
-			{
-				nseg = GrowSegmentBranching(nt0, bl);
-				AddNewSegment(nseg);
-			}
-			else if (m_pmat->FindGridPoint(astil, nt1.pt.ndomain, nt1.pt.elemindex, nt1.pt))
-			{
-				nseg = GrowSegmentBranching(nt1, bl);
-				AddNewSegment(nseg);
-			}
-			else
-			{
-				assert(false);
-			}
-			//increment the branch count
-			m_num_branches++;
-
-			//calculate the distance until the branch branches
-			double utnb = segment_length_distribution(m_pmat->m_pangio->rengine);
-
-			//if the segment would go out of bounds it needs special handling
-			if (nseg.GetFlag(Segment::BC_DEAD))
-			{
-				//special handling of encountering a boundary condition
-				//nothing needs done on stop
-				//bouncy and passthrough will be more difficult
-			}
-			else
-			{
-				nseg.tip(1).length_to_branch += utnb;
-				if (nseg.tip(1).length_to_branch < 0.0)
-				{
-					//add this back to the datastructure
-
-					double bt = (nseg.length() + nseg.tip(1).length_to_branch) / nseg.length();
-
-					//values closer to zero happened earlier chronologically
-					//make sure that the branch should have happened in this grow step
-					assert(bt >= 0 && bt <= 1.0);
-					if (regrowth.count(bt))
-					{
-						regrowth.find(bt)->second.insert(std::pair<int, Segment::TIP *>(iter->m_nid, &nseg.tip(1)));
-					}
-					else
-					{
-						std::map<int, Segment::TIP *> temp;
-						regrowth.insert(std::pair<double, std::map<int, Segment::TIP *>>(bt, temp));
-						regrowth.find(bt)->second.insert(std::pair<int, Segment::TIP *>(iter->m_nid, &nseg.tip(1)));
-					}
-				}
-			}
-
-
-			++iterk;
-		}
-		
-		++iterr;
-	}
-
-}
 
 //currently all weights are set to 1 but in the future override this and change it to use the segment volume or something else 
 void Culture::SetWeights(vector<SegGenItem> & weights, std::vector<FEDomain*> & domains)
@@ -458,7 +299,7 @@ bool FragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, Culture * c
 	do
 	{
 		// generate random natural coordinates
-		vec3d q = vrand();
+		vec3d q = m_angio.uniformInUnitCube();
 
 		// set the position of the first tip
 		p0 = m_angio.FindGridPoint(item.domain, item.ielement, q);
@@ -489,8 +330,12 @@ bool FragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, Culture * c
 	seg.tip(0).bactive = true;
 	seg.tip(1).bactive = true;
 
-	// decide if this initial segment is allowed to branch
-	if (frand() < culture_params->m_initial_branch_probability) seg.SetFlagOn(Segment::INIT_BRANCH);
+	seg.SetTimeOfBirth(0.0);
+	seg.tip(0).length_to_branch = culture->fbrancher->GetLengthToBranch();
+	seg.tip(1).length_to_branch = culture->fbrancher->GetLengthToBranch();
+
+	assert(seg.tip(0).length_to_branch > 0.0);
+	assert(seg.tip(1).length_to_branch > 0.0);
 
 	// Mark segment as an initial fragment
 	seg.SetFlagOn(Segment::INIT_SPROUT);
@@ -678,19 +523,6 @@ void Culture::UpdateNewVesselLength(SimulationTime& time)
 	
 	m_vess_length = lc*m_cultParams->m_length_adjustment;
 }
-//updates the segment length distribution if needed
-void Culture::UpdateSegmentDistribution()
-{
-	if ((previous_average_segment_length != m_cultParams->average_length_to_branch_point) || (previous_standard_deviation != m_cultParams->std_deviation))
-	{
-		//set the new distributio and previous values
-		//consider setting a breakpoint here as this changing at the wrong time could give diverging networks
-		//TODO: this may need revised if another distribution is used
-		segment_length_distribution = normal_distribution<double>(m_cultParams->average_length_to_branch_point, m_cultParams->std_deviation);
-		previous_average_segment_length = m_cultParams->average_length_to_branch_point;
-		previous_standard_deviation = m_cultParams->std_deviation;
-	}
-}
 
 //-----------------------------------------------------------------------------
 // Grow phase
@@ -745,7 +577,7 @@ void Culture::GrowVessels()
 
 //-----------------------------------------------------------------------------
 // Create a new segment at the (active) tip of an existing segment
-Segment Culture::GrowSegment(Segment::TIP& tip, bool branch, bool bnew_vessel, vec3d growthDirection)
+Segment Culture::GrowSegment(Segment::TIP& tip, bool branch, bool bnew_vessel, vec3d growthDirection, double len_scale)
 {
 
 	// Make sure the tip is active
@@ -755,7 +587,7 @@ Segment Culture::GrowSegment(Segment::TIP& tip, bool branch, bool bnew_vessel, v
 	double den_scale = FindDensityScale(tip.pt);
 
 	// this is the new segment length
-	double seg_length = den_scale*m_vess_length;
+	double seg_length = den_scale*m_vess_length*len_scale;
 
 	// determine the growth direction
 	vec3d seg_vec;
@@ -911,49 +743,10 @@ void Culture::BranchVessels(SimulationTime& time)
 	}
 }
 
-//-----------------------------------------------------------------------------
-// Branching phase of the growth step.
-void Culture::BranchVessels2(SimulationTime& time)
-{
-	std::map<double, std::map<int, Segment *> > remaining_segments;//uses two keys the time and the vessel id
-	// Elongate the active vessel tips
-	for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
-	{
-		// decide if this segment can branch
-		bool branch = true;
-		if (it->GetFlag(Segment::BC_DEAD)) branch = false;	// Make sure segment has not reached a boundary
-		if (it->GetFlag(Segment::ANAST)) branch = false;	// and has not undegone anastimoses.
-		if (it->tip(0).bactive || it->tip(1).bactive) branch = false;	// don't branch segments that are actively growing
-		int vessel = it->m_nvessel;
-		if (branch || it->GetFlag(Segment::INIT_BRANCH))
-		{
-			// pick an end randomly
-			int k = (frand() < 0.5 ? k = 0 : k = 1);
-
-			// find the density scale factor
-			double den_scale = FindDensityScale(it->tip(k).pt);
-
-			// calculate actual branching probability
-			double bprob = den_scale*m_cultParams->GetBranchProbility(time.dt);
-			assert(bprob < 1.0);
-
-			// If branching is turned on determine if the segment forms a new branch
-			if (frand() < bprob)
-			{
-				// Turn off the initial branch flag
-				it->SetFlagOff(Segment::INIT_BRANCH);
-				BranchSegment(it->tip(k));
-
-				// Increase the number of branches.
-				m_num_branches++;
-			}
-		}
-	}
-}
 
 //-----------------------------------------------------------------------------
 // Branching is modeled as a random process, determine is the segment passed to this function forms a branch
-void Culture::BranchSegment(Segment::TIP& tip)
+void Culture::BranchSegment(Segment::TIP& tip, double len_scale)
 {
 	// we must reactive the tip
 	// (it will be deactivated by GrowSegment)
@@ -964,6 +757,7 @@ void Culture::BranchSegment(Segment::TIP& tip)
 	FESolidElement * se = dynamic_cast<FESolidElement*>(&tip.pt.ndomain->ElementRef(tip.pt.elemindex));
 	densities = m_angio.createVectorOfMaterialParameters(se, &FEAngioNodeData::m_ecm_den);
 	vec3d gradient = m_angio.gradient(se, densities, tip.pt.q);
+	m_num_branches++;
 	double gradnorm = gradient.norm();
 	Segment seg;
 	if (gradnorm > m_cultParams->density_gradient_threshold)
@@ -984,13 +778,16 @@ void Culture::BranchSegment(Segment::TIP& tip)
 		//note the mag of gradeint is 1
 		seg_vec = seg_vec - (gradient * (seg_vec * gradient));
 
-		seg = GrowSegment(tip, false, true, seg_vec);
+		seg = GrowSegment(tip, false, true, seg_vec, len_scale);
 	}
 	else
 	{
 		// Create new vessel segment at the current tip existing segment
-		seg = GrowSegment(tip, true, true);
+		seg = GrowSegment(tip, true, true, vec3d(), len_scale);
 	}
+
+	//copy the branch distance in from the tip
+	seg.tip(1).length_to_branch = tip.length_to_branch;
 
 	// Add it to the culture
 	AddNewSegment(seg);
@@ -1110,7 +907,9 @@ void Culture::FuseVessels()
 // is the new tip
 void Culture::AddNewSegment(Segment& seg)
 {
+	recents.clear();
 	//adding zero length segments shoudl be avoided
+	//this will clear and refill recents
 	assert(seg.length() > 0.0);
 	assert(seg.tip(0).pt.nelem >= 0);
 
@@ -1162,11 +961,11 @@ void Culture::AddSegment(Segment& seg)
 	assert(dist < 1.0);
 
 	seg.m_nid = m_nsegs;
-	SimulationTime& sim_time = m_angio.CurrentSimTime();
-	seg.SetTimeOfBirth(sim_time.t);
 	m_nsegs++;
 	m_frag.push_front(seg);
 	assert(m_nsegs == (int)m_frag.size());
+	//add the segment that was just created
+	recents.push_back(&m_frag.front());
 }
 
 //-----------------------------------------------------------------------------
@@ -1272,6 +1071,8 @@ void DirectionalWeights(double da, double dw[2])
 std::vector<FragmentBranching *> FragmentBranching::fragment_branchers;
 std::set<FragmentBranching::BranchPoint> FragmentBranching::branch_points;
 std::set<FragmentBranching::BranchPoint, FragmentBranching::BranchPointEpochCompare> FragmentBranching::parentgen;
+bool FragmentBranching::create_timeline = true;
+std::set<FragmentBranching::BranchPoint, FragmentBranching::BranchPointTimeFloorCompare> FragmentBranching::timeline;
 
 //this is the combined growth step for all cultures/fragments/FragmentBranchers
 void FragmentBranching::Grow()
@@ -1293,7 +1094,7 @@ void FragmentBranching::Grow()
 	//note that branches length to branch will be generated at their emerge time
 	SimulationTime end_time = fragment_branchers[0]->culture->m_pmat->m_pangio->CurrentSimTime();
 	//the time in SimulationTime is the end of the current timestep
-	assert((start_parentgen == parentgen.end()) || (start_parentgen->epoch_time < end_time.t)); //parentgen should empty each timestep/ not be filled beyond the current step
+	assert((start_parentgen == parentgen.end()) || (start_parentgen->epoch_time <= end_time.t)); //parentgen should empty each timestep/ not be filled beyond the current step
 
 	auto pg_iter = start_parentgen;
 	auto br_iter = start_branch_points;
@@ -1306,20 +1107,33 @@ void FragmentBranching::Grow()
 		if (pg_iter == parentgen.end() && br_iter->emerge_time > end_time.t)
 			break;
 		//find which iterator happened first if there  is a tie go one direction all the time
-		if (pg_iter == parentgen.end() || ((br_iter != branch_points.end()) &&(br_iter->emerge_time < pg_iter->epoch_time)))
+		if (br_iter == branch_points.end() || ((br_iter != branch_points.end() && pg_iter != parentgen.end()) &&((br_iter->emerge_time >= pg_iter->epoch_time) || ( br_iter->emerge_time > end_time.t))))
+		{
+			//go with pg_iter
+			if (create_timeline)
+			{
+				BranchPoint pt = *pg_iter;
+				pt.branch = false;
+				timeline.insert(pt);
+			}
+			pg_iter->brancher->UpdateSegmentBranchDistance(pg_iter);
+			++pg_iter;
+			
+		}
+		else
 		{
 			//go with br iterator
 
+			if (create_timeline)
+			{
+				BranchPoint pt = *br_iter;
+				pt.branch = true;
+				timeline.insert(pt);
+			}
 			//GrowSegment needs to populate the segment with branch times and recycle it if needed
 			//copying the iterator protects this internal iterator
 			br_iter->brancher->GrowSegment(br_iter);
 			++br_iter;
-		}
-		else if (br_iter == branch_points.end() || br_iter->emerge_time > end_time.t)
-		{
-			//go with pg_iter
-			pg_iter->brancher->UpdateSegmentBranchDistance(pg_iter);
-			++pg_iter;
 		}
 	}
 
@@ -1333,60 +1147,7 @@ void FragmentBranching::Grow()
 	}
 }
 
-void FragmentBranching::GrowInitialBranches()
-{
-	//same as grow except for there is no initial growth of all active tips just the cleanup of random numbers
 
-	//get all segments which need values recalculated for them in this step
-	if (!fragment_branchers.size())
-		return;
-	//keep track of the start iterators so that I can delete the processed data at the end of the step
-	auto start_parentgen = parentgen.begin();
-
-	auto start_branch_points = branch_points.begin();
-	//generate all of the needed random numbers
-	//note that branches length to branch will be generated at their emerge time
-	SimulationTime end_time = fragment_branchers[0]->culture->m_pmat->m_pangio->CurrentSimTime();
-	//the time in SimulationTime is the end of the current timestep
-	assert((start_parentgen == parentgen.end()) || (start_parentgen->epoch_time < end_time.t)); //parentgen should empty each timestep/ not be filled beyond the current step
-
-	auto pg_iter = start_parentgen;
-	auto br_iter = start_branch_points;
-
-	while (true)
-	{
-		//kick out once all the points in this timestep have been processed
-		if (pg_iter == parentgen.end() && br_iter == branch_points.end())
-			break;
-		if (pg_iter == parentgen.end() && br_iter->emerge_time > end_time.t)
-			break;
-		//find which iterator happened first if there  is a tie go one direction all the time
-		if (pg_iter == parentgen.end() || ((br_iter != branch_points.end()) && (br_iter->emerge_time < pg_iter->epoch_time)))
-		{
-			//go with br iterator
-
-			//GrowSegment needs to populate the segment with branch times and recycle it if needed
-			//copying the iterator protects this internal iterator
-			br_iter->brancher->GrowSegment(br_iter);
-			++br_iter;
-		}
-		else if (br_iter == branch_points.end() || br_iter->emerge_time > end_time.t)
-		{
-			//go with pg_iter
-			pg_iter->brancher->UpdateSegmentBranchDistance(pg_iter);
-			++pg_iter;
-		}
-	}
-
-	//delete the processed portion of the static structures should just reduce memory usage
-	branch_points.erase(start_branch_points, br_iter);
-	parentgen.erase(start_parentgen, pg_iter);
-	//update the active tip lists
-	for (size_t i = 0; i < fragment_branchers.size(); i++)
-	{
-		fragment_branchers[i]->culture->FindActiveTips();
-	}
-}
 
 //does the portion of the grow that does not require rng
 void FragmentBranching::GrowSegments()
@@ -1438,18 +1199,163 @@ void NoFragmentBranching::GrowSegment(Segment::TIP * tip)
 	}
 }
 
-void FragmentBranching::SetupBranchPoints()
+void ForwardFragmentBranching::GrowSegment(Segment::TIP * tip)
 {
-	//Grow the segments populate the sets 
-	for (size_t i = 0; i < fragment_branchers.size(); i++)
+	static int nseg_add = 0;
+	double dw[2];
+	double da_value = culture->m_pmat->m_pangio->genericProjectToPoint(&tip->pt.ndomain->ElementRef(tip->pt.elemindex), &FEAngioNodeData::m_da, tip->pt.q);
+	DirectionalWeights(da_value, dw);
+	//TODO: this overwrite may not be ideal
+	culture->m_pmat->m_cultureParams.vessel_orient_weights.x = dw[0];
+	culture->m_pmat->m_cultureParams.vessel_orient_weights.y = dw[1];
+
+	//calculate the density gradinet if above the threshold set the grow direction
+	std::vector<double> densities;
+	FESolidElement * se = dynamic_cast<FESolidElement*>(&tip->pt.ndomain->ElementRef(tip->pt.elemindex));
+	densities = culture->m_pmat->m_pangio->createVectorOfMaterialParameters(se, &FEAngioNodeData::m_ecm_den);
+	vec3d gradient = culture->m_pmat->m_pangio->gradient(se, densities, tip->pt.q);
+	double gradnorm = gradient.norm();
+	Segment seg;
+	if (gradnorm > culture->m_pmat->m_cultureParams.density_gradient_threshold)
 	{
-		auto tiplist = fragment_branchers[i]->culture->GetActiveTipList();
-		auto iter = tiplist.begin();
-		while (iter != tiplist.end())
+		vec3d currentDirection = culture->FindGrowDirection(*tip);
+		currentDirection.unit();
+		vec3d currentDirectionGradientPlane = gradient ^ currentDirection;
+		currentDirectionGradientPlane.unit();
+		vec3d perpendicularToGradient = currentDirectionGradientPlane ^ gradient;
+		perpendicularToGradient.unit();
+		seg = culture->GrowSegment(*tip, false, false, perpendicularToGradient);
+		//now calculate the length to branch from the new tip
+		seg.tip(1).length_to_branch = tip->length_to_branch;
+		//unfortunatly the boundary condition code needs to add the branch/parent points as it may reposition branch points
+		culture->AddNewSegment(seg);
+		auto rseg = culture->RecentSegments();
+		if (rseg.size() == 1) //handle segments in non bouncing mode
 		{
-			fragment_branchers[i]->InitializeSegment(*iter);
-			++iter;
+			rseg[0]->tip(1).length_to_branch -= seg.length();
+			if (rseg[0]->tip(1).length_to_branch < 0.0)
+			{
+				double bf = (rseg[0]->length() + rseg[0]->tip(1).length_to_branch) / rseg[0]->length();
+				assert(bf >= 0.0 && bf <= 1.0);
+				SimulationTime end_time = culture->m_pmat->m_pangio->CurrentSimTime();
+				//TODO: this is too generous with the timing of the segment, consider adding time of death to segments
+				double bt = mix(end_time.t - end_time.dt, end_time.t, bf);
+				//add the points
+				BranchPoint bp(bt, bt, rseg[0], bf, rseg[0]->m_nid, this);
+				branch_points.insert(bp);
+				parentgen.insert(bp);
+			}
+		}
+		else if (rseg.size() == 0)
+		{
+			nseg_add++;
 		}
 	}
+	else
+	{
+		// Create new vessel segment at the current tip existing segment
+		seg = culture->GrowSegment(*tip);
+		//now set the length to branch it will be adjusted by the seg length in post this will allow stop boundaries to remain unchanged
+		seg.tip(1).length_to_branch = tip->length_to_branch;
+		culture->AddNewSegment(seg);
+		auto rseg = culture->RecentSegments();
+		if (rseg.size() == 1) //handle segments in non bouncing mode
+		{
+			rseg[0]->tip(1).length_to_branch -= seg.length();
+			if (rseg[0]->tip(1).length_to_branch < 0.0)
+			{
+				double bf = (rseg[0]->length() + rseg[0]->tip(1).length_to_branch) / rseg[0]->length();
+				assert(bf >= 0.0 && bf <= 1.0);
+				SimulationTime end_time = culture->m_pmat->m_pangio->CurrentSimTime();
+				//TODO: this is too generous with the timing of the segment, consider adding time of death to segments
+				double bt = mix(end_time.t - end_time.dt, end_time.t, bf);
+				//add the points
+				BranchPoint bp(bt, bt, rseg[0], bf, rseg[0]->m_nid, this);
+				branch_points.insert(bp);
+				parentgen.insert(bp);
+			}
+		}
+		else if (rseg.size() == 0)
+		{
+			nseg_add++;
+		}
+	}
+}
+
+void ForwardFragmentBranching::PostProcess(Segment & seg)
+{
+	//on initialization do nothing otherwise the segment is growing from 0 -> 1
+	//update the time of birth of the segment
 	
+	if (!(seg.tip(0).bactive && seg.tip(1).bactive))
+	{
+		seg.SetTimeOfBirth(current_time);
+		seg.tip(1).length_to_branch -= seg.length();
+		if (seg.tip(1).length_to_branch < 0.0)
+		{
+			double bf = (seg.length() + seg.tip(1).length_to_branch) / seg.length();
+			assert(bf >= 0.0 && bf <= 1.0);
+			SimulationTime end_time = culture->m_pmat->m_pangio->CurrentSimTime();
+			//TODO: this is too generous with the timing of the segment, consider adding time of death to segments
+			double bt = mix(seg.GetTimeOfBirth(), end_time.t, bf);
+			//add the points
+			BranchPoint bp(bt, bt, &seg, bf, seg.m_nid, this);
+			branch_points.insert(bp);
+			parentgen.insert(bp);
+		}
+	}
+	else
+	{
+		seg.SetTimeOfBirth(-1.0);//set the time of birth for initial segmnets to -1 
+	}
+	
+}
+
+void ForwardFragmentBranching::GrowSegment(std::set<BranchPoint>::iterator bp)
+{
+	//create a tip of origin
+	static int mis_count = 0;
+	Segment::TIP tip0 = bp->parent->tip(0);
+	Segment::TIP tip1 = bp->parent->tip(1);
+	vec3d pos = mix(bp->parent->tip(0).pos(), bp->parent->tip(1).pos(), bp->percent_of_parent);
+	if (culture->m_pmat->FindGridPoint(pos, tip0.pt.ndomain, tip0.pt.elemindex, tip0.pt))
+	{
+		//roll for the length to branch of the new segment
+		//the overwrite here is okay as it is a copy
+		tip0.length_to_branch = length_to_branch_point(culture->m_pmat->m_pangio->rengine);
+		culture->BranchSegment(tip0, 1.0 - bp->percent_of_parent);
+	}
+	else if (culture->m_pmat->FindGridPoint(pos, tip1.pt.ndomain, tip1.pt.elemindex, tip1.pt))
+	{
+		tip1.length_to_branch = length_to_branch_point(culture->m_pmat->m_pangio->rengine);
+		culture->BranchSegment(tip1, 1.0 - bp->percent_of_parent);
+	}
+	else
+	{
+		mis_count++;
+		//consider failing when this is not in one of the elements containing the endpoints of the segments
+		//assert(false);
+	}
+
+	
+}
+void ForwardFragmentBranching::UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp)
+{
+	double old_l2b = bp->parent->tip(1).length_to_branch;
+	bp->parent->tip(1).length_to_branch += length_to_branch_point(culture->m_pmat->m_pangio->rengine);
+	if (bp->parent->tip(1).length_to_branch < 0.0)
+	{
+		//add it back to the queue
+		SimulationTime end_time = culture->m_pmat->m_pangio->CurrentSimTime();
+		double bt = mix(bp->epoch_time, end_time.t, (old_l2b - bp->parent->tip(1).length_to_branch) / old_l2b);
+		double bpct = (bt - (end_time.t - end_time.dt)) / (-(end_time.t - end_time.dt) + end_time.t);
+		BranchPoint bpt(bt, bt, bp->parent, bpct , bp->priority, this);
+		parentgen.insert(bpt);
+		//make sure adding both back were wrong
+		branch_points.insert(bpt);
+	}
+}
+double ForwardFragmentBranching::GetLengthToBranch()
+{
+	return length_to_branch_point(culture->m_pmat->m_pangio->rengine);
 }

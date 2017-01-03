@@ -218,16 +218,15 @@ void Fileout::save_vessel_state(FEAngio& angio)
 
 //-----------------------------------------------------------------------------
 // Save active points
-void Fileout::save_active_tips(FEAngio& angio)
+void Fileout::save_active_tips(FEAngio& angio) const
 {
-	
-
 	double t = angio.CurrentSimTime().t;
 	
 	for (size_t i = 0; i < angio.m_pmat.size(); i++)
 	{
 		Culture * cult = angio.m_pmat[i]->m_cult;
-		const SegmentTipList& tips = cult->GetActiveTipList();
+		const SegmentTipList& tips = cult->GetActiveSortedTipList();
+		
 		for (ConstTipIter it = tips.begin(); it != tips.end(); ++it)
 		{
 			Segment::TIP& tip = *(*it);
@@ -238,6 +237,23 @@ void Fileout::save_active_tips(FEAngio& angio)
 			}
 		}
 	}
+}
+void Fileout::save_timeline(FEAngio& angio)
+{
+	auto iter = FragmentBranching::timeline.begin();
+
+	//consider how these shoudl be named to avoid collisions
+	FILE * timeline_file = fopen("timeline.csv", "wt");
+	assert(timeline_file);
+	fprintf(timeline_file, "emerge_time,epoch_time,percent_of_parent,priority,branch\n");
+
+	while (iter != FragmentBranching::timeline.end())
+	{
+		fprintf(timeline_file, "%-12.7f,%-12.7f,%-12.7f,%d,%d\n", iter->emerge_time, iter->epoch_time, iter->percent_of_parent, iter->priority, iter->branch);
+		++iter;
+	}
+	fclose(timeline_file);
+	
 }
 
 //-----------------------------------------------------------------------------

@@ -131,7 +131,8 @@ void BC::CheckBC(Segment &seg)
 	double g;
 	assert(culture->m_pmat);
 	FESurface * surf = culture->m_pmat->exterior_surface;
-	assert(m_angio.m_fe_element_data[se->GetID()].surfacesIndices.size());
+	if (m_angio.m_fe_element_data[se->GetID()].surfacesIndices.size() == 0)
+		return;
 	int hcount = 0;//counts how many times the boundary is handled
 	std::vector<int> & edinices = m_angio.m_fe_element_data[se->GetID()].surfacesIndices;
 	culture->m_pmat->normal_proj->SetSearchRadius(seg.length() * 2);
@@ -217,6 +218,7 @@ void StopBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESoli
 {
 	//fill in the pt's data and add the segment
 	//remaining distance is ignored
+	//does not need to do anything for branching segments as the branch will 
 	FEMesh * mesh = m_angio.GetMesh();
 	seg.tip(1).pt.r = lastGoodPt;
 	seg.SetFlagOn(Segment::BC_DEAD);

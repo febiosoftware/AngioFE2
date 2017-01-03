@@ -42,12 +42,12 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem)
 	FE_state = 0;
 
 	// initialize time stepping parameters
-	m_time.dt = 0.25;
-
+	m_time.dt = 1.0;
 	// Input random seed number
 	m_irseed = 0;
 	ztopi = std::uniform_real_distribution<double>(0, pi);
 	zto2pi = std::uniform_real_distribution<double>(0, 2 * pi);
+	n1to1 = std::uniform_real_distribution<double>(-1, 1);
 }
 
 //-----------------------------------------------------------------------------
@@ -413,6 +413,14 @@ vec3d FEAngio::uniformRandomDirection()
 	double sintheta = sin(theta);
 	vec3d dir(sintheta * cos(phi), sintheta * sin(phi), cos(theta));
 	return dir;
+}
+vec3d FEAngio::uniformInUnitCube()
+{
+	//force the order of initialization should allow results on different platforms to converge 
+	double x = n1to1(rengine);
+	double y = n1to1(rengine);
+	double z = n1to1(rengine);
+	return vec3d(x,y,z);
 }
 
 vec3d FEAngio::gradient(FESolidElement * se, std::vector<double> & fn, vec3d pt)
@@ -1038,6 +1046,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 	else if (nwhen == CB_SOLVED)
 	{
 		// do the final output
+		//TODO: consider making this a constant instead of a material parameter
 		if (m_pmat[0]->m_cultureParams.io)
 			Output();
 	}
@@ -1060,6 +1069,9 @@ void FEAngio::Output()
 
 	// Output final matrix density
 	fileout.writeECMDen(*this);
+
+	//write out the timeline of branchpoints
+	fileout.save_timeline(*this);
 }
 
 ///////////////////////////////////////////////////////////////////////

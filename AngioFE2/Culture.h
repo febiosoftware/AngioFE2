@@ -7,7 +7,7 @@
 #include <fstream>
 #include <random>
 #include <set>
-using namespace std;
+#include <algorithm>
 
 //-----------------------------------------------------------------------------
 class FEAngio;
@@ -95,7 +95,7 @@ public:
 
 	int fragment_seeder = 1;//0 classic fragment seeder, 1 multidomian fragment seeder, 2 by volume fragment seeder, 3 from file
 
-	int branching_scheme = 0;
+	int branching_scheme = 1;
 
 	char vessel_file[MAXPARAMSIZE];//only used if seeding from file
 
@@ -105,18 +105,19 @@ public:
 
 	double density_gradient_threshold = 0.01;//set this to be higher to turn off the direction change on encountering different densities
 
-	double average_length_to_branch_point = 40.0;//sets the average length before a branch is encountered
+	double average_length_to_branch_point = 240.0;//sets the average length before a branch is encountered
 	double std_deviation = 5.0;
 	//consider allowing the user to specify the distribution and any paramters associated with the distribution that is used
 
 	const bool io = true;
 	friend class FEParamContainer;
 	friend class FEAngioMaterial;
+
 	double GetBranchProbility(double dt)const{ return m_branch_chance * dt; }
 	double GetWeightInterpolation(double dt) const { return m_weight_interpolation * dt; }
 private:
 	double	m_branch_chance = 0.1;    // Probability of forming a new branch
-	double m_weight_interpolation = 0.1; //used to control the amount of affect of the collagen direction vs the previous direction for an approximation over 1t
+	double m_weight_interpolation = 0.4; //used to control the amount of affect of the collagen direction vs the previous direction for an approximation over 1t
 
 };
 //used for generating initial segments
@@ -182,6 +183,16 @@ public:
 	class BranchPoint
 	{
 	public:
+		BranchPoint(double emt, double ept, Segment * p, double pctp, int prior, FragmentBranching * fb) :emerge_time(emt),
+			epoch_time(ept), parent(p), percent_of_parent(pctp), priority(prior), brancher(fb)
+		{
+			assert(emerge_time >= -1.0);
+			assert(epoch_time >= -1.0);
+			assert(parent != nullptr);
+			assert(brancher != nullptr);
+		}
+		~BranchPoint(){}
+
 		double emerge_time;//time at which this branch begins to grow
 		double epoch_time;//time when this branch point was created
 		Segment * parent;
@@ -189,6 +200,7 @@ public:
 		int priority;//it there is a tie in time this will break it consistently needs to be athe same for the brnachpoints between runs with equivalent paramters and unique among branch points
 		FragmentBranching * brancher;//used to get the rng needed for this segment
 
+		bool branch; //used in the timeline to tell if the generated point is generating a branch
 
 		//include utility if the other relational operators are needed
 		//should allos the set to be iterated over from low to high times
@@ -220,7 +232,14 @@ public:
 				return lhs.priority < rhs.priority;
 		}
 	};
-	
+	//allows Branch points to be sorted w/i set sorted by the lowest of the times
+	struct BranchPointTimeFloorCompare
+	{
+		bool operator()(const BranchPoint & lhs, const BranchPoint & rhs) const
+		{
+			return (std::min(lhs.epoch_time, lhs.emerge_time) < std::min(rhs.epoch_time, rhs.emerge_time));
+		}
+	};
 
 
 	FragmentBranching(Culture *cp)
@@ -244,34 +263,43 @@ public:
 	virtual void GrowSegment(Segment::TIP * tip) = 0;
 
 	virtual void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) = 0;
-	
-	//initializes the length to branch for all segments within the culutre
-	virtual void InitializeSegment(Segment::TIP * tip) = 0;
 
-	//performs any branching done before time starts
-	virtual void InitialBranching()=0;
+	//modify the length to brnach if needed and set the time of birth of the segment
+	virtual void PostProcess(Segment & seg)=0;
+
+	virtual double GetLengthToBranch() = 0;
 
 	//Grow is a synchronized grow operation for all FragmentBranchers
 	static void Grow();
 
-	static void SetupBranchPoints();
+	static void OutputTimeline(){ create_timeline = true; }
 
-	static void GrowInitialBranches();
+	friend class Fileout;
 protected:
 	Culture * culture;
+	double current_time;
 	static std::vector<FragmentBranching *> fragment_branchers;//consider making this private
 	static std::set<BranchPoint> branch_points;//used for creating the branches
 	static std::set<BranchPoint, BranchPointEpochCompare> parentgen;//used to generate the next branchpoint for the parent segment
+	static bool create_timeline;
+	static std::set<BranchPoint, FragmentBranching::BranchPointTimeFloorCompare> timeline;
 };
 //fragments branch as they grow
 class ForwardFragmentBranching :public FragmentBranching
 {
 public:
-	ForwardFragmentBranching(Culture * cp) : FragmentBranching(cp){}
+	ForwardFragmentBranching(Culture * cp) : FragmentBranching(cp)
+	{
+		//in the future have away to set these as paramters/ have classes dedicated to statistical distributions
+		length_to_branch_point = normal_distribution<double>(40.0, 2.0);
+	}
 	void GrowSegment(std::set<BranchPoint>::iterator bp) override;
 	void GrowSegment(Segment::TIP * tip) override;
 	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) override;
-	void InitialBranching() override;
+	void PostProcess(Segment & seg) override;
+	double GetLengthToBranch() override;
+private:
+	normal_distribution<double> length_to_branch_point;
 };
 //fragments determine the branch points as they grow but there is a time delay to when they start growing
 class PsuedoDeferedFragmentBranching :public FragmentBranching
@@ -280,7 +308,6 @@ class PsuedoDeferedFragmentBranching :public FragmentBranching
 	void GrowSegment(std::set<BranchPoint>::iterator bp) override;
 	void GrowSegment(Segment::TIP * tip) override;
 	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) override;
-	void InitialBranching() override;
 };
 //for testing and replacing existing no branch functionality
 class NoFragmentBranching : public FragmentBranching
@@ -290,9 +317,8 @@ public:
 	void GrowSegment(std::set<BranchPoint>::iterator bp) override{}
 	void GrowSegment(Segment::TIP * tip) override;
 	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) override{}
-	void InitialBranching() override{}
-	void InitializeSegment(Segment::TIP * tip) override {};
-
+	void PostProcess(Segment & seg) override {}
+	double GetLengthToBranch() override{ return 1000000.0; }
 };
 
 //-----------------------------------------------------------------------------
@@ -308,13 +334,6 @@ public:
 
 	// initialize
 	bool Init();
-
-	//set the initial length to a branch point
-	void SetLengthToBranch();
-
-	//branch the initial segments this is a special case as both tips are likely active 
-	//on steps other than the first only one tip should be active
-	void InitialBranching();
 
 	// Perform a growth step
 	void Grow(SimulationTime& time);
@@ -340,6 +359,9 @@ public:
 	// the addition of several new segments. 
 	void AddNewSegment(Segment& seg);
 
+	//returns the segments that were added since the last call to AddNewSegment
+	const std::vector<Segment *> & RecentSegments() const { return recents; }
+
 	// return the number of segments
 	int Segments() const { return m_nsegs; }
 
@@ -347,7 +369,16 @@ public:
 	const SegmentList& GetSegmentList() const { return m_frag; }
 
 	// return the active segment list
-	const SegmentTipList& GetActiveTipList() const { return m_active_tips; }
+	const SegmentTipList& GetActiveTipList() const
+	{
+		return m_active_tips;
+	}
+	//returns the active tips sorted by x position, the sorting key is arbitrary but should give consistent results between runs
+	const SegmentTipList & GetActiveSortedTipList()
+	{
+		m_active_tips.sort([](Segment::TIP * t0, Segment::TIP * t1){return t0->pos().x < t1->pos().x; });
+		return m_active_tips;
+	}
 
 	// get the total number of active tips
 	int ActiveTips() const { return static_cast<int>(m_active_tips.size()); }
@@ -361,11 +392,13 @@ public:
 	void FindActiveTips();
 
 	// Grow a segment
-	Segment GrowSegment(Segment::TIP& it, bool branch = false, bool bnew_vessel = false, vec3d growthDirection = vec3d());
+	Segment GrowSegment(Segment::TIP& it, bool branch = false, bool bnew_vessel = false, vec3d growthDirection = vec3d(), double len_scale =1.0);
 
 	// Update the new vessel length 
 	void UpdateNewVesselLength(SimulationTime& time);
 
+	// create a branch
+	void BranchSegment(Segment::TIP& it, double len_scale = 1.0);
 
 protected:
 	virtual void SetWeights(vector<SegGenItem> & weights, std::vector<FEDomain*> & domains);
@@ -377,24 +410,16 @@ private:
 
 	// branching phase
 	void BranchVessels(SimulationTime& time);
-
-	// branching phase
-	void BranchVessels2(SimulationTime& time);
-
-	// create a branch
-	void BranchSegment(Segment::TIP& it);
-
+	
 	// fuse segments (i.e. anastomosis)
 	void FuseVessels();
 
 	
-
 	Segment GrowSegmentBranching(Segment::TIP& it, double length);
 
 	// Create a new segment connecting two existing segments that are fusing through anastomosis
 	static Segment ConnectSegment(Segment& it, Segment& it2, int k, int kk);
 
-	void UpdateSegmentDistribution();
 	
 
 
@@ -407,14 +432,11 @@ private:
 	FEAngio&	m_angio;
 	
 	FragmentSeeder * fseeder = nullptr;
-	FragmentBranching * fbrancher = nullptr;
-	//used to determine when/where segments should branch
-	//if the distribution is changed via load curve it must at a must-point that is shared between two simulations with different dt for the results to approximate the same network
-	normal_distribution<double> segment_length_distribution;
-	double previous_average_segment_length;
-	double previous_standard_deviation;
+	
+	std::vector<Segment *> recents;//used to hold the segments added by the most recent call to AddNewSegment these segments will be ordered first to last
 
 public:
+	FragmentBranching * fbrancher = nullptr;
 	double	m_vess_length;	// new segment length
 	int		m_num_vessel;   // Counter that indicates the next vessel ID number of new Segments
 	int		m_num_branches;		// Counter indicating the number of branches formed during the simulation

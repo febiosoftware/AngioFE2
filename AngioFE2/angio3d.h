@@ -81,3 +81,8 @@ inline vec3d mix(vec3d x, vec3d y, double a)
 {
 	return x*(1 - a) + y*a;
 }
+//consider making this a template or using GLM
+inline double mix(double x, double y, double a)
+{
+	return x*(1 - a) + y*a;
+}
