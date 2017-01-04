@@ -260,7 +260,7 @@ public:
 	//Grows a segment from an active tip
 	//this function should be time independent
 	//thsi grows a segment from an active tip and sets the BranchPoints needed to generate any needed rng
-	virtual void GrowSegment(Segment::TIP * tip) = 0;
+	virtual void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) = 0;
 
 	virtual void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) = 0;
 
@@ -282,7 +282,7 @@ protected:
 	static std::set<BranchPoint> branch_points;//used for creating the branches
 	static std::set<BranchPoint, BranchPointEpochCompare> parentgen;//used to generate the next branchpoint for the parent segment
 	static bool create_timeline;
-	static std::set<BranchPoint, FragmentBranching::BranchPointTimeFloorCompare> timeline;
+	static std::multiset<BranchPoint, FragmentBranching::BranchPointTimeFloorCompare> timeline;
 };
 //fragments branch as they grow
 class ForwardFragmentBranching :public FragmentBranching
@@ -294,7 +294,7 @@ public:
 		length_to_branch_point = normal_distribution<double>(40.0, 2.0);
 	}
 	void GrowSegment(std::set<BranchPoint>::iterator bp) override;
-	void GrowSegment(Segment::TIP * tip) override;
+	void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) override;
 	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) override;
 	void PostProcess(Segment & seg) override;
 	double GetLengthToBranch() override;
@@ -306,7 +306,7 @@ class PsuedoDeferedFragmentBranching :public FragmentBranching
 {
 	PsuedoDeferedFragmentBranching(Culture * cp) : FragmentBranching(cp){}
 	void GrowSegment(std::set<BranchPoint>::iterator bp) override;
-	void GrowSegment(Segment::TIP * tip) override;
+	void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) override;
 	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) override;
 };
 //for testing and replacing existing no branch functionality
@@ -315,7 +315,7 @@ class NoFragmentBranching : public FragmentBranching
 public:
 	NoFragmentBranching(Culture * cp) : FragmentBranching(cp){}
 	void GrowSegment(std::set<BranchPoint>::iterator bp) override{}
-	void GrowSegment(Segment::TIP * tip) override;
+	void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) override;
 	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) override{}
 	void PostProcess(Segment & seg) override {}
 	double GetLengthToBranch() override{ return 1000000.0; }
@@ -334,9 +334,6 @@ public:
 
 	// initialize
 	bool Init();
-
-	// Perform a growth step
-	void Grow(SimulationTime& time);
 
 	// Reposition the vessels based on the FE solution
 	void Update();
@@ -357,6 +354,7 @@ public:
 	// Add a new segment to the culture.
 	// This will apply BCs to the new segment and may result in 
 	// the addition of several new segments. 
+	//forcing a segment will ignore checks for minimum segment length
 	void AddNewSegment(Segment& seg);
 
 	//returns the segments that were added since the last call to AddNewSegment
@@ -374,6 +372,7 @@ public:
 		return m_active_tips;
 	}
 	//returns the active tips sorted by x position, the sorting key is arbitrary but should give consistent results between runs
+	//consider sorting by distance from the origin instead
 	const SegmentTipList & GetActiveSortedTipList()
 	{
 		m_active_tips.sort([](Segment::TIP * t0, Segment::TIP * t1){return t0->pos().x < t1->pos().x; });
@@ -392,25 +391,16 @@ public:
 	void FindActiveTips();
 
 	// Grow a segment
-	Segment GrowSegment(Segment::TIP& it, bool branch = false, bool bnew_vessel = false, vec3d growthDirection = vec3d(), double len_scale =1.0);
+	Segment GrowSegment(Segment::TIP& it,double starttime, double grow_time, bool branch = false, bool bnew_vessel = false, vec3d growthDirection = vec3d());
 
-	// Update the new vessel length 
-	void UpdateNewVesselLength(SimulationTime& time);
+	//returns the segment length given the time parameters this will be further adjusted by ECM density
+	double SegmentLength(double starttime, double grow_time) const;
 
 	// create a branch
-	void BranchSegment(Segment::TIP& it, double len_scale = 1.0);
+	void BranchSegment(Segment::TIP& it, double starttime, double grow_time);
 
-protected:
-	virtual void SetWeights(vector<SegGenItem> & weights, std::vector<FEDomain*> & domains);
 
-private:
-
-	// grow vessels
-	void GrowVessels();
-
-	// branching phase
-	void BranchVessels(SimulationTime& time);
-	
+private:	
 	// fuse segments (i.e. anastomosis)
 	void FuseVessels();
 

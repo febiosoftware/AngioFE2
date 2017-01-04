@@ -102,8 +102,6 @@ public:
 
 	bool InitCulture();
 
-	void Grow(SimulationTime& time);
-
 	void Update();
 
 	void UpdateECM();

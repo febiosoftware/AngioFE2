@@ -864,10 +864,6 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 	return s;
 }
 
-void FEAngioMaterial::Grow(SimulationTime& time)
-{
-	m_cult->Grow(time);
-}
 void FEAngioMaterial::Update()
 {
 	m_cult->Update();
