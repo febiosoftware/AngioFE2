@@ -37,29 +37,8 @@ Culture::Culture(FEAngio& angio, FEAngioMaterial * matl, CultureParameters * cp)
 	// Initialize counters
 	m_num_anastom = 0;
 	bc = nullptr;
-	ChangeBC(angio, BC::STOP);
-	assert(bc);
 	m_nsegs = 0;			// Initialize segment counter
 	m_pmat = matl;
-}
-
-void Culture::ChangeBC(FEAngio & angio, int bcset)
-{
-	if (bc)
-	{
-		delete bc;
-		bc = nullptr;
-	}
-		
-	switch (bcset)
-	{
-	case BC::STOP:
-		bc = new StopBC(angio, this);
-		break;
-	case BC::BOUNCY:
-		bc = new BouncyBC(angio, this);
-		break;
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -82,6 +61,21 @@ bool Culture::Init()
 
 	// make sure the initial length is initialized 
 	if (m_cultParams->m_initial_vessel_length <= 0.0) m_cultParams->m_initial_vessel_length = m_vess_length;
+
+	//set the boundary condition
+	if (!strcmp(m_cultParams->m_boundary_condition_type, "b"))
+	{
+		bc = new BouncyBC(m_angio, this);
+	}
+	else if (!strcmp(m_cultParams->m_boundary_condition_type, "s"))
+	{
+		bc = new StopBC(m_angio, this);
+	}
+	else
+	{
+		//fail
+		return false;
+	}
 
 	//intialize the Fragment Seeder
 	switch (m_cultParams->fragment_seeder)

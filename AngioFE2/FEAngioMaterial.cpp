@@ -1023,20 +1023,6 @@ double FEAngioMaterial::GetAnisotropy() const
 	double ans = m_cultureParams.vessel_orient_weights.y / (m_cultureParams.vessel_orient_weights.x + m_cultureParams.vessel_orient_weights.y);
 	return ans;
 }
-void FEAngioMaterial::SetBoundaryCondition() const
-{
-	switch (m_cultureParams.m_boundary_condition_type[0])
-	{
-	case 's':
-		m_cult->ChangeBC(*m_pangio, BC::STOP);
-		break;
-	case 'b':
-		m_cult->ChangeBC(*m_pangio, BC::BOUNCY);
-		break;
-	default:
-		assert(false);
-	}
-}
 
 mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 {

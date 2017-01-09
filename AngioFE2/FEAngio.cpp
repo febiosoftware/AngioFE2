@@ -196,14 +196,6 @@ bool FEAngio::InitFEM()
 	// Do the model initialization
 	if (m_fem.Init() == false) return false;
 
-	for (int i = 0; i < m_fem.Materials(); i++)
-	{
-		FEAngioMaterial * cmat = dynamic_cast<FEAngioMaterial*>(m_fem.GetMaterial(i));
-		if (cmat)
-		{
-			cmat->SetBoundaryCondition();
-		}
-	}
 	return true;
 }
 void FEAngio::FinalizeFEM()

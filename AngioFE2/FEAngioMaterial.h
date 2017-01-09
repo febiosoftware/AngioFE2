@@ -154,8 +154,6 @@ public:
 	void SetFEAngio(FEAngio* pangio) { m_pangio = pangio; }
 
 	double GetAnisotropy() const;
-
-	void SetBoundaryCondition() const;
 	
 	void SetupSurface();
 

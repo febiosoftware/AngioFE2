@@ -426,9 +426,6 @@ public:
 	// get the total number of active tips
 	int ActiveTips() const { return static_cast<int>(m_active_tips.size()); }
 
-
-	void ChangeBC(FEAngio & angio, int bcset);
-
 	void CreateBranchingForce(Segment& seg);
 
 	// Find the active tips
