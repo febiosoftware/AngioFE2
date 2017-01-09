@@ -272,6 +272,7 @@ public:
 	//Grow is a synchronized grow operation for all FragmentBranchers
 	static void Grow();
 
+	//call once to have this class record a timeline of the branch points it uses
 	static void OutputTimeline(){ create_timeline = true; }
 
 	friend class Fileout;
@@ -320,6 +321,52 @@ public:
 	void PostProcess(Segment & seg) override {}
 	double GetLengthToBranch() override{ return 1000000.0; }
 };
+//the interface for all operations that modify the growth direction
+//some examples of this include deflection due to gradient and change in direction for anastamosis
+//in the future this can be used to change the direction based on vegf concentrations
+class GrowDirectionModifier
+{
+public:
+	GrowDirectionModifier(Culture * c, int p): culture(c), priority(p){}
+	virtual ~GrowDirectionModifier(){}
+	virtual vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch) = 0;
+	//used to sort these by priority
+	int Priority() const { return priority; }
+protected:
+	Culture * culture;
+	int priority;
+
+};
+//will ignore the previous direction and generate the direction a segmetn should grow based on collagen direction
+class DefaultGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	DefaultGrowDirectionModifier(Culture * c, int p) : GrowDirectionModifier(c, p){}
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch) override;
+};
+
+//this class changes the grow direction if the segment is a branch
+class BranchGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	BranchGrowDirectionModifier(Culture * c, int p) : GrowDirectionModifier(c, p){}
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch) override;
+};
+
+//the class modifies the grow dierction if the gradeint is above a given threshold
+class GradientGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	GradientGrowDirectionModifier(Culture * c, int p) : GrowDirectionModifier(c, p){}
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch) override;
+};
+//modifies the direction a segment grows based on its proximity to other segments
+class AnastamosisGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	AnastamosisGrowDirectionModifier(Culture * c, int p) : GrowDirectionModifier(c, p){}
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch) override;
+};
 
 //-----------------------------------------------------------------------------
 // The CULTURE class contains all the functions that describe how the 
@@ -340,9 +387,6 @@ public:
 
 	// get the total vessel length
 	double TotalVesselLength() const { return m_total_length; }
-
-	// Determine the orientation vector of a newly created segment
-	vec3d FindGrowDirection(Segment::TIP& tip) const;
 	
 	// Find the density-based length scale factor at a point of the grid
 	double FindDensityScale(const GridPoint& pt) const;
@@ -391,7 +435,7 @@ public:
 	void FindActiveTips();
 
 	// Grow a segment
-	Segment GrowSegment(Segment::TIP& it,double starttime, double grow_time, bool branch = false, bool bnew_vessel = false, vec3d growthDirection = vec3d());
+	Segment GrowSegment(Segment::TIP& it,double starttime, double grow_time, bool branch = false, bool bnew_vessel = false);
 
 	//returns the segment length given the time parameters this will be further adjusted by ECM density
 	double SegmentLength(double starttime, double grow_time) const;
@@ -403,9 +447,6 @@ public:
 private:	
 	// fuse segments (i.e. anastomosis)
 	void FuseVessels();
-
-	
-	Segment GrowSegmentBranching(Segment::TIP& it, double length);
 
 	// Create a new segment connecting two existing segments that are fusing through anastomosis
 	static Segment ConnectSegment(Segment& it, Segment& it2, int k, int kk);
@@ -424,6 +465,8 @@ private:
 	FragmentSeeder * fseeder = nullptr;
 	
 	std::vector<Segment *> recents;//used to hold the segments added by the most recent call to AddNewSegment these segments will be ordered first to last
+
+	std::vector<GrowDirectionModifier *> grow_direction_modifiers;//these will be applied in order to determine the direction a tip should grow
 
 public:
 	FragmentBranching * fbrancher = nullptr;
