@@ -63,6 +63,18 @@
     <ClInclude Include="kdtree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\AngioFE2\CultureParameters.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AngioFE2\FragmentSeeder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AngioFE2\FragmentBranching.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AngioFE2\GrowDirectionModifier.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\AngioFE2\AngioFE.cpp">
@@ -108,6 +120,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\AngioFE2\StdAfx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AngioFE2\FragmentSeeder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AngioFE2\FragmentBranching.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AngioFE2\GrowDirectionModifier.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,11 +1,11 @@
 #pragma once
+#include "StdAfx.h"
 #include <FEBioMech/FEElasticMaterial.h>
 #include <FECore/FEDataArray.h>
 #include <FECore/FESurface.h>
 #include <FECore/FENormalProjection.h>
 #include "FEAngio.h"
 #include "Culture.h"
-#include <unordered_map>
 
 //-----------------------------------------------------------------------------
 // A new material point class is defined to store the elastic parameters for 

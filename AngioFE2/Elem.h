@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+#include "StdAfx.h"
 #include <FECore/vec3d.h>
 
 class FEAngioNodeData

@@ -6,8 +6,28 @@
 #pragma once
 
 #include "targetver.h"
-#include <cstdlib>
+
+//keep these in alphabetical order
+#include <algorithm>
+#include <cassert>
 #include <cstdio>
+#include <cstdlib>
+#include <fstream>
+#include <functional>
+#include <list>
+#include <random>
+#include <regex>
+#include <set>
+#include <unordered_map>
+#include <vector>
+
+
+
+
+
+
+
+
 
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers

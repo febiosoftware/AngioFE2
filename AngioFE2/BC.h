@@ -1,6 +1,7 @@
 #pragma once
+#include "StdAfx.h"
 #include <FECore/vec3d.h>
-#include <cassert>
+
 
 //-----------------------------------------------------------------------------
 class FEAngio;

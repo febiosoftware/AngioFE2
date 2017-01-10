@@ -91,13 +91,17 @@
     <ClInclude Include="..\AngioFE2\AngioPlot.h" />
     <ClInclude Include="..\AngioFE2\BC.h" />
     <ClInclude Include="..\AngioFE2\Culture.h" />
+    <ClInclude Include="..\AngioFE2\CultureParameters.h" />
     <ClInclude Include="..\AngioFE2\Elem.h" />
     <ClInclude Include="..\AngioFE2\FEAngio.h" />
     <ClInclude Include="..\AngioFE2\FEAngioMaterial.h" />
     <ClInclude Include="..\AngioFE2\FESproutBodyForce.h" />
     <ClInclude Include="..\AngioFE2\Filein.h" />
     <ClInclude Include="..\AngioFE2\Fileout.h" />
+    <ClInclude Include="..\AngioFE2\FragmentBranching.h" />
+    <ClInclude Include="..\AngioFE2\FragmentSeeder.h" />
     <ClInclude Include="..\AngioFE2\Grid.h" />
+    <ClInclude Include="..\AngioFE2\GrowDirectionModifier.h" />
     <ClInclude Include="..\AngioFE2\Segment.h" />
     <ClInclude Include="..\AngioFE2\StdAfx.h" />
     <ClInclude Include="..\AngioFE2\targetver.h" />
@@ -116,7 +120,10 @@
     <ClCompile Include="..\AngioFE2\FESproutBodyForce.cpp" />
     <ClCompile Include="..\AngioFE2\Filein.cpp" />
     <ClCompile Include="..\AngioFE2\Fileout.cpp" />
+    <ClCompile Include="..\AngioFE2\FragmentBranching.cpp" />
+    <ClCompile Include="..\AngioFE2\FragmentSeeder.cpp" />
     <ClCompile Include="..\AngioFE2\Grid.cpp" />
+    <ClCompile Include="..\AngioFE2\GrowDirectionModifier.cpp" />
     <ClCompile Include="..\AngioFE2\Segment.cpp" />
     <ClCompile Include="..\AngioFE2\StdAfx.cpp" />
   </ItemGroup>
