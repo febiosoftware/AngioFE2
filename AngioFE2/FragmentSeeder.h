@@ -1,7 +1,7 @@
 #pragma once
+#include "StdAfx.h"
 #include <FECore/FEDomain.h>
 #include "CultureParameters.h"
-#include <fstream>
 
 
 //this header contains the definitions of all of the fragment seeder objects

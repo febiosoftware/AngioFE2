@@ -5,8 +5,7 @@
 #include "FEAngio.h"
 #include "angio3d.h"
 #include "FECore/FEMesh.h"
-#include <random>
-#include <regex>
+
 
 
 //-----------------------------------------------------------------------------
@@ -197,6 +196,8 @@ bool FragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, Culture * c
 	seg.SetTimeOfBirth(0.0);
 	seg.tip(0).length_to_branch = culture->fbrancher->GetLengthToBranch();
 	seg.tip(1).length_to_branch = culture->fbrancher->GetLengthToBranch();
+	seg.tip(0).wait_time_to_branch = culture->fbrancher->GetTimeToEmerge();
+	seg.tip(1).wait_time_to_branch = culture->fbrancher->GetTimeToEmerge();
 
 	assert(seg.tip(0).length_to_branch > 0.0);
 	assert(seg.tip(1).length_to_branch > 0.0);
@@ -318,7 +319,7 @@ bool MDAngVessFileFragmentSeeder::SeedFragments(SimulationTime& time, Culture * 
 		int festate = 0;
 		double length = 0.0f, segtime = 0;
 		line = regex_replace(line, whitespace, " ");
-		if (9 != sscanf(line.c_str(), "%d %lf %lf %lf %lf %lf %lf %lf %lf %lf", &festate, &segtime, &p1.x, &p1.y, &p1.z, &p2.x, &p2.y, &p2.z, &length))
+		if (9 != sscanf(line.c_str(), "%d %lf %lf %lf %lf %lf %lf %lf %lf", &festate, &segtime, &p1.x, &p1.y, &p1.z, &p2.x, &p2.y, &p2.z, &length))
 		{
 			//improperly formatted line
 			//this line is skipped

@@ -22,6 +22,17 @@ public:
 			assert(parent != nullptr);
 			assert(brancher != nullptr);
 		}
+#ifndef NDEBUG
+		BranchPoint(double emt, double ept, Segment * p, double pctp, int prior, FragmentBranching * fb, int cs) :emerge_time(emt),
+			epoch_time(ept), parent(p), percent_of_parent(pctp), priority(prior), brancher(fb), callsite(cs), branch(false)
+		{
+			assert(emerge_time >= -1.0);
+			assert(epoch_time >= -1.0);
+			assert(parent != nullptr);
+			assert(brancher != nullptr);
+		}
+#endif
+
 		~BranchPoint(){}
 
 		double emerge_time;//time at which this branch begins to grow
@@ -31,7 +42,10 @@ public:
 		int priority;//it there is a tie in time this will break it consistently needs to be athe same for the brnachpoints between runs with equivalent paramters and unique among branch points
 		FragmentBranching * brancher;//used to get the rng needed for this segment
 
+#ifndef NDEBUG
 		bool branch; //used in the timeline to tell if the generated point is generating a branch
+		int callsite;//used to record where the rng were generated
+#endif
 
 		//include utility if the other relational operators are needed
 		//should allos the set to be iterated over from low to high times
@@ -99,6 +113,7 @@ public:
 	virtual void PostProcess(Segment & seg) = 0;
 
 	virtual double GetLengthToBranch() = 0;
+	virtual double GetTimeToEmerge(){ return 0.0; }
 
 	//Grow is a synchronized grow operation for all FragmentBranchers
 	static void Grow();
@@ -120,26 +135,31 @@ protected:
 class ForwardFragmentBranching :public FragmentBranching
 {
 public:
-	ForwardFragmentBranching(Culture * cp) : FragmentBranching(cp)
-	{
-		//in the future have away to set these as paramters/ have classes dedicated to statistical distributions
-		length_to_branch_point = normal_distribution<double>(40.0, 2.0);
-	}
+	ForwardFragmentBranching(Culture * cp);
 	void GrowSegment(std::set<BranchPoint>::iterator bp) override;
 	void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) override;
 	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) override;
 	void PostProcess(Segment & seg) override;
 	double GetLengthToBranch() override;
+	void ProcessNewSegments(double start_time);
 private:
-	normal_distribution<double> length_to_branch_point;
+	std::normal_distribution<double> length_to_branch_point;
 };
 //fragments determine the branch points as they grow but there is a time delay to when they start growing
 class PsuedoDeferedFragmentBranching :public FragmentBranching
 {
-	PsuedoDeferedFragmentBranching(Culture * cp) : FragmentBranching(cp){}
+public:
+	PsuedoDeferedFragmentBranching(Culture * cp);
 	void GrowSegment(std::set<BranchPoint>::iterator bp) override;
 	void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) override;
 	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) override;
+	void PostProcess(Segment & seg) override;
+	double GetLengthToBranch() override;
+	double GetTimeToEmerge() override;
+	void ProcessNewSegments(double start_time);
+private:
+	std::normal_distribution<double> length_to_branch_point;
+	std::normal_distribution<double> time_to_emerge;
 };
 //for testing and replacing existing no branch functionality
 class NoFragmentBranching : public FragmentBranching

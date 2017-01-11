@@ -314,8 +314,8 @@ vec3d FEAngioMaterial::CollagenDirection(GridPoint& pt)
 	//TODO: may be refactored to remove shape function and dependencies 
 	// Obtain shape function weights
 	double shapeF[FEElement::MAX_NODES];
-	if (selem)
-		selem->shape_fnc(shapeF, pt.q.x, pt.q.y, pt.q.z);//check these numbers
+	assert(selem);
+	selem->shape_fnc(shapeF, pt.q.x, pt.q.y, pt.q.z);//check these numbers
 
 	// Determine component of new vessel direction due to nodal collagen fiber orientation
 	vec3d coll_angle(0, 0, 0);

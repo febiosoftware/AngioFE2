@@ -47,6 +47,7 @@ public:
 		int		nvessel;	// vessel this seed is part of
 
 		double length_to_branch = 0.0;//determines hwo much farther the tip must grow before it branches
+		double wait_time_to_branch = 0.0;//determines how long a segment waits before the branch grows
 
 		const vec3d& pos() const { return pt.r; }
 

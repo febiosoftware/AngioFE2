@@ -23,6 +23,9 @@ public:
 	double	m_x0 = 4.9474;   // Time point at which t is halfway between top & bottom
 	double	m_culture_b = 1.4549;    // Steepness of the curve
 
+	//this may supercede the above parameters
+	double growth_length_over_time = 140.0;//this is the number of units a segment would grow over 1 unit of time if the density is 3mgml. by using a curve the .feb creator has control of the distribution used and its approximation
+
 	//the initial material parameters a,b,N
 	double sprout_s_mag = 3.72e-12;
 	double sprout_s_range = 0.004;
@@ -77,7 +80,7 @@ public:
 
 	int fragment_seeder = 1;//0 classic fragment seeder, 1 multidomian fragment seeder, 2 by volume fragment seeder, 3 from file
 
-	int branching_scheme = 1;
+	int branching_scheme = 2;
 
 	char vessel_file[MAXPARAMSIZE];//only used if seeding from file
 
@@ -87,9 +90,12 @@ public:
 
 	double density_gradient_threshold = 0.01;//set this to be higher to turn off the direction change on encountering different densities
 
-	double average_length_to_branch_point = 240.0;//sets the average length before a branch is encountered
+	double average_length_to_branch_point = 80.0;//sets the average length before a branch is encountered
 	double std_deviation = 5.0;
 	//consider allowing the user to specify the distribution and any paramters associated with the distribution that is used
+	double emerge_time_mean = 0.5;
+	double emeerge_time_std_deviation = 0.25;
+
 
 	const bool io = true;
 	friend class FEParamContainer;

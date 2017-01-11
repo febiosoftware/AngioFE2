@@ -9,8 +9,7 @@
 
 #pragma once
 
-#include <fstream>
-#include <vector>
+#include "StdAfx.h"
 
 class Segment;
 class FEAngio;

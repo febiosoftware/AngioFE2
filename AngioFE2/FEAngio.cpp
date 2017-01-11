@@ -937,7 +937,7 @@ double FEAngio::FindECMDensity(const GridPoint& pt)
 	FESolidElement* se = mesh.FindSolidElement(pt.r, rez);//TODO uses spatial coordinates
 	assert(se->GetID() == pt.nelem);//verify that migration is not happening
 	*/
-	FESolidElement * se;
+	FESolidElement * se = nullptr;
 	if (pt.elemindex >= 0)
 		se = dynamic_cast<FESolidElement*>(&pt.ndomain->ElementRef(pt.elemindex));
 	else

@@ -99,11 +99,9 @@ bool Culture::Init()
 	case 1:
 		fbrancher = new ForwardFragmentBranching(this);
 		break;
-		/* removed until fully implemeented
 	case 2:
 		fbrancher = new PsuedoDeferedFragmentBranching(this);
 		break;
-		*/
 	default:
 		assert(false);
 	}
@@ -136,10 +134,11 @@ bool Culture::Init()
 }
 
 //this formula is from the previous version of the plugin
+//this is derived from the sigmoid curve http://www.sci.utah.edu/publications/edgar13/Edgar_CMBBE2013.pdf
 double Culture::SegmentLength(double starttime, double grow_time) const
 {
-	double lc = m_cultParams->m_culture_a / (1. + exp(-(starttime - m_cultParams->m_x0) / m_cultParams->m_culture_b));
-	lc -= m_cultParams->m_culture_a / (1. + exp(-(starttime - grow_time - m_cultParams->m_x0) / m_cultParams->m_culture_b));
+	//currently this ignores the starttime this aligns with the other constraints on step refinement
+	double lc = m_cultParams->growth_length_over_time * grow_time;
 
 	return lc*m_cultParams->m_length_adjustment;
 }
@@ -227,6 +226,7 @@ void Culture::BranchSegment(Segment::TIP& tip, double starttime, double grow_tim
 
 	//copy the branch distance in from the tip
 	seg.tip(1).length_to_branch = tip.length_to_branch;
+	seg.tip(1).wait_time_to_branch = tip.wait_time_to_branch;
 
 	//will not scale with multiple threads
 	double prev_min_seg_length = m_cultParams->min_segment_length;

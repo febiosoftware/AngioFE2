@@ -1,4 +1,5 @@
 #pragma once
+#include "StdAfx.h"
 #include "Fileout.h"
 #include "FESproutBodyForce.h"
 #include "Grid.h"
@@ -6,12 +7,7 @@
 #include "FEAngioMaterial.h"
 #include "Segment.h"
 #include "FECore/FESolidDomain.h" //isd this include correct or should i just forward declare the class
-#include "FECore/FENormalProjection.h"
-#include <vector>
-#include <functional>
-#include <unordered_map>
-#include <random>
-#include <FECore/FESurface.h>
+
 
 
 //-----------------------------------------------------------------------------
