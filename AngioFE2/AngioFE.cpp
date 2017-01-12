@@ -21,6 +21,10 @@ FEPluginFactory_T<FESproutBodyForce          , FEBODYLOAD_ID> angio_sprout_facto
 FEPluginFactory_T<FEAngioMaterial            , FEMATERIAL_ID> angio_mat_factory            ("angio"                 );
 FEPluginFactory_T<FEPressureMaterial         , FEMATERIAL_ID> pressure_mat_factory         ("pressure"              );
 FEPluginFactory_T<FEPlotAngioStress          , FEPLOTDATA_ID> plot_angio_stress            ("angio stress"          );
+FEPluginFactory_T<FEPlotVesselStress         , FEPLOTDATA_ID> plot_vessel_stress           ("vessel stress"         );
+FEPluginFactory_T<FEPlotMatrixStress         , FEPLOTDATA_ID> plot_matrix_stress           ("matrix stress"         );
+FEPluginFactory_T<FEPlotVesselWeight         , FEPLOTDATA_ID> plot_vessel_weight           ("vessel weight"         );
+FEPluginFactory_T<FEPlotMatrixWeight         , FEPLOTDATA_ID> plot_matrix_weight           ("matrix weight"         );
 FEPluginFactory_T<FEPlotAngioEffectiveStress , FEPLOTDATA_ID> plot_angio_eff_stress        ("angio effective stress");
 FEPluginFactory_T<FEPlotAngioCollagenFibers  , FEPLOTDATA_ID> plot_angio_fibers            ("angio collagen fiber"  );
 FEPluginFactory_T<FEPlotAngioECMDensity      , FEPLOTDATA_ID> plot_angio_ecm               ("angio ECM density"     );
@@ -52,7 +56,7 @@ FECORE_EXPORT void GetPluginVersion(int & major, int & minor, int & patch)
 //-----------------------------------------------------------------------------
 FECORE_EXPORT int PluginNumClasses()
 {
-	return 13;
+	return 17;
 }
 
 //-----------------------------------------------------------------------------
@@ -86,6 +90,14 @@ FECORE_EXPORT FECoreFactory * PluginGetFactory(int i)
 		return &plot_angio_material_hop;
 	case 12:
 		return &plot_angio_segment_bad_growth;
+	case 13:
+		return &plot_vessel_stress;
+	case 14:
+		return &plot_matrix_stress;
+	case 15:
+		return &plot_vessel_weight;
+	case 16:
+		return &plot_matrix_weight;
 	default:
 		return nullptr;
 	}

@@ -10,6 +10,37 @@ public:
 };
 
 //-----------------------------------------------------------------------------
+class FEPlotMatrixStress : public FEDomainData
+{
+public:
+	FEPlotMatrixStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+
+//-----------------------------------------------------------------------------
+class FEPlotVesselStress : public FEDomainData
+{
+public:
+	FEPlotVesselStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+
+//-----------------------------------------------------------------------------
+class FEPlotVesselWeight : public FEDomainData
+{
+public:
+	FEPlotVesselWeight(FEModel* pfem) : FEDomainData(PLT_FLOAT, FMT_ITEM){}
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+//-----------------------------------------------------------------------------
+class FEPlotMatrixWeight : public FEDomainData
+{
+public:
+	FEPlotMatrixWeight(FEModel* pfem) : FEDomainData(PLT_FLOAT, FMT_ITEM){}
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+
+//-----------------------------------------------------------------------------
 class FEPlotAngioGradientCenter : public FEDomainData
 {
 public:
