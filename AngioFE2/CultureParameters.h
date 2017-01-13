@@ -94,7 +94,7 @@ public:
 	double std_deviation = 5.0;
 	//consider allowing the user to specify the distribution and any paramters associated with the distribution that is used
 	double emerge_time_mean = 0.5;
-	double emeerge_time_std_deviation = 0.25;
+	double emerge_time_std_deviation = 0.125;//see http://onlinestatbook.com/2/calculators/normal_dist.html to get proper settings for these values
 
 
 	const bool io = true;

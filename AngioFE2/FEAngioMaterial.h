@@ -86,6 +86,9 @@ public:
 	virtual ~FEAngioMaterial();
 
 	friend class Fileout;
+	friend class FEPlotMatrixStress;
+	friend class FEPlotVesselStress;
+
 	// material initialization
 	bool Init() override;
 	void FinalizeInit();

@@ -97,6 +97,20 @@ void FragmentBranching::GrowSegments()
 	}
 
 }
+//calculates the time a segment took to grow during the current timestep, this assumes the growthrate is constant within a step
+double FragmentBranching::TimeOfGrowth(Segment * seg)
+{
+	
+	double avg_den = culture->m_pmat->m_pangio->FindECMDensity(seg->tip(0).pt);//mix(culture->m_pmat->m_pangio->FindECMDensity(seg->tip(0).pt), culture->m_pmat->m_pangio->FindECMDensity(seg->tip(1).pt), 0.5);
+	double den_scale = culture->m_pmat->m_cultureParams.m_density_scale_factor.x + culture->m_pmat->m_cultureParams.m_density_scale_factor.y
+		*exp(-culture->m_pmat->m_cultureParams.m_density_scale_factor.z*avg_den);
+	SimulationTime & time = culture->m_pmat->m_pangio->CurrentSimTime();
+	double base_length = culture->SegmentLength(time.t - time.dt, time.dt);
+	double rv = time.dt *( seg->length() / (den_scale *base_length));
+	assert(rv > 0.0);
+	assert(rv <= (1.01*time.dt));
+	return rv;
+}
 
 void DirectionalWeights(double da, double dw[2])
 {
@@ -277,7 +291,7 @@ PsuedoDeferedFragmentBranching::PsuedoDeferedFragmentBranching(Culture * cp) : F
 {
 	//in the future have away to set these as paramters/ have classes dedicated to statistical distributions
 	length_to_branch_point = normal_distribution<double>(culture->m_pmat->m_cultureParams.average_length_to_branch_point, culture->m_pmat->m_cultureParams.std_deviation);
-	time_to_emerge = normal_distribution<double>(culture->m_pmat->m_cultureParams.emerge_time_mean, culture->m_pmat->m_cultureParams.emeerge_time_std_deviation);
+	time_to_emerge = normal_distribution<double>(culture->m_pmat->m_cultureParams.emerge_time_mean, culture->m_pmat->m_cultureParams.emerge_time_std_deviation);
 }
 void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double starttime, double grow_time)
 {
@@ -304,10 +318,9 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 			double bf = (rseg[0]->length() + rseg[0]->tip(1).length_to_branch) / rseg[0]->length();
 			assert(bf >= 0.0 && bf <= 1.0);
 			SimulationTime end_time = culture->m_pmat->m_pangio->CurrentSimTime();
-			//TODO: this is too generous with the timing of the segment, consider adding time of death to segments
-			double bt = mix(end_time.t - end_time.dt, end_time.t, bf);
+			double bt = mix(end_time.t - end_time.dt, end_time.t - end_time.dt + TimeOfGrowth(rseg[0]), bf);
 			//add the points
-
+			assert(tip->wait_time_to_branch >= 0.0);
 			BranchPoint bp(bt + tip->wait_time_to_branch, bt, rseg[0], bf, rseg[0]->m_nid, this, 4);
 			branch_points.insert(bp);
 			parentgen.insert(bp);
@@ -316,6 +329,10 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 	else if (rseg.size() == 0)
 	{
 		nseg_add++;
+	}
+	else
+	{
+
 	}
 }
 
@@ -401,13 +418,14 @@ void PsuedoDeferedFragmentBranching::ProcessNewSegments(double start_time)
 
 	}
 	//the easy case just a single segment has been added
-	else if (rseg.size() == 1)
-	{
-		rseg[0]->SetTimeOfBirth(start_time);
-	}
 	else
 	{
-
+		double ct = start_time;
+		for (int i = 0; i < rseg.size(); i++)
+		{
+			rseg[i]->SetTimeOfBirth(ct);
+			ct += TimeOfGrowth(rseg[i]);
+		}
 	}
 }
 void PsuedoDeferedFragmentBranching::UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp)
@@ -428,9 +446,13 @@ void PsuedoDeferedFragmentBranching::UpdateSegmentBranchDistance(std::set<Branch
 }
 double PsuedoDeferedFragmentBranching::GetLengthToBranch()
 {
-	return length_to_branch_point(culture->m_pmat->m_pangio->rengine);
+	double rv = length_to_branch_point(culture->m_pmat->m_pangio->rengine);
+	assert(rv >= 0.0);
+	return rv;
 }
 double PsuedoDeferedFragmentBranching::GetTimeToEmerge()
 {
-	return time_to_emerge(culture->m_pmat->m_pangio->rengine);
+	double rv = time_to_emerge(culture->m_pmat->m_pangio->rengine);
+	assert(rv >= 0.0);
+	return rv;
 }

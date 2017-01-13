@@ -19,6 +19,7 @@ public:
 		{
 			assert(emerge_time >= -1.0);
 			assert(epoch_time >= -1.0);
+			assert(emerge_time >= epoch_time);
 			assert(parent != nullptr);
 			assert(brancher != nullptr);
 		}
@@ -28,6 +29,7 @@ public:
 		{
 			assert(emerge_time >= -1.0);
 			assert(epoch_time >= -1.0);
+			assert(emerge_time >= epoch_time);
 			assert(parent != nullptr);
 			assert(brancher != nullptr);
 		}
@@ -115,6 +117,8 @@ public:
 	virtual double GetLengthToBranch() = 0;
 	virtual double GetTimeToEmerge(){ return 0.0; }
 
+	double TimeOfGrowth(Segment * seg);
+
 	//Grow is a synchronized grow operation for all FragmentBranchers
 	static void Grow();
 
@@ -125,6 +129,8 @@ public:
 protected:
 	Culture * culture;
 	double current_time;
+	
+
 	static std::vector<FragmentBranching *> fragment_branchers;//consider making this private
 	static std::set<BranchPoint> branch_points;//used for creating the branches
 	static std::set<BranchPoint, BranchPointEpochCompare> parentgen;//used to generate the next branchpoint for the parent segment

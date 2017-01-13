@@ -199,6 +199,9 @@ bool FragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, Culture * c
 	seg.tip(0).wait_time_to_branch = culture->fbrancher->GetTimeToEmerge();
 	seg.tip(1).wait_time_to_branch = culture->fbrancher->GetTimeToEmerge();
 
+	assert(seg.tip(0).wait_time_to_branch >= 0);
+	assert(seg.tip(1).wait_time_to_branch >= 0);
+
 	assert(seg.tip(0).length_to_branch > 0.0);
 	assert(seg.tip(1).length_to_branch > 0.0);
 

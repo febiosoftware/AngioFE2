@@ -155,8 +155,8 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double starttime, double grow_ti
 	double den_scale = FindDensityScale(tip.pt);
 
 	// this is the new segment length
-	double seg_length = SegmentLength(starttime, grow_time);
-
+	double seg_length = den_scale*SegmentLength(starttime, grow_time);
+	
 	// determine the growth direction
 	vec3d seg_vec;
 	//now run it through the different filters
@@ -203,6 +203,8 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double starttime, double grow_ti
 
 	// update length and unit vector
 	seg.Update();
+
+	assert(grow_time <= 1.01*fbrancher->TimeOfGrowth(&seg));
 
 	return seg;
 }
