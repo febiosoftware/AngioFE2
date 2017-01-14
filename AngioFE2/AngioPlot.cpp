@@ -7,6 +7,7 @@
 #include "FECore/FEMesh.h"
 #include <unordered_map>
 #include <algorithm>
+#include <FEBioMech/FEViscoElasticMaterial.h>
 
 extern FEAngio* pfeangio;
 
@@ -140,6 +141,65 @@ bool FEPlotMatrixWeight::Save(FEDomain& d, FEDataStream& str)
 			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
 			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
 			s += angioPt->matrix_weight;
+		}
+		s /= static_cast<double>(nint);
+
+		str << s;
+	}
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+bool FEPlotMatrixTangent::Save(FEDomain& d, FEDataStream& str)
+{
+	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	if (pmat == nullptr) return false;
+
+	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
+	int NE = dom.Elements();
+	for (int i = 0; i<NE; ++i)
+	{
+		FESolidElement& el = dom.Element(i);
+		int nint = el.GaussPoints();
+		tens4ds s;
+		s.zero();
+		for (int j = 0; j<nint; ++j)
+		{
+			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
+			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
+			tens4ds ten = pmat->matrix_material->Tangent(mp);
+			tens4ds sj = ten;
+			s += sj;
+		}
+		s /= static_cast<double>(nint);
+
+		str << s;
+	}
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+bool FEPlotMatrixViscoStress::Save(FEDomain& d, FEDataStream& str)
+{
+	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	if (pmat == nullptr) return false;
+
+	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
+	int NE = dom.Elements();
+	for (int i = 0; i<NE; ++i)
+	{
+		FESolidElement& el = dom.Element(i);
+		int nint = el.GaussPoints();
+		mat3ds s;
+		s.zero();
+		for (int j = 0; j<nint; ++j)
+		{
+			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
+			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
+			FEViscoElasticMaterialPoint& matrix_visco_elastic = *angioPt->matPt->ExtractData<FEViscoElasticMaterialPoint>();
+			
+			mat3ds sj =  matrix_visco_elastic.m_se;
+			s += sj;
 		}
 		s /= static_cast<double>(nint);
 

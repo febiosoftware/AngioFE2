@@ -25,6 +25,8 @@ FEPluginFactory_T<FEPlotVesselStress         , FEPLOTDATA_ID> plot_vessel_stress
 FEPluginFactory_T<FEPlotMatrixStress         , FEPLOTDATA_ID> plot_matrix_stress           ("matrix stress"         );
 FEPluginFactory_T<FEPlotVesselWeight         , FEPLOTDATA_ID> plot_vessel_weight           ("vessel weight"         );
 FEPluginFactory_T<FEPlotMatrixWeight         , FEPLOTDATA_ID> plot_matrix_weight           ("matrix weight"         );
+FEPluginFactory_T<FEPlotMatrixTangent        , FEPLOTDATA_ID> plot_matrix_tangent          ("matrix tangent"        );
+FEPluginFactory_T<FEPlotMatrixViscoStress    , FEPLOTDATA_ID> plot_matrix_visco_stress     ("matrix visco stress"   );
 FEPluginFactory_T<FEPlotAngioEffectiveStress , FEPLOTDATA_ID> plot_angio_eff_stress        ("angio effective stress");
 FEPluginFactory_T<FEPlotAngioCollagenFibers  , FEPLOTDATA_ID> plot_angio_fibers            ("angio collagen fiber"  );
 FEPluginFactory_T<FEPlotAngioECMDensity      , FEPLOTDATA_ID> plot_angio_ecm               ("angio ECM density"     );
@@ -56,7 +58,7 @@ FECORE_EXPORT void GetPluginVersion(int & major, int & minor, int & patch)
 //-----------------------------------------------------------------------------
 FECORE_EXPORT int PluginNumClasses()
 {
-	return 17;
+	return 19;
 }
 
 //-----------------------------------------------------------------------------
@@ -98,6 +100,10 @@ FECORE_EXPORT FECoreFactory * PluginGetFactory(int i)
 		return &plot_vessel_weight;
 	case 16:
 		return &plot_matrix_weight;
+	case 17:
+		return &plot_matrix_tangent;
+	case 18:
+		return &plot_matrix_visco_stress;
 	default:
 		return nullptr;
 	}
