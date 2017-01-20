@@ -94,23 +94,10 @@ bool Culture::Init()
 	fbrancher->SetCulture(this);
 
 
-	//intialize all of the grow direction modifiers
-	if (m_cultParams->m_anastomosis)
+	for (int i = 0; i < m_pmat->grow_direction_modifiers.size(); i++)
 	{
-		grow_direction_modifiers.push_back(new AnastamosisGrowDirectionModifier(this, 1));
+		m_pmat->grow_direction_modifiers[i]->SetCulture(this);
 	}
-	//this should always be the first thing in the queue
-	grow_direction_modifiers.push_back(new DefaultGrowDirectionModifier(this, -1));
-
-	//consider changing the priorities if needed / let the user set the priorities
-	grow_direction_modifiers.push_back(new GradientGrowDirectionModifier(this, 0));
-
-	grow_direction_modifiers.push_back(new BranchGrowDirectionModifier(this, 2));
-
-	std::sort(grow_direction_modifiers.begin(), grow_direction_modifiers.end(), [](GrowDirectionModifier * a, GrowDirectionModifier * b)
-	{
-		return a->Priority() < b->Priority();
-	});
 
 
 	// do the initial seeding
@@ -147,9 +134,9 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double starttime, double grow_ti
 	// determine the growth direction
 	vec3d seg_vec;
 	//now run it through the different filters
-	for (size_t i = 0; i < grow_direction_modifiers.size(); i++)
+	for (size_t i = 0; i < m_pmat->grow_direction_modifiers.size(); i++)
 	{
-		seg_vec = grow_direction_modifiers[i]->GrowModifyGrowDirection(seg_vec, tip, branch);
+		seg_vec = m_pmat->grow_direction_modifiers[i]->GrowModifyGrowDirection(seg_vec, tip, branch);
 	}
 
 	// Create a new segment

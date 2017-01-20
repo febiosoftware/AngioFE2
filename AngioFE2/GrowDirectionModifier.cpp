@@ -3,7 +3,19 @@
 #include "Culture.h"
 #include "angio3d.h"
 
+GrowDirectionModifier::GrowDirectionModifier(FEModel * model) : FEMaterial(model)
+{
 
+}
+
+void GrowDirectionModifier::SetCulture(Culture * cp)
+{
+	culture = cp;
+}
+GradientGrowDirectionModifier::GradientGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
+{
+
+}
 //begin implementations of grow direction modifiers
 vec3d GradientGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch)
 {
@@ -27,11 +39,18 @@ vec3d GradientGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir,
 	return previous_dir;
 }
 
+AnastamosisGrowDirectionModifier::AnastamosisGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
+{
+
+}
 vec3d AnastamosisGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch)
 {
 	return previous_dir;
 }
+BranchGrowDirectionModifier::BranchGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
+{
 
+}
 vec3d BranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch)
 {
 	// If new segment is a branch we modify the grow direction a bit
@@ -47,6 +66,11 @@ vec3d BranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, S
 		return seg_vec;
 	}
 	return previous_dir;
+}
+
+DefaultGrowDirectionModifier::DefaultGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
+{
+	
 }
 
 vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch)

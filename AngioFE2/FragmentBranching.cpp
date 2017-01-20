@@ -126,13 +126,6 @@ void DirectionalWeights(double da, double dw[2])
 
 void NoFragmentBranching::GrowSegment(Segment::TIP * tip, double starttime, double grow_time)
 {
-	double dw[2];
-	double da_value = culture->m_pmat->m_pangio->genericProjectToPoint(&tip->pt.ndomain->ElementRef(tip->pt.elemindex), &FEAngioNodeData::m_da, tip->pt.q);
-	DirectionalWeights(da_value, dw);
-	//TODO: this overwrite may not be ideal
-	culture->m_pmat->m_cultureParams.vessel_orient_weights.x = dw[0];
-	culture->m_pmat->m_cultureParams.vessel_orient_weights.y = dw[1];
-
 	Segment seg = culture->GrowSegment(*tip, starttime, grow_time);
 	culture->AddNewSegment(seg);
 }
@@ -149,13 +142,6 @@ PsuedoDeferedFragmentBranching::PsuedoDeferedFragmentBranching(FEModel * model) 
 void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double starttime, double grow_time)
 {
 	static int nseg_add = 0;
-	double dw[2];
-	double da_value = culture->m_pmat->m_pangio->genericProjectToPoint(&tip->pt.ndomain->ElementRef(tip->pt.elemindex), &FEAngioNodeData::m_da, tip->pt.q);
-	DirectionalWeights(da_value, dw);
-	//TODO: this overwrite may not be ideal
-	culture->m_pmat->m_cultureParams.vessel_orient_weights.x = dw[0];
-	culture->m_pmat->m_cultureParams.vessel_orient_weights.y = dw[1];
-
 	Segment seg = culture->GrowSegment(*tip, starttime, grow_time);
 	//now calculate the length to branch from the new tip
 	seg.tip(1).length_to_branch = tip->length_to_branch;

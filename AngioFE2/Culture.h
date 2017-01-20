@@ -123,8 +123,6 @@ private:
 	
 	std::vector<Segment *> recents;//used to hold the segments added by the most recent call to AddNewSegment these segments will be ordered first to last
 
-	std::vector<GrowDirectionModifier *> grow_direction_modifiers;//these will be applied in order to determine the direction a tip should grow
-
 public:
 	FragmentBranching * fbrancher = nullptr;
 	double	m_vess_length;	// new segment length

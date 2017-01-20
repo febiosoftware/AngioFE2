@@ -26,6 +26,11 @@ FEPluginFactory_T<PsuedoDeferedFragmentBranching, FEMATERIAL_ID> psuedo_defered_
 
 FEPluginFactory_T<FENormalDistribution, FEMATERIAL_ID> normal_distribution_factory("normal_distribution");
 
+FEPluginFactory_T<DefaultGrowDirectionModifier, FEMATERIAL_ID> default_grow_direction_modifier_factory("default_grow_direction");
+FEPluginFactory_T<BranchGrowDirectionModifier, FEMATERIAL_ID> branch_grow_direction_modifier_factory("branch_grow_direction");
+FEPluginFactory_T<GradientGrowDirectionModifier, FEMATERIAL_ID> gradient_grow_direction_modifier_factory("gradient_grow_direction");
+FEPluginFactory_T<AnastamosisGrowDirectionModifier, FEMATERIAL_ID> anastamosis_grow_direction_modifier_factory("anastamosis_grow_direction");
+
 FEPluginFactory_T<FEPlotAngioStress          , FEPLOTDATA_ID> plot_angio_stress            ("angio stress"          );
 FEPluginFactory_T<FEPlotVesselStress         , FEPLOTDATA_ID> plot_vessel_stress           ("vessel stress"         );
 FEPluginFactory_T<FEPlotMatrixStress         , FEPLOTDATA_ID> plot_matrix_stress           ("matrix stress"         );
@@ -64,7 +69,7 @@ FECORE_EXPORT void GetPluginVersion(int & major, int & minor, int & patch)
 //-----------------------------------------------------------------------------
 FECORE_EXPORT int PluginNumClasses()
 {
-	return 22;
+	return 26;
 }
 
 //-----------------------------------------------------------------------------
@@ -116,6 +121,14 @@ FECORE_EXPORT FECoreFactory * PluginGetFactory(int i)
 		return &psuedo_defered_fragment_branching_factory;
 	case 21:
 		return &normal_distribution_factory;
+	case 22:
+		return &default_grow_direction_modifier_factory;
+	case 23:
+		return &branch_grow_direction_modifier_factory;
+	case 24:
+		return &gradient_grow_direction_modifier_factory;
+	case 25:
+		return &anastamosis_grow_direction_modifier_factory;
 	default:
 		return nullptr;
 	}

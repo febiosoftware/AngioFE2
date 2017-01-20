@@ -107,9 +107,6 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 
 	ADD_PARAMETER2(m_cultureParams.m_length_adjustment, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "length_adjustment");
 	ADD_PARAMETER2(m_cultureParams.m_anastomosis_distance, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "anastomosis_distance");
-	ADD_PARAMETER2(m_cultureParams.m_branch_chance, FE_PARAM_DOUBLE, FE_RANGE_RIGHT_OPEN(0,1), "branch_chance");
-	ADD_PARAMETER(m_cultureParams.m_branch, FE_PARAM_BOOL, "branch");
-	ADD_PARAMETER(m_cultureParams.m_anastomosis, FE_PARAM_BOOL, "anastomosis");
 	ADD_PARAMETER2(m_cultureParams.m_vessel_width, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "vessel_width");
 	ADD_PARAMETER(m_cultureParams.m_boundary_condition_type, FE_PARAM_STRING, "boundary_condition_type");
 
@@ -122,7 +119,7 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	ADD_PARAMETER(m_cultureParams.m_composite_material, FE_PARAM_INT, "composite_material");
 	ADD_PARAMETER2(m_cultureParams.m_sprout_force, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "sprout_force");
 	ADD_PARAMETER2(m_cultureParams.m_number_fragments, FE_PARAM_INT, FE_RANGE_GREATER_OR_EQUAL(0), "number_fragments" );
-	ADD_PARAMETER(m_cultureParams.vessel_orient_weights, FE_PARAM_VEC3D, "weights");
+
 
 	ADD_PARAMETER(m_cultureParams.fragment_seeder, FE_PARAM_INT, "fragment_seeder");
 	ADD_PARAMETER(m_cultureParams.angio_boundary_type, FE_PARAM_INT, "angio_boundary_type");
@@ -143,6 +140,7 @@ FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticMaterial(pfem)
 	AddProperty(&vessel_material, "vessel");
 	AddProperty(&matrix_material , "matrix");
 	AddProperty(&fbrancher, "brancher");
+	AddProperty(&grow_direction_modifiers, "gdm");
 }
 
 FEAngioMaterial::~FEAngioMaterial()
@@ -1021,8 +1019,7 @@ void ECMInitializerNoOverwrite::seedECMDensity(FEAngioMaterial * mat)
 
 double FEAngioMaterial::GetAnisotropy() const
 {
-	double ans = m_cultureParams.vessel_orient_weights.y / (m_cultureParams.vessel_orient_weights.x + m_cultureParams.vessel_orient_weights.y);
-	return ans;
+	return m_cultureParams.GetWeightInterpolation(1.0);
 }
 
 mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
