@@ -36,7 +36,7 @@ typedef list<Segment::TIP*>::const_iterator ConstTipIter;
 class Culture  
 {
 public:
-	Culture(FEAngio& angio, FEAngioMaterial * matl, CultureParameters * cp);
+	Culture(FEAngio& angio, FEAngioMaterial * matl, CultureParameters * cp, FragmentBranching *fbr);
 	virtual ~Culture();
 
 	// initialize

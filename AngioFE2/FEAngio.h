@@ -142,7 +142,7 @@ public:	// parameters read directly from file
 	std::vector<FEAngioMaterial*>	m_pmat;	//!< the angio-material pointer
 	std::vector<int>                m_pmat_ids;
 
-	std::mt19937_64 rengine;
+	angiofe_random_engine rengine;
 
 private:
 	FEModel&		m_fem;		// the FE model

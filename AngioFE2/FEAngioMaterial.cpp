@@ -142,6 +142,7 @@ FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticMaterial(pfem)
 
 	AddProperty(&vessel_material, "vessel");
 	AddProperty(&matrix_material , "matrix");
+	AddProperty(&fbrancher, "brancher");
 }
 
 FEAngioMaterial::~FEAngioMaterial()
@@ -169,16 +170,16 @@ bool FEAngioMaterial::Init()
 	sym_on = false;
 
 
-	if(matrix_material->Init() == false) return false;
+	if(!matrix_material->Init()) return false;
 
-	if(vessel_material->Init() == false) return false;
+	if(!vessel_material->Init()) return false;
 
 	if (FEElasticMaterial::Init() == false) return false;
 
 
 	//culture must be initialized here  so pangio is defined
 	assert(m_pangio);
-	m_cult = new Culture(*m_pangio, this, &m_cultureParams);
+	m_cult = new Culture(*m_pangio, this, &m_cultureParams, fbrancher);
 
 	switch (m_cultureParams.ecm_control)
 	{
@@ -1032,14 +1033,17 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 	mat3ds s;
 	s.zero();
 	//should always be true but we should check
+	assert(angioPt);
 	if(angioPt)
 	{
 		FEElasticMaterialPoint& vessel_elastic = *angioPt->vessPt->ExtractData<FEElasticMaterialPoint>();
-		vessel_elastic.m_rt = elastic_pt.m_rt;
-		vessel_elastic.m_r0 = elastic_pt.m_r0;
-		vessel_elastic.m_F = elastic_pt.m_F;
-		vessel_elastic.m_J = elastic_pt.m_J;
 		FEElasticMaterialPoint& matrix_elastic = *angioPt->matPt->ExtractData<FEElasticMaterialPoint>();
+
+		vessel_elastic.m_rt = elastic_pt.m_rt;//spatial position
+		vessel_elastic.m_r0 = elastic_pt.m_r0;//material position
+		vessel_elastic.m_F = elastic_pt.m_F;//deformation gradient
+		vessel_elastic.m_J = elastic_pt.m_J;//determinate
+		
 		matrix_elastic.m_rt = elastic_pt.m_rt;
 		matrix_elastic.m_r0 = elastic_pt.m_r0;
 		matrix_elastic.m_F = elastic_pt.m_F;

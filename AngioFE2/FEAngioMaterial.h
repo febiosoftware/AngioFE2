@@ -6,6 +6,7 @@
 #include <FECore/FENormalProjection.h>
 #include "FEAngio.h"
 #include "Culture.h"
+#include "FEProbabilityDistribution.h"
 
 //-----------------------------------------------------------------------------
 // A new material point class is defined to store the elastic parameters for 
@@ -88,6 +89,7 @@ public:
 	friend class Fileout;
 	friend class FEPlotMatrixStress;
 	friend class FEPlotVesselStress;
+	friend class FEPlotMatrixTangent;
 
 	// material initialization
 	bool Init() override;
@@ -207,6 +209,8 @@ public:
 private:
 	FEPropertyT<FESolidMaterial> vessel_material;
 	FEPropertyT<FESolidMaterial> matrix_material;
+	FEPropertyT<FEProbabilityDistribution> length_to_branch;
+	FEPropertyT<FragmentBranching> fbrancher;
 };
 
 //-----------------------------------------------------------------------------

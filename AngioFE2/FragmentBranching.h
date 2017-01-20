@@ -2,13 +2,15 @@
 
 #include "StdAfx.h"
 #include "Segment.h"
+#include "FECore/FEMaterial.h"
+#include "FEProbabilityDistribution.h"
 
 class Culture;
 
 
 //this class encapsulates the branching behavior for a given culture(instance)
 //the static methods/members synchronize the instances where needed, these should only be called once from the model
-class FragmentBranching
+class FragmentBranching : public FEMaterial
 {
 public:
 	class BranchPoint
@@ -89,11 +91,11 @@ public:
 	};
 
 
-	FragmentBranching(Culture *cp)
+	FragmentBranching(FEModel * model):FEMaterial(model)
 	{
-		culture = cp;
 		fragment_branchers.push_back(this);
 	}
+	
 	virtual ~FragmentBranching()
 	{
 		assert(std::find(fragment_branchers.begin(), fragment_branchers.end(), this) != fragment_branchers.end());
@@ -102,6 +104,8 @@ public:
 	//Grows a segment from a branchpoint
 	virtual void GrowSegment(std::set<BranchPoint>::iterator bp) = 0;
 
+	//must be called before anything else is done but construction
+	void SetCulture(Culture * cp);
 
 	void GrowSegments();
 	//Grows a segment from an active tip
@@ -137,25 +141,12 @@ protected:
 	static bool create_timeline;
 	static std::multiset<BranchPoint, FragmentBranching::BranchPointTimeFloorCompare> timeline;
 };
-//fragments branch as they grow
-class ForwardFragmentBranching :public FragmentBranching
-{
-public:
-	ForwardFragmentBranching(Culture * cp);
-	void GrowSegment(std::set<BranchPoint>::iterator bp) override;
-	void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) override;
-	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) override;
-	void PostProcess(Segment & seg) override;
-	double GetLengthToBranch() override;
-	void ProcessNewSegments(double start_time);
-private:
-	std::normal_distribution<double> length_to_branch_point;
-};
+
 //fragments determine the branch points as they grow but there is a time delay to when they start growing
 class PsuedoDeferedFragmentBranching :public FragmentBranching
 {
 public:
-	PsuedoDeferedFragmentBranching(Culture * cp);
+	PsuedoDeferedFragmentBranching(FEModel * model);
 	void GrowSegment(std::set<BranchPoint>::iterator bp) override;
 	void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) override;
 	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) override;
@@ -164,14 +155,14 @@ public:
 	double GetTimeToEmerge() override;
 	void ProcessNewSegments(double start_time);
 private:
-	std::normal_distribution<double> length_to_branch_point;
-	std::normal_distribution<double> time_to_emerge;
+	FEPropertyT<FEProbabilityDistribution> length_to_branch_point;
+	FEPropertyT<FEProbabilityDistribution> time_to_emerge;
 };
 //for testing and replacing existing no branch functionality
 class NoFragmentBranching : public FragmentBranching
 {
 public:
-	NoFragmentBranching(Culture * cp) : FragmentBranching(cp){}
+	NoFragmentBranching(FEModel * model) : FragmentBranching(model){}
 	void GrowSegment(std::set<BranchPoint>::iterator bp) override{}
 	void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) override;
 	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) override{}

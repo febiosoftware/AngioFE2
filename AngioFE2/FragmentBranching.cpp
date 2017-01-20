@@ -10,6 +10,11 @@ std::set<FragmentBranching::BranchPoint, FragmentBranching::BranchPointEpochComp
 bool FragmentBranching::create_timeline = true;
 std::multiset<FragmentBranching::BranchPoint, FragmentBranching::BranchPointTimeFloorCompare> FragmentBranching::timeline;
 
+void FragmentBranching::SetCulture(Culture * cp)
+{
+	culture = cp;
+}
+
 //this is the combined growth step for all cultures/fragments/FragmentBranchers
 void FragmentBranching::Grow()
 {
@@ -133,165 +138,13 @@ void NoFragmentBranching::GrowSegment(Segment::TIP * tip, double starttime, doub
 }
 
 
-ForwardFragmentBranching::ForwardFragmentBranching(Culture * cp) : FragmentBranching(cp)
-{
-	//in the future have away to set these as paramters/ have classes dedicated to statistical distributions
-	length_to_branch_point = normal_distribution<double>(culture->m_pmat->m_cultureParams.average_length_to_branch_point, culture->m_pmat->m_cultureParams.std_deviation);
-}
-void ForwardFragmentBranching::GrowSegment(Segment::TIP * tip, double starttime, double grow_time)
-{
-	static int nseg_add = 0;
-	double dw[2];
-	double da_value = culture->m_pmat->m_pangio->genericProjectToPoint(&tip->pt.ndomain->ElementRef(tip->pt.elemindex), &FEAngioNodeData::m_da, tip->pt.q);
-	DirectionalWeights(da_value, dw);
-	//TODO: this overwrite may not be ideal
-	culture->m_pmat->m_cultureParams.vessel_orient_weights.x = dw[0];
-	culture->m_pmat->m_cultureParams.vessel_orient_weights.y = dw[1];
-
-	Segment seg = culture->GrowSegment(*tip, starttime, grow_time);
-	//now calculate the length to branch from the new tip
-	seg.tip(1).length_to_branch = tip->length_to_branch;
-	culture->AddNewSegment(seg);
-	auto rseg = culture->RecentSegments();
-	if (rseg.size() == 1) //handle segments in non bouncing mode
-	{
-		rseg[0]->tip(1).length_to_branch -= seg.length();
-		rseg[0]->SetTimeOfBirth(starttime);
-		if (rseg[0]->tip(1).length_to_branch < 0.0)
-		{
-			double bf = (rseg[0]->length() + rseg[0]->tip(1).length_to_branch) / rseg[0]->length();
-			assert(bf >= 0.0 && bf <= 1.0);
-			SimulationTime end_time = culture->m_pmat->m_pangio->CurrentSimTime();
-			//TODO: this is too generous with the timing of the segment, consider adding time of death to segments
-			double bt = mix(end_time.t - end_time.dt, end_time.t, bf);
-			//add the points
-			BranchPoint bp(bt, bt, rseg[0], bf, rseg[0]->m_nid, this, 1);
-			branch_points.insert(bp);
-			parentgen.insert(bp);
-		}
-	}
-	else if (rseg.size() == 0)
-	{
-		nseg_add++;
-	}
-}
-
-void ForwardFragmentBranching::PostProcess(Segment & seg)
-{
-	//on initialization do nothing otherwise the segment is growing from 0 -> 1
-	//update the time of birth of the segment
-
-	if (!(seg.tip(0).bactive && seg.tip(1).bactive))
-	{
-		seg.SetTimeOfBirth(current_time);
-		seg.tip(1).length_to_branch -= seg.length();
-		if (seg.tip(1).length_to_branch < 0.0)
-		{
-			double bf = (seg.length() + seg.tip(1).length_to_branch) / seg.length();
-			assert(bf >= 0.0 && bf <= 1.0);
-			SimulationTime end_time = culture->m_pmat->m_pangio->CurrentSimTime();
-			//TODO: this is too generous with the timing of the segment, consider adding time of death to segments
-			double bt = mix(seg.GetTimeOfBirth(), end_time.t, bf);
-			//add the points
-			BranchPoint bp(bt, bt, &seg, bf, seg.m_nid, this, 2);
-			branch_points.insert(bp);
-			parentgen.insert(bp);
-		}
-	}
-	else
-	{
-		seg.SetTimeOfBirth(-1.0);//set the time of birth for initial segmnets to -1 
-	}
-
-}
-
-void ForwardFragmentBranching::GrowSegment(std::set<BranchPoint>::iterator bp)
-{
-	//create a tip of origin
-	static int mis_count = 0;
-	Segment::TIP tip0 = bp->parent->tip(0);
-	Segment::TIP tip1 = bp->parent->tip(1);
-	vec3d pos = mix(bp->parent->tip(0).pos(), bp->parent->tip(1).pos(), bp->percent_of_parent);
-	SimulationTime & st = culture->m_pmat->m_pangio->CurrentSimTime();
-	if (culture->m_pmat->FindGridPoint(pos, tip0.pt.ndomain, tip0.pt.elemindex, tip0.pt))
-	{
-		//roll for the length to branch of the new segment
-		//the overwrite here is okay as it is a copy
-		tip0.length_to_branch = length_to_branch_point(culture->m_pmat->m_pangio->rengine);
-		culture->BranchSegment(tip0, bp->emerge_time, st.t - bp->emerge_time);
-	}
-	else if (culture->m_pmat->FindGridPoint(pos, tip1.pt.ndomain, tip1.pt.elemindex, tip1.pt))
-	{
-		tip1.length_to_branch = length_to_branch_point(culture->m_pmat->m_pangio->rengine);
-		culture->BranchSegment(tip1, bp->emerge_time, st.t - bp->emerge_time);
-	}
-	else
-	{
-		//this is when the segment is in another element ie the segment is growing through at least 2 elements
-		//this may indicate a problem in getting consistent results
-		if (culture->m_pmat->FindGridPoint(pos, tip0.pt))
-		{
-			tip0.length_to_branch = length_to_branch_point(culture->m_pmat->m_pangio->rengine);
-			culture->BranchSegment(tip0, bp->emerge_time, st.t - bp->emerge_time);
-		}
-		else
-		{
-			//failed to place the tip in another element
-			assert(false);
-		}
-	}
-	ProcessNewSegments(bp->emerge_time);
-
-}
-
-void ForwardFragmentBranching::ProcessNewSegments(double start_time)
-{
-	auto rseg = culture->RecentSegments();
-
-	//consider handling when no segments are added
-	if (rseg.size() == 0)
-	{
-
-	}
-	//the easy case just a single segment has been added
-	else if (rseg.size() == 1)
-	{
-		rseg[0]->SetTimeOfBirth(start_time);
-	}
-	else
-	{
-
-	}
-}
-void ForwardFragmentBranching::UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp)
-{
-	double old_l2b = bp->parent->tip(1).length_to_branch;
-	bp->parent->tip(1).length_to_branch += length_to_branch_point(culture->m_pmat->m_pangio->rengine);
-	if (bp->parent->tip(1).length_to_branch < 0.0)
-	{
-		//add it back to the queue
-		SimulationTime end_time = culture->m_pmat->m_pangio->CurrentSimTime();
-		double bt = mix(bp->epoch_time, end_time.t, (old_l2b - bp->parent->tip(1).length_to_branch) / old_l2b);
-		double bpct = (bt - (end_time.t - end_time.dt)) / (-(end_time.t - end_time.dt) + end_time.t);
-		BranchPoint bpt(bt, bt, bp->parent, bpct, bp->priority, this, 3);
-		parentgen.insert(bpt);
-		//make sure adding both back were wrong
-		branch_points.insert(bpt);
-	}
-}
-double ForwardFragmentBranching::GetLengthToBranch()
-{
-	return length_to_branch_point(culture->m_pmat->m_pangio->rengine);
-}
-
 
 
 //begin implementation of psuedo deferred branching
-PsuedoDeferedFragmentBranching::PsuedoDeferedFragmentBranching(Culture * cp) : FragmentBranching(cp)
+PsuedoDeferedFragmentBranching::PsuedoDeferedFragmentBranching(FEModel * model) : FragmentBranching(model)
 {
-	//in the future have away to set these as paramters/ have classes dedicated to statistical distributions
-	length_to_branch_point = normal_distribution<double>(culture->m_pmat->m_cultureParams.average_length_to_branch_point, culture->m_pmat->m_cultureParams.std_deviation);
-	time_to_emerge = normal_distribution<double>(culture->m_pmat->m_cultureParams.emerge_time_mean, culture->m_pmat->m_cultureParams.emerge_time_std_deviation);
+	AddProperty(&length_to_branch_point, "length_to_branch");
+	AddProperty(&time_to_emerge, "time_to_emerge");
 }
 void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double starttime, double grow_time)
 {
@@ -377,14 +230,14 @@ void PsuedoDeferedFragmentBranching::GrowSegment(std::set<BranchPoint>::iterator
 	{
 		//roll for the length to branch of the new segment
 		//the overwrite here is okay as it is a copy
-		tip0.length_to_branch = length_to_branch_point(culture->m_pmat->m_pangio->rengine);
-		tip0.wait_time_to_branch = time_to_emerge(culture->m_pmat->m_pangio->rengine);
+		tip0.length_to_branch = length_to_branch_point->NextValue(culture->m_pmat->m_pangio->rengine);
+		tip0.wait_time_to_branch = time_to_emerge->NextValue(culture->m_pmat->m_pangio->rengine);
 		culture->BranchSegment(tip0, bp->emerge_time, st.t - bp->emerge_time);
 	}
 	else if (culture->m_pmat->FindGridPoint(pos, tip1.pt.ndomain, tip1.pt.elemindex, tip1.pt))
 	{
-		tip1.length_to_branch = length_to_branch_point(culture->m_pmat->m_pangio->rengine);
-		tip1.wait_time_to_branch = time_to_emerge(culture->m_pmat->m_pangio->rengine);
+		tip1.length_to_branch = length_to_branch_point->NextValue(culture->m_pmat->m_pangio->rengine);
+		tip1.wait_time_to_branch = time_to_emerge->NextValue(culture->m_pmat->m_pangio->rengine);
 		culture->BranchSegment(tip1, bp->emerge_time, st.t - bp->emerge_time);
 	}
 	else
@@ -393,8 +246,8 @@ void PsuedoDeferedFragmentBranching::GrowSegment(std::set<BranchPoint>::iterator
 		//this may indicate a problem in getting consistent results
 		if (culture->m_pmat->FindGridPoint(pos, tip0.pt))
 		{
-			tip0.length_to_branch = length_to_branch_point(culture->m_pmat->m_pangio->rengine);
-			tip0.wait_time_to_branch = time_to_emerge(culture->m_pmat->m_pangio->rengine);
+			tip0.length_to_branch = length_to_branch_point->NextValue(culture->m_pmat->m_pangio->rengine);
+			tip0.wait_time_to_branch = time_to_emerge->NextValue(culture->m_pmat->m_pangio->rengine);
 			culture->BranchSegment(tip0, bp->emerge_time, st.t - bp->emerge_time);
 
 		}
@@ -421,7 +274,7 @@ void PsuedoDeferedFragmentBranching::ProcessNewSegments(double start_time)
 	else
 	{
 		double ct = start_time;
-		for (int i = 0; i < rseg.size(); i++)
+		for (size_t i = 0; i < rseg.size(); i++)
 		{
 			rseg[i]->SetTimeOfBirth(ct);
 			ct += TimeOfGrowth(rseg[i]);
@@ -431,7 +284,7 @@ void PsuedoDeferedFragmentBranching::ProcessNewSegments(double start_time)
 void PsuedoDeferedFragmentBranching::UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp)
 {
 	double old_l2b = bp->parent->tip(1).length_to_branch;
-	bp->parent->tip(1).length_to_branch += length_to_branch_point(culture->m_pmat->m_pangio->rengine);
+	bp->parent->tip(1).length_to_branch += length_to_branch_point->NextValue(culture->m_pmat->m_pangio->rengine);
 	if (bp->parent->tip(1).length_to_branch < 0.0)
 	{
 		//add it back to the queue
@@ -446,13 +299,13 @@ void PsuedoDeferedFragmentBranching::UpdateSegmentBranchDistance(std::set<Branch
 }
 double PsuedoDeferedFragmentBranching::GetLengthToBranch()
 {
-	double rv = length_to_branch_point(culture->m_pmat->m_pangio->rengine);
+	double rv = length_to_branch_point->NextValue(culture->m_pmat->m_pangio->rengine);
 	assert(rv >= 0.0);
 	return rv;
 }
 double PsuedoDeferedFragmentBranching::GetTimeToEmerge()
 {
-	double rv = time_to_emerge(culture->m_pmat->m_pangio->rengine);
+	double rv = time_to_emerge->NextValue(culture->m_pmat->m_pangio->rengine);
 	assert(rv >= 0.0);
 	return rv;
 }

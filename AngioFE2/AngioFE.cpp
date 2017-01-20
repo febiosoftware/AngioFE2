@@ -20,6 +20,12 @@ FEPluginFactory_T<AngioFETask                , FETASK_ID    > angiofe_task_facto
 FEPluginFactory_T<FESproutBodyForce          , FEBODYLOAD_ID> angio_sprout_factory         ("sprout"                );
 FEPluginFactory_T<FEAngioMaterial            , FEMATERIAL_ID> angio_mat_factory            ("angio"                 );
 FEPluginFactory_T<FEPressureMaterial         , FEMATERIAL_ID> pressure_mat_factory         ("pressure"              );
+
+FEPluginFactory_T<NoFragmentBranching        , FEMATERIAL_ID> no_fragment_branching_factory("no_branch"             );
+FEPluginFactory_T<PsuedoDeferedFragmentBranching, FEMATERIAL_ID> psuedo_defered_fragment_branching_factory("psuedo_defered_branch");
+
+FEPluginFactory_T<FENormalDistribution, FEMATERIAL_ID> normal_distribution_factory("normal_distribution");
+
 FEPluginFactory_T<FEPlotAngioStress          , FEPLOTDATA_ID> plot_angio_stress            ("angio stress"          );
 FEPluginFactory_T<FEPlotVesselStress         , FEPLOTDATA_ID> plot_vessel_stress           ("vessel stress"         );
 FEPluginFactory_T<FEPlotMatrixStress         , FEPLOTDATA_ID> plot_matrix_stress           ("matrix stress"         );
@@ -58,7 +64,7 @@ FECORE_EXPORT void GetPluginVersion(int & major, int & minor, int & patch)
 //-----------------------------------------------------------------------------
 FECORE_EXPORT int PluginNumClasses()
 {
-	return 19;
+	return 22;
 }
 
 //-----------------------------------------------------------------------------
@@ -104,6 +110,12 @@ FECORE_EXPORT FECoreFactory * PluginGetFactory(int i)
 		return &plot_matrix_tangent;
 	case 18:
 		return &plot_matrix_visco_stress;
+	case 19:
+		return &no_fragment_branching_factory;
+	case 20:
+		return &psuedo_defered_fragment_branching_factory;
+	case 21:
+		return &normal_distribution_factory;
 	default:
 		return nullptr;
 	}

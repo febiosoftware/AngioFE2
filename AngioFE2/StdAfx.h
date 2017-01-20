@@ -21,6 +21,8 @@
 #include <unordered_map>
 #include <vector>
 
+typedef  std::mt19937_64 angiofe_random_engine;
+
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 #define NOMINMAX //use the c++ std versions of min and max

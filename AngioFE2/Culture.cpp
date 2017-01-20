@@ -15,7 +15,7 @@ void DirectionalWeights(double da, double dw[2]);
 
 
 //-----------------------------------------------------------------------------
-Culture::Culture(FEAngio& angio, FEAngioMaterial * matl, CultureParameters * cp) : m_angio(angio)
+Culture::Culture(FEAngio& angio, FEAngioMaterial * matl, CultureParameters * cp, FragmentBranching *fbr) : m_angio(angio)
 {
 	assert(matl && cp);
 	m_cultParams = cp;
@@ -33,6 +33,7 @@ Culture::Culture(FEAngio& angio, FEAngioMaterial * matl, CultureParameters * cp)
 	bc = nullptr;
 	m_nsegs = 0;			// Initialize segment counter
 	m_pmat = matl;
+	fbrancher = fbr;
 }
 
 //-----------------------------------------------------------------------------
@@ -90,21 +91,7 @@ bool Culture::Init()
 		assert(false);
 	}
 
-	switch (m_cultParams->branching_scheme)
-	{
-	case 0:
-		fbrancher = new NoFragmentBranching(this);
-		break;
-		
-	case 1:
-		fbrancher = new ForwardFragmentBranching(this);
-		break;
-	case 2:
-		fbrancher = new PsuedoDeferedFragmentBranching(this);
-		break;
-	default:
-		assert(false);
-	}
+	fbrancher->SetCulture(this);
 
 
 	//intialize all of the grow direction modifiers
