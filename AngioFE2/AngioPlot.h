@@ -25,6 +25,15 @@ public:
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
+
+//-----------------------------------------------------------------------------
+class FEPlotMatrixElasticStress : public FEDomainData
+{
+public:
+	FEPlotMatrixElasticStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+
 //-----------------------------------------------------------------------------
 class FEPlotVesselStress : public FEDomainData
 {

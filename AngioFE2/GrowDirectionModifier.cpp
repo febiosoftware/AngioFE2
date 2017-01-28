@@ -26,7 +26,7 @@ vec3d GradientGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir,
 	vec3d gradient = culture->m_pmat->m_pangio->gradient(se, densities, tip.pt.q);
 	double gradnorm = gradient.norm();
 	Segment seg;
-	if (gradnorm > culture->m_pmat->m_cultureParams.density_gradient_threshold)
+	if (gradnorm > threshold)
 	{
 		vec3d currentDirection = previous_dir;
 		currentDirection.unit();
@@ -38,6 +38,9 @@ vec3d GradientGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir,
 	}
 	return previous_dir;
 }
+BEGIN_PARAMETER_LIST(GradientGrowDirectionModifier, GrowDirectionModifier)
+ADD_PARAMETER(threshold, FE_PARAM_DOUBLE, "threshold");
+END_PARAMETER_LIST();
 
 AnastamosisGrowDirectionModifier::AnastamosisGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
 {

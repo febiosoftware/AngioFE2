@@ -8,11 +8,30 @@
 
 
 
+FragmentSeeder::FragmentSeeder(FEModel * model) : FEMaterial(model), culture(nullptr)
+{
+
+}
+void FragmentSeeder::SetCulture(Culture * cp)
+{
+	culture = cp;
+}
+
+BEGIN_PARAMETER_LIST(FragmentSeeder, FEMaterial)
+ADD_PARAMETER(number_fragments, FE_PARAM_INT, "number_fragments");
+ADD_PARAMETER(initial_vessel_length, FE_PARAM_DOUBLE, "initial_vessel_length");
+END_PARAMETER_LIST();
 //-----------------------------------------------------------------------------
 // Create initial fragments
+
+ClassicFragmentSeeder::ClassicFragmentSeeder(FEModel * model) : FragmentSeeder(model)
+{
+	
+}
+
 bool ClassicFragmentSeeder::SeedFragments(SimulationTime& time, Culture * culture)
 {
-	for (int i = 0; i < culture_params->m_number_fragments; ++i)
+	for (int i = 0; i < number_fragments; ++i)
 	{
 		// Create an initial segment
 		Segment seg;
@@ -29,7 +48,7 @@ bool ClassicFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cultur
 	}
 
 	// init vessel counter
-	culture->m_num_vessel = culture_params->m_number_fragments;
+	culture->m_num_vessel = number_fragments;
 
 	// Update the active tip container
 	culture->FindActiveTips();
@@ -42,9 +61,9 @@ bool ClassicFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cultur
 // the classic mode still uses a biased growth direction
 bool ClassicFragmentSeeder::createInitFrag(Segment& seg)
 {
-	FEMesh * mesh = m_angio.GetMesh();
+	FEMesh * mesh = culture->m_pmat->m_pangio->GetMesh();
 	// Set seg length to value of growth function at t = 0
-	double seg_length = culture_params->m_initial_vessel_length;
+	double seg_length = initial_vessel_length;
 
 	// We create only segments that lie inside the grid.
 	// Since the creation of such a segment may fail (i.e. too close to boundary)
@@ -65,7 +84,7 @@ bool ClassicFragmentSeeder::createInitFrag(Segment& seg)
 		vec3d q = vrand();
 
 		// set the position of the first tip
-		p0 = m_angio.FindGridPoint(&mesh->Domain(0), elem_num, q);
+		p0 = culture->m_pmat->m_pangio->FindGridPoint(&mesh->Domain(0), elem_num, q);
 
 		// Determine vessel orientation based off of collagen fiber orientation
 		vec3d seg_vec = vrand();
@@ -75,7 +94,7 @@ bool ClassicFragmentSeeder::createInitFrag(Segment& seg)
 		vec3d r1 = p0.r + seg_vec*seg_length;
 
 		// find the element where the second tip is
-		m_angio.m_pmat[0]->FindGridPoint(r1, p1);
+		culture->m_pmat->FindGridPoint(r1, p1);
 
 		ntries++;
 	} while ((p1.nelem == -1) && (ntries < MAX_TRIES));
@@ -93,9 +112,6 @@ bool ClassicFragmentSeeder::createInitFrag(Segment& seg)
 	seg.tip(0).bactive = true;
 	seg.tip(1).bactive = true;
 
-	// decide if this initial segment is allowed to branch
-	if (frand() < culture_params->m_initial_branch_probability) seg.SetFlagOn(Segment::INIT_BRANCH);
-
 	// Mark segment as an initial fragment
 	seg.SetFlagOn(Segment::INIT_SPROUT);
 
@@ -103,28 +119,33 @@ bool ClassicFragmentSeeder::createInitFrag(Segment& seg)
 	return true;
 }
 
+
+MultiDomainFragmentSeeder::MultiDomainFragmentSeeder(FEModel * model) : FragmentSeeder(model)
+{
+
+}
 //-----------------------------------------------------------------------------
 // Create initial fragments
 bool MultiDomainFragmentSeeder::SeedFragments(SimulationTime& time, Culture * culture)
 {
-	FEMesh * mesh = m_angio.GetMesh();
+	FEMesh * mesh = culture->m_pmat->m_pangio->GetMesh();
 	int elementsInDomains = 0;
 	for (size_t i = 0; i < culture->m_pmat->domains.size(); i++)
 	{
-		elementsInDomains += m_angio.GetMesh()->Domain(culture->m_pmat->domains[i]).Elements();
-		domains.push_back(&m_angio.GetMesh()->Domain(culture->m_pmat->domains[i]));
+		elementsInDomains += culture->m_pmat->m_pangio->GetMesh()->Domain(culture->m_pmat->domains[i]).Elements();
+		domains.push_back(&culture->m_pmat->m_pangio->GetMesh()->Domain(culture->m_pmat->domains[i]));
 	}
 
 	std::uniform_int_distribution<int> ddist(0, culture->m_pmat->domains.size() - 1);
 	std::uniform_int_distribution<int> edist(0, elementsInDomains - 1);
 	SegGenItem sgi;
 
-	for (int i = 0; i < culture_params->m_number_fragments; ++i)
+	for (int i = 0; i < number_fragments; ++i)
 	{
 		// Create an initial segment
 		Segment seg;
-		sgi.domain = &mesh->Domain(culture->m_pmat->domains[ddist(m_angio.rengine)]);
-		sgi.ielement = edist(m_angio.rengine);
+		sgi.domain = &mesh->Domain(culture->m_pmat->domains[ddist(culture->m_pmat->m_pangio->rengine)]);
+		sgi.ielement = edist(culture->m_pmat->m_pangio->rengine);
 		if (createInitFrag(seg, sgi, culture) == false) return false;
 
 		// Give the segment the appropriate label
@@ -138,7 +159,7 @@ bool MultiDomainFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cu
 	}
 
 	// init vessel counter
-	culture->m_num_vessel = culture_params->m_number_fragments;
+	culture->m_num_vessel = number_fragments;
 
 	// Update the active tip container
 	culture->FindActiveTips();
@@ -152,7 +173,7 @@ bool FragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, Culture * c
 {
 	//note tip(1) may not be in the same element as the initial fragment
 	// Set seg length to value of growth function at t = 0
-	double seg_length = culture_params->m_initial_vessel_length;
+	double seg_length = initial_vessel_length;
 
 	// Since the creation of such a segment may fail (i.e. too close to boundary)
 	// we loop until we find one.
@@ -162,13 +183,13 @@ bool FragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, Culture * c
 	do
 	{
 		// generate random natural coordinates
-		vec3d q = m_angio.uniformInUnitCube();
+		vec3d q = culture->m_pmat->m_pangio->uniformInUnitCube();
 
 		// set the position of the first tip
-		p0 = m_angio.FindGridPoint(item.domain, item.ielement, q);
+		p0 = culture->m_pmat->m_pangio->FindGridPoint(item.domain, item.ielement, q);
 
 		// Determine vessel orientation based off of collagen fiber orientation
-		vec3d seg_vec = m_angio.uniformRandomDirection();
+		vec3d seg_vec = culture->m_pmat->m_pangio->uniformRandomDirection();
 		seg_vec.unit();
 
 		// End of new segment is origin plus length component in each direction	
@@ -230,16 +251,21 @@ static size_t findElement(double val, int lo, int high, double * begin, double *
 	}
 }
 
+MDByVolumeFragmentSeeder::MDByVolumeFragmentSeeder(FEModel * model) :FragmentSeeder(model)
+{
+	
+}
+
 //-----------------------------------------------------------------------------
 // Create initial fragments
 bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * culture)
 {
-	FEMesh * mesh = m_angio.GetMesh();
+	FEMesh * mesh = culture->m_pmat->m_pangio->GetMesh();
 	int elementsInDomains = 0;
 	for (size_t i = 0; i < culture->m_pmat->domains.size(); i++)
 	{
-		elementsInDomains += m_angio.GetMesh()->Domain(culture->m_pmat->domains[i]).Elements();
-		domains.push_back(&m_angio.GetMesh()->Domain(culture->m_pmat->domains[i]));
+		elementsInDomains += culture->m_pmat->m_pangio->GetMesh()->Domain(culture->m_pmat->domains[i]).Elements();
+		domains.push_back(&culture->m_pmat->m_pangio->GetMesh()->Domain(culture->m_pmat->domains[i]));
 	}
 	double * totalWeightsBegin = new double[elementsInDomains];
 	double * totalWeightsEnd = new double[elementsInDomains];
@@ -261,10 +287,10 @@ bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cul
 	std::uniform_real_distribution<double> voluchoice(0, cweight);
 	SegGenItem sgi;
 
-	for (int i = 0; i < culture_params->m_number_fragments; ++i)
+	for (int i = 0; i < number_fragments; ++i)
 	{
 		//do a binary search to find the element that contains the volume
-		double vol = voluchoice(m_angio.rengine);
+		double vol = voluchoice(culture->m_pmat->m_pangio->rengine);
 		int ei = findElement(vol, 0, elementsInDomains - 1, totalWeightsBegin, totalWeightsEnd);
 		// Create an initial segment
 		Segment seg;
@@ -285,7 +311,7 @@ bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cul
 	}
 
 	// init vessel counter
-	culture->m_num_vessel = culture_params->m_number_fragments;
+	culture->m_num_vessel = number_fragments;
 
 	// Update the active tip container
 	culture->FindActiveTips();
@@ -296,12 +322,17 @@ bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cul
 	return true;
 }
 
+MDAngVessFileFragmentSeeder::MDAngVessFileFragmentSeeder(FEModel * model) :FragmentSeeder(model)
+{
+	vessel_file[0] = 0;
+}
+
 //-----------------------------------------------------------------------------
 // Create initial fragments
 bool MDAngVessFileFragmentSeeder::SeedFragments(SimulationTime& time, Culture * culture)
 {
-	FEMesh * mesh = m_angio.GetMesh();
-	infile.open(culture_params->vessel_file);
+	FEMesh * mesh = culture->m_pmat->m_pangio->GetMesh();
+	infile.open(vessel_file);
 	if (infile.fail())
 	{
 		printf("error while opening input file\n");
@@ -354,10 +385,13 @@ bool MDAngVessFileFragmentSeeder::SeedFragments(SimulationTime& time, Culture * 
 	infile.close();
 
 	// init vessel counter
-	culture->m_num_vessel = culture_params->m_number_fragments;
+	culture->m_num_vessel = number_fragments;
 
 	// Update the active tip container
 	culture->FindActiveTips();
 
 	return true;
 }
+BEGIN_PARAMETER_LIST(MDAngVessFileFragmentSeeder, FragmentSeeder)
+ADD_PARAMETER(vessel_file, FE_PARAM_STRING, "vessel_file");
+END_PARAMETER_LIST();

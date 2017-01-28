@@ -58,8 +58,10 @@ public:
 	// Add a new segment to the culture.
 	// This will apply BCs to the new segment and may result in 
 	// the addition of several new segments. 
-	//forcing a segment will ignore checks for minimum segment length
 	void AddNewSegment(Segment& seg);
+
+	//same as AddNewSegment but does not clear the recent segments used in bouncy boundaries
+	void AddNewSegmentNoClear(Segment& seg);
 
 	//returns the segments that were added since the last call to AddNewSegment
 	const std::vector<Segment *> & RecentSegments() const { return recents; }
@@ -102,9 +104,6 @@ public:
 
 
 private:	
-	// fuse segments (i.e. anastomosis)
-	void FuseVessels();
-
 	// Create a new segment connecting two existing segments that are fusing through anastomosis
 	static Segment ConnectSegment(Segment& it, Segment& it2, int k, int kk);
 
@@ -116,10 +115,7 @@ private:
 	list<Segment>		m_frag;					// vessel fragments
 	list<Segment::TIP*> m_active_tips;			// list of active tips
 	CultureParameters * m_cultParams;
-	BC *		bc;
 	FEAngio&	m_angio;
-	
-	FragmentSeeder * fseeder = nullptr;
 	
 	std::vector<Segment *> recents;//used to hold the segments added by the most recent call to AddNewSegment these segments will be ordered first to last
 

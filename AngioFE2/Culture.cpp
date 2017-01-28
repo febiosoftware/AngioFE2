@@ -30,7 +30,6 @@ Culture::Culture(FEAngio& angio, FEAngioMaterial * matl, CultureParameters * cp,
 
 	// Initialize counters
 	m_num_anastom = 0;
-	bc = nullptr;
 	m_nsegs = 0;			// Initialize segment counter
 	m_pmat = matl;
 	fbrancher = fbr;
@@ -39,57 +38,18 @@ Culture::Culture(FEAngio& angio, FEAngioMaterial * matl, CultureParameters * cp,
 //-----------------------------------------------------------------------------
 Culture::~Culture()
 {
-	delete bc;
-	if (fseeder)
-		delete fseeder;
 }
 
 //-----------------------------------------------------------------------------
 // Initialize the culture
 bool Culture::Init()
 {
-	//check culture parameters for valid values here
-
-
-	double d = m_cultParams->m_y0 + m_cultParams->m_culture_a / (1.0 + exp(m_cultParams->m_x0 / m_cultParams->m_culture_b)); // Initial value of growth curve (t = 0)
-	m_vess_length = d;
-
-	// make sure the initial length is initialized 
-	if (m_cultParams->m_initial_vessel_length <= 0.0) m_cultParams->m_initial_vessel_length = m_vess_length;
-
-	//set the boundary condition
-	if (!strcmp(m_cultParams->m_boundary_condition_type, "b"))
-	{
-		bc = new BouncyBC(m_angio, this);
-	}
-	else if (!strcmp(m_cultParams->m_boundary_condition_type, "s"))
-	{
-		bc = new StopBC(m_angio, this);
-	}
-	else
-	{
-		//fail
+	if (!m_pmat->bc)
 		return false;
-	}
+	m_pmat->bc->SetCulture(this);
 
 	//intialize the Fragment Seeder
-	switch (m_cultParams->fragment_seeder)
-	{
-	case 0:
-		fseeder = new ClassicFragmentSeeder(m_cultParams, m_angio);
-		break;
-	case 1:
-		fseeder = new MultiDomainFragmentSeeder(m_cultParams, m_angio);
-		break;
-	case 2:
-		fseeder = new MDByVolumeFragmentSeeder(m_cultParams, m_angio);
-		break;
-	case 3:
-		fseeder = new MDAngVessFileFragmentSeeder(m_cultParams, m_angio);
-		break;
-	default:
-		assert(false);
-	}
+	m_pmat->fseeder->SetCulture(this);
 
 	fbrancher->SetCulture(this);
 
@@ -101,7 +61,7 @@ bool Culture::Init()
 
 
 	// do the initial seeding
-	if (!fseeder->SeedFragments(m_angio.CurrentSimTime(), this))
+	if (!m_pmat->fseeder->SeedFragments(m_angio.CurrentSimTime(), this))
 		return false;
 
 	return true;
@@ -165,6 +125,7 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double starttime, double grow_ti
 	// Turn off previous segment tip
 	tip.bactive = false;
 
+	seg.tip(0).connected = tip.parent;
 
 	//TODO: check if still needed
 	if (branch)
@@ -253,73 +214,6 @@ void Culture::CreateBranchingForce(Segment& seg)
 }
 
 //-----------------------------------------------------------------------------
-// Anastimoses phase.
-// TODO: This only implements fusing at tips. Maybe we should extend this to do line-line intersections.
-void Culture::FuseVessels()
-{
-	// loop over all segments
-    for (SegIter it1 = m_frag.begin(); it1 != m_frag.end(); ++it1)
-	{
-		// Make sure the vessels has not fused yet
-		if (it1->GetFlag(Segment::ANAST) == false)
-		{
-			// loop over tips
-			for (int k1=0; k1<2; ++k1)
-			{
-				// Make sure the tip is active
-				if (it1->tip(k1).bactive)
-				{
-					for (SegIter it2 = m_frag.begin(); it2 != m_frag.end(); ++it2)
-					{
-						// make sure neither segments sprout from the same initial fragment
-						// TODO: why is this not allowed? I think this might be to prevent
-						//       anastimoses after branching since the branched vessels can be small. Find a better way!
-						if (it1->seed() != it2->seed())
-						{
-							double dist0 = (it1->tip(k1).pos() - it2->tip(0).pos()).norm();
-							double dist1 = (it1->tip(k1).pos() - it2->tip(1).pos()).norm();
-
-							// pick the closest tip
-							double dist = dist0;
-							int k2 = 0;
-							if (dist1 < dist0) { k2 = 1; dist = dist1; }
-
-							// see if we can fuse
-							if (dist < m_cultParams->m_anastomosis_distance)
-							{
-								// create a segment between the two segments to complete the anastomosis
-								Segment seg = ConnectSegment(*it1, *it2, k1, k2);
-
-								// mark segments
-								seg.SetFlagOn(Segment::ANAST);
-								it1->SetFlagOn(Segment::ANAST);
-								it2->SetFlagOn(Segment::ANAST);
-
-								if (bc->ChangeOfMaterial(seg))
-									break;
-								// add it to the list
-								if (seg.length() > 0.0)
-									AddSegment(seg);
-
-								// deactivate tips
-								it1->tip(k1).bactive = false;
-								it2->tip(k2).bactive = false;	// for end-to-end anastimoses.
-							
-								// increment counter
-								++m_num_anastom;
-
-								// break it2 loop since tip(k1) is no longer active
-								break;
-							}
-						}
-					}
-				}
-			}
-		}
-	} 
-}
-
-//-----------------------------------------------------------------------------
 // Add a new segment to the culture.
 // This will apply BCs to the new segment and may result in 
 // the addition of several new segments. 
@@ -341,7 +235,25 @@ void Culture::AddNewSegment(Segment& seg)
 	//init done elsewhere
 	assert(new_tip.bactive);
 
-	bc->CheckBC(seg);
+	m_pmat->bc->CheckBC(seg);
+}
+
+void Culture::AddNewSegmentNoClear(Segment& seg)
+{
+	//adding zero length segments shoudl be avoided
+	//this will clear and refill recents
+	assert(seg.length() > 0.0);
+	assert(seg.tip(0).pt.nelem >= 0);
+	assert(seg.tip(0).connected);
+
+
+	// get the new tip
+	Segment::TIP& new_tip = seg.tip(1);
+	//assert(new_tip.pt.nelem == -1);
+	//init done elsewhere
+	assert(new_tip.bactive);
+
+	m_pmat->bc->CheckBC(seg);
 }
 
 //-----------------------------------------------------------------------------

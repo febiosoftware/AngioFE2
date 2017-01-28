@@ -42,7 +42,8 @@ public:
 		int			BC;			// something to do with body forces?
 		GridPoint	pt;			// point in grid where this tip lies
 		vec3d		u;			// sprout force vector
-		Segment * parent;
+		Segment * parent;//segment that contains this tip
+		Segment * connected = nullptr;//the segment that is connected to this tip
 		int		nseed;		// seed where this tip started from (TODO: I want to remove this)
 		int		nvessel;	// vessel this seed is part of
 

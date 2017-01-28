@@ -10,26 +10,19 @@
 #include "angio3d.h"
 
 //-----------------------------------------------------------------------------
-BC::BC(FEAngio& angio, Culture * c) : m_angio(angio)
+BC::BC(FEModel * model) : FEMaterial(model)
 {
-	culture = c;
-	switch (culture->m_cultParams->angio_boundary_type)
-	{
-	case 0:
-		mbc = new SameMBC(c);
-		break;
-	case 1:
-		mbc = new PassThroughMBC(c);
-		break;
-	default:
-		assert(false);
-	}
-}                                   
+	AddProperty(&mbc, "mbc");
+}  
+
+void BC::SetCulture(Culture * cp)
+{
+	culture = cp;
+}
 
 //-----------------------------------------------------------------------------
 BC::~BC()
 {
-	delete mbc;
 }
 
 //-----------------------------------------------------------------------------
@@ -41,8 +34,8 @@ void BC::CheckBC(Segment &seg)
 	//remove the check of whether or not to check the boundary condition in Culture
 	assert(seg.tip(0).pt.nelem != -1);
 	//make sure that the defining tip has not drifted too far
-	vec3d pq = m_angio.Position(seg.tip(0).pt);
-	assert((m_angio.Position(seg.tip(0).pt) - seg.tip(0).pt.r).norm() < 1.0);
+	vec3d pq = culture->m_pmat->m_pangio->Position(seg.tip(0).pt);
+	assert((culture->m_pmat->m_pangio->Position(seg.tip(0).pt) - seg.tip(0).pt.r).norm() < 1.0);
 	//if the second segment is unititialized make sure it is not in the same element as tip(0)
 	FESolidElement * tse = dynamic_cast<FESolidElement*>(&seg.tip(0).pt.ndomain->ElementRef(seg.tip(0).pt.elemindex));
 
@@ -50,7 +43,7 @@ void BC::CheckBC(Segment &seg)
 	{
 		
 		double arr[3];
-		if (tse && m_angio.IsInsideHex8(tse,seg.tip(1).pt.r, m_angio.GetMesh() , arr))
+		if (tse && culture->m_pmat->m_pangio->IsInsideHex8(tse, seg.tip(1).pt.r, culture->m_pmat->m_pangio->GetMesh(), arr))
 		{
 			//just copy the data from tip(0)
 			seg.tip(1).pt.q.x = arr[0]; seg.tip(1).pt.q.y = arr[1]; seg.tip(1).pt.q.z = arr[2];
@@ -67,11 +60,11 @@ void BC::CheckBC(Segment &seg)
 	//check if the segment is in another angio material
 	if (seg.tip(1).pt.nelem == -1)
 	{
-		FEMesh * mesh = m_angio.GetMesh();
+		FEMesh * mesh = culture->m_pmat->m_pangio->GetMesh();
 		double r[3];
 		FESolidElement * se = mesh->FindSolidElement(seg.tip(1).pt.r, r);
 		FEAngioMaterial * angm;
-		if (se && (angm = dynamic_cast<FEAngioMaterial*>(m_angio.m_fem.GetMaterial(se->GetMatID()))))
+		if (se && (angm = dynamic_cast<FEAngioMaterial*>(culture->m_pmat->m_pangio->m_fem.GetMaterial(se->GetMatID()))))
 		{
 			GridPoint & cpt = seg.tip(1).pt;
 			cpt.q = vec3d(r[0], r[1], r[2]);
@@ -131,16 +124,16 @@ void BC::CheckBC(Segment &seg)
 	double g;
 	assert(culture->m_pmat);
 	FESurface * surf = culture->m_pmat->exterior_surface;
-	if (m_angio.m_fe_element_data[se->GetID()].surfacesIndices.size() == 0)
+	if (culture->m_pmat->m_pangio->m_fe_element_data[se->GetID()].surfacesIndices.size() == 0)
 		return;
 	int hcount = 0;//counts how many times the boundary is handled
-	std::vector<int> & edinices = m_angio.m_fe_element_data[se->GetID()].surfacesIndices;
+	std::vector<int> & edinices = culture->m_pmat->m_pangio->m_fe_element_data[se->GetID()].surfacesIndices;
 	culture->m_pmat->normal_proj->SetSearchRadius(seg.length() * 2);
 	for (size_t i = 0; i < edinices.size(); i++)
 	{
-		if (surf->Elements() > m_angio.m_fe_element_data[se->GetID()].surfacesIndices[i])
+		if (surf->Elements() > culture->m_pmat->m_pangio->m_fe_element_data[se->GetID()].surfacesIndices[i])
 		{
-			FESurfaceElement & surfe = reinterpret_cast<FESurfaceElement&>(surf->ElementRef(m_angio.m_fe_element_data[se->GetID()].surfacesIndices[i]));
+			FESurfaceElement & surfe = reinterpret_cast<FESurfaceElement&>(surf->ElementRef(culture->m_pmat->m_pangio->m_fe_element_data[se->GetID()].surfacesIndices[i]));
 			if (culture->m_pmat->exterior_surface->Intersect(surfe, seg.tip(0).pt.r, -dir, rs, g, 0.0001))//see the epsilon in FIndSolidElement
 			{
 				//set last_goodpt
@@ -214,12 +207,21 @@ bool BC::ChangeOfMaterial(Segment & seg) const
 
 	return false;
 }
+SameMBC::SameMBC(FEModel * model) : MBC(model)
+{
+	
+}
+
+StopBC::StopBC(FEModel * model) : BC(model)
+{
+	
+}
 void StopBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESolidElement * se)
 {
 	//fill in the pt's data and add the segment
 	//remaining distance is ignored
 	//does not need to do anything for branching segments as the branch will 
-	FEMesh * mesh = m_angio.GetMesh();
+	FEMesh * mesh = culture->m_pmat->m_pangio->GetMesh();
 	seg.tip(1).pt.r = lastGoodPt;
 	seg.SetFlagOn(Segment::BC_DEAD);
 	if (culture->m_pmat->FindGridPoint(lastGoodPt, seg.tip(1).pt.ndomain, seg.tip(1).pt.elemindex, seg.tip(1).pt))
@@ -242,12 +244,12 @@ void StopBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESoli
 	{
 		//this denotes a mismatch between the FindSolidElement and FESurface output
 		vec2d nrs(rs[0], rs[1]);
-		seg.tip(1).pt.q = m_angio.FindRST(lastGoodPt, nrs, se);
+		seg.tip(1).pt.q = culture->m_pmat->m_pangio->FindRST(lastGoodPt, nrs, se);
 		seg.tip(1).pt.r = lastGoodPt;
 		seg.tip(1).pt.nelem = se->GetID();
 		seg.tip(1).pt.ndomain = culture->m_pmat->domainptrs[0]; //hack
 		seg.tip(1).pt.elemindex = se->GetID() - 1 - culture->m_pmat->meshOffsets.at(seg.tip(1).pt.ndomain);
-		seg.tip(1).pt.r = m_angio.Position(seg.tip(1).pt);
+		seg.tip(1).pt.r = culture->m_pmat->m_pangio->Position(seg.tip(1).pt);
 		seg.Update();
 		seg.tip(0).bactive = false;
 		seg.tip(1).bactive = false;
@@ -257,12 +259,18 @@ void StopBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESoli
 		}
 	}
 }
+BouncyBC::BouncyBC(FEModel* model) : BC(model)
+{
+	
+}
+
+
 void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESolidElement * se)
 {
 	//fill in the pt's data and add the segment
 	//remaining distance is ignored
 	double rdist = (lastGoodPt - seg.tip(1).pt.r).norm();
-	FEMesh * mesh = m_angio.GetMesh();
+	FEMesh * mesh = culture->m_pmat->m_pangio->GetMesh();
 	assert(rdist >= 0.0);
 	vec3d prevhead = seg.tip(1).pt.r;
 	vec3d segadjdir = seg.tip(1).pt.r - seg.tip(0).pt.r;
@@ -290,12 +298,12 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 		//this denotes a mismatch between the FindSolidElement and FESurface output
 		//printf("boundary segment out of bounds attempting to correct this\n");
 		vec2d nrs(rs[0], rs[1]);
-		seg.tip(1).pt.q = m_angio.FindRST(lastGoodPt, nrs, se);
+		seg.tip(1).pt.q = culture->m_pmat->m_pangio->FindRST(lastGoodPt, nrs, se);
 		seg.tip(1).pt.r = lastGoodPt;
 		seg.tip(1).pt.nelem = se->GetID();
 		seg.tip(1).pt.ndomain = culture->m_pmat->domainptrs[0]; //hack
 		seg.tip(1).pt.elemindex = se->GetID() - 1 - culture->m_pmat->meshOffsets.at(seg.tip(1).pt.ndomain);
-		seg.tip(1).pt.r = m_angio.Position(seg.tip(1).pt);
+		seg.tip(1).pt.r = culture->m_pmat->m_pangio->Position(seg.tip(1).pt);
 		seg.Update();
 		seg.tip(0).bactive = false;
 		seg.tip(1).bactive = false;
@@ -331,10 +339,15 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 		reflSeg.tip(1).nseed = seg.seed();
 		reflSeg.tip(0).nvessel = seg.m_nvessel;
 		reflSeg.tip(1).nvessel = seg.m_nvessel;
+		reflSeg.tip(0).connected = &seg;
 		reflSeg.Update();
 
 		if (reflSeg.length() >= culture->m_cultParams->min_segment_length)
-			return culture->AddNewSegment(reflSeg);
+		{
+			return culture->AddNewSegmentNoClear(reflSeg);
+			//set the connected of the original segment
+		}
+			
 		
 	}
 	else
@@ -371,14 +384,25 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 			reflSeg.Update();
 
 			if (reflSeg.length() >= culture->m_cultParams->min_segment_length)
-				return culture->AddNewSegment(reflSeg);
+				return culture->AddNewSegmentNoClear(reflSeg);
 		}
 	}
 }
+MBC::MBC(FEModel * model) : FEMaterial(model)
+{
+	
+}
+
 bool MBC::acceptBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1)
 {
 	return (mat0->m_cultureParams.angio_boundary_groups & mat1->m_cultureParams.angio_boundary_groups) != 0;
 }
+
+PassThroughMBC::PassThroughMBC(FEModel* model) : MBC(model)
+{
+	
+}
+
 
 //this function splits the segment between the cultures mat0 is the originating material while 
 //mat1 is the new material
@@ -478,7 +502,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 			s2.Update();
 			if (s2.length() > mat1->m_cultureParams.min_segment_length)
 			{
-				mat1->m_cult->bc->CheckBC(s2);
+				mat1->m_cult->m_pmat->bc->CheckBC(s2);
 				found1 = true;
 				break;
 			}
@@ -524,7 +548,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 	}
 	else if ((found0 && !found1))
 	{
-		printf("olny one segment found\n");
+		printf("only one segment found\n");
 		mat0->m_pangio->m_fe_element_data[se.GetID()].flags |= 2;
 	}
 }

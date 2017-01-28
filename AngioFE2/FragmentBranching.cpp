@@ -1,6 +1,7 @@
 #include "FragmentBranching.h"
 #include "angio3d.h"
 #include "FEAngio.h"
+#include "FEAngioMaterial.h"
 
 //FragmentBranching and Children from here
 
@@ -171,7 +172,55 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 	}
 	else
 	{
+		assert(seg.tip(1).length_to_branch > 0.0);//force the update/intialization of values
+		assert(seg.tip(1).wait_time_to_branch >= 0.0);
+		double ct = starttime;
+		double l2b = seg.tip(1).length_to_branch;
+		for (size_t i = 0; i < rseg.size(); i++)
+		{
+			rseg[i]->SetTimeOfBirth(ct);
+			l2b -= rseg[i]->length();
+			rseg[i]->tip(1).length_to_branch = l2b;
+			rseg[i]->tip(1).wait_time_to_branch = seg.tip(1).wait_time_to_branch;
+			assert(rseg[i]->tip(0).connected);
+			if (l2b <= 0.0)
+			{
+				double bf = (rseg[i]->length() + rseg[i]->tip(1).length_to_branch) / rseg[i]->length();
+				assert(bf >= 0.0 && bf <= 1.0);
+				double bt = mix(ct, ct + TimeOfGrowth(rseg[i]), bf);
+				FragmentBranching * fb = nullptr;
+				//add the points
+				assert(tip->wait_time_to_branch >= 0.0);
+				if (std::find(this->culture->m_pmat->domainptrs.begin(), this->culture->m_pmat->domainptrs.end(), rseg[i]->tip(1).pt.ndomain) != this->culture->m_pmat->domainptrs.end())
+				{
+					BranchPoint bp(bt + tip->wait_time_to_branch, bt, rseg[i], bf, rseg[i]->m_nid, this, 4);
+					fb = this;
+					branch_points.insert(bp);
+					parentgen.insert(bp);
+				}
+				else
+				{
+					FEAngioMaterial * mat = nullptr;
+					//find the material that contains this domain
+					for (size_t j = 0; j < this->culture->m_pmat->m_pangio->m_pmat.size(); j++)
+					{
+						if (std::find(this->culture->m_pmat->m_pangio->m_pmat[j]->domainptrs.begin(), this->culture->m_pmat->m_pangio->m_pmat[j]->domainptrs.end(),
+							rseg[i]->tip(1).pt.ndomain) != this->culture->m_pmat->m_pangio->m_pmat[j]->domainptrs.end())
+						{
+							fb = this->culture->m_pmat->m_pangio->m_pmat[j]->fbrancher;
+							BranchPoint bp(bt + tip->wait_time_to_branch, bt, rseg[i], bf, rseg[i]->m_nid, fb, 4);
+							branch_points.insert(bp);
+							parentgen.insert(bp);
+							break;//only one angio material should contain a domain
+						}
+					}
+				}
+				assert(fb);
+				break;//only insert a single branch point
+			}
 
+			ct += TimeOfGrowth(rseg[i]);
+		}
 	}
 }
 

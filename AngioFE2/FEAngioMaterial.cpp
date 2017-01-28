@@ -106,9 +106,7 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	ADD_PARAMETER2(m_cultureParams.sprout_s_width, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "N");
 
 	ADD_PARAMETER2(m_cultureParams.m_length_adjustment, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "length_adjustment");
-	ADD_PARAMETER2(m_cultureParams.m_anastomosis_distance, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "anastomosis_distance");
 	ADD_PARAMETER2(m_cultureParams.m_vessel_width, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "vessel_width");
-	ADD_PARAMETER(m_cultureParams.m_boundary_condition_type, FE_PARAM_STRING, "boundary_condition_type");
 
 	ADD_PARAMETER2(m_cultureParams.m_matrix_condition, FE_PARAM_INT, FE_RANGE_CLOSED(0,4), "matrix_condition");
 	ADD_PARAMETER(m_cultureParams.ecm_control, FE_PARAM_INT, "ecm_seeder");
@@ -118,14 +116,9 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	//uncategorized variables are incomplete
 	ADD_PARAMETER(m_cultureParams.m_composite_material, FE_PARAM_INT, "composite_material");
 	ADD_PARAMETER2(m_cultureParams.m_sprout_force, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "sprout_force");
-	ADD_PARAMETER2(m_cultureParams.m_number_fragments, FE_PARAM_INT, FE_RANGE_GREATER_OR_EQUAL(0), "number_fragments" );
 
-
-	ADD_PARAMETER(m_cultureParams.fragment_seeder, FE_PARAM_INT, "fragment_seeder");
 	ADD_PARAMETER(m_cultureParams.angio_boundary_type, FE_PARAM_INT, "angio_boundary_type");
 	ADD_PARAMETER(m_cultureParams.angio_boundary_groups, FE_PARAM_INT, "angio_boundary_groups");
-	ADD_PARAMETER(m_cultureParams.density_gradient_threshold, FE_PARAM_DOUBLE, "density_gradient_threshold");
-	ADD_PARAMETER(m_cultureParams.vessel_file, FE_PARAM_STRING, "vessel_file");
 	
 END_PARAMETER_LIST();
 //-----------------------------------------------------------------------------
@@ -141,6 +134,9 @@ FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticMaterial(pfem)
 	AddProperty(&matrix_material , "matrix");
 	AddProperty(&fbrancher, "brancher");
 	AddProperty(&grow_direction_modifiers, "gdm");
+	AddProperty(&fseeder, "fragment_seeder");
+	AddProperty(&bc, "boundary_condition");
+
 }
 
 FEAngioMaterial::~FEAngioMaterial()

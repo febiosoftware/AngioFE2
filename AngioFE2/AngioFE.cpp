@@ -31,6 +31,17 @@ FEPluginFactory_T<BranchGrowDirectionModifier, FEMATERIAL_ID> branch_grow_direct
 FEPluginFactory_T<GradientGrowDirectionModifier, FEMATERIAL_ID> gradient_grow_direction_modifier_factory("gradient_grow_direction");
 FEPluginFactory_T<AnastamosisGrowDirectionModifier, FEMATERIAL_ID> anastamosis_grow_direction_modifier_factory("anastamosis_grow_direction");
 
+FEPluginFactory_T<ClassicFragmentSeeder, FEMATERIAL_ID> classic_fragment_seeder_factory("classic");
+FEPluginFactory_T<MDByVolumeFragmentSeeder, FEMATERIAL_ID> mdbyvol_fragment_seeder_factory("MDbyVolume");
+FEPluginFactory_T<MultiDomainFragmentSeeder, FEMATERIAL_ID> md_fragment_seeder_factory("MD");
+FEPluginFactory_T<MDAngVessFileFragmentSeeder, FEMATERIAL_ID> md_file_seeder_factory("from_file");
+
+FEPluginFactory_T<BouncyBC, FEMATERIAL_ID> bouncybc_factory("bouncy");
+FEPluginFactory_T<StopBC, FEMATERIAL_ID> stopbc_factory("stop");
+
+FEPluginFactory_T<SameMBC, FEMATERIAL_ID> same_mbc_factory("same");
+FEPluginFactory_T<PassThroughMBC, FEMATERIAL_ID> passthrough_mbc_factory("pass_through");
+
 FEPluginFactory_T<FEPlotAngioStress          , FEPLOTDATA_ID> plot_angio_stress            ("angio stress"          );
 FEPluginFactory_T<FEPlotVesselStress         , FEPLOTDATA_ID> plot_vessel_stress           ("vessel stress"         );
 FEPluginFactory_T<FEPlotMatrixStress         , FEPLOTDATA_ID> plot_matrix_stress           ("matrix stress"         );
@@ -38,6 +49,7 @@ FEPluginFactory_T<FEPlotVesselWeight         , FEPLOTDATA_ID> plot_vessel_weight
 FEPluginFactory_T<FEPlotMatrixWeight         , FEPLOTDATA_ID> plot_matrix_weight           ("matrix weight"         );
 FEPluginFactory_T<FEPlotMatrixTangent        , FEPLOTDATA_ID> plot_matrix_tangent          ("matrix tangent"        );
 FEPluginFactory_T<FEPlotMatrixViscoStress    , FEPLOTDATA_ID> plot_matrix_visco_stress     ("matrix visco stress"   );
+FEPluginFactory_T<FEPlotMatrixElasticStress  , FEPLOTDATA_ID> plot_matrix_elastic_stress   ("matrix elastic stress" );
 FEPluginFactory_T<FEPlotAngioEffectiveStress , FEPLOTDATA_ID> plot_angio_eff_stress        ("angio effective stress");
 FEPluginFactory_T<FEPlotAngioCollagenFibers  , FEPLOTDATA_ID> plot_angio_fibers            ("angio collagen fiber"  );
 FEPluginFactory_T<FEPlotAngioECMDensity      , FEPLOTDATA_ID> plot_angio_ecm               ("angio ECM density"     );
@@ -69,7 +81,7 @@ FECORE_EXPORT void GetPluginVersion(int & major, int & minor, int & patch)
 //-----------------------------------------------------------------------------
 FECORE_EXPORT int PluginNumClasses()
 {
-	return 26;
+	return 35;
 }
 
 //-----------------------------------------------------------------------------
@@ -129,6 +141,24 @@ FECORE_EXPORT FECoreFactory * PluginGetFactory(int i)
 		return &gradient_grow_direction_modifier_factory;
 	case 25:
 		return &anastamosis_grow_direction_modifier_factory;
+	case 26:
+		return &classic_fragment_seeder_factory;
+	case 27:
+		return &md_fragment_seeder_factory;
+	case 28:
+		return &mdbyvol_fragment_seeder_factory;
+	case 29:
+		return &md_file_seeder_factory;
+	case 30:
+		return &plot_matrix_elastic_stress;
+	case 31:
+		return &stopbc_factory;
+	case 32:
+		return &bouncybc_factory;
+	case 33:
+		return &same_mbc_factory;
+	case 34:
+		return &passthrough_mbc_factory;
 	default:
 		return nullptr;
 	}

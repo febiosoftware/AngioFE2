@@ -186,7 +186,7 @@ bool FEAngio::InitFEM()
 			cmat->UpdateSproutStressScaling();
 		}
 	}
-	assert(m_pmat.size());
+	//assert(m_pmat.size());
 
 	felog.printf("%d Angio materials found. Stress approach will be used.", m_pmat.size());
 
@@ -211,7 +211,7 @@ void FEAngio::FinalizeFEM()
 	felog.SetMode(Logfile::LOG_FILE);
 
 	// --- Output initial state of model ---
-	if (m_pmat[0]->m_cultureParams.io)
+	if (m_fem.GetGlobalConstant("io"))
 	{
 		// Output initial microvessel state
 		fileout.save_vessel_state(*this);
@@ -1014,7 +1014,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		}
 
 		++FE_state;
-		if (m_pmat[0]->m_cultureParams.io)
+		if (m_fem.GetGlobalConstant("io"))
 		{
 			// Save the current vessel state
 			fileout.save_vessel_state(*this);
@@ -1033,7 +1033,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 	{
 		// do the final output
 		//TODO: consider making this a constant instead of a material parameter
-		if (m_pmat[0]->m_cultureParams.io)
+		if (m_fem.GetGlobalConstant("io"))
 			Output();
 	}
 }

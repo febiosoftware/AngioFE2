@@ -10,9 +10,6 @@ class CultureParameters
 public:
 	CultureParameters()
 	{
-		m_boundary_condition_type[0] = 's';
-		m_boundary_condition_type[1] = '\0';
-		vessel_file[0] = '\0';
 	}
 
 	//not currently exposed
@@ -31,21 +28,15 @@ public:
 	double sprout_s_range = 0.004;
 	double sprout_s_width = 2.0;
 
-	//dont expose
-	double	m_initial_vessel_length = 0.0;	// initial vessel length
-	double	m_initial_branch_probability = 0.0;     // Probability that initial segments will branch
 	bool m_bzfibflat = false;//flatten the fibers in the z direction
 
 	//parameters adjustable by the user for vessel network morphology
 	// Length adjuster, scales the length of new segments
 	// allows fine tuning of total vascular length produced by the simulation.
 	double m_length_adjustment = 1.0;
-	// If the shortest distance vector between a segment and any other segment is less than this value
-	//TODO: I think making this a percentage of the growth length makes more sense.
-	double m_anastomosis_distance = 25;
+
 	// vessel_width - Diameter of microvessels (Default: 7 um)
 	double m_vessel_width = 7.0;
-	char m_boundary_condition_type[MAXPARAMSIZE];//currently s for stop, or b for bouncy 
 
 	//parameters for ECM density/alignment
 	int m_matrix_condition = 0; // flag indicating how the collagen fibers are oriented initially ( 0 = random classic mode, 1 multimaterial mode,  3 = along local element direction)
@@ -61,8 +52,6 @@ public:
 	//TODO: doesn't appear to be the same as sprout_s_mag
 	double m_sprout_force = 1.0;
 
-	int m_number_fragments = 0;//number of fragments to seed in the material
-
 	//TODO: not currently exposed
 	int tries_per_segment = 10;// number of times the algorithm will retry finding an initial segment
 	//when all weights of the elemetns are equal 1 will work but this needs increased in porportion to the maximun difference in element weights
@@ -73,15 +62,8 @@ public:
 
 	double min_segment_length = 0.1;
 
-	int fragment_seeder = 1;//0 classic fragment seeder, 1 multidomian fragment seeder, 2 by volume fragment seeder, 3 from file
-
-	char vessel_file[MAXPARAMSIZE];//only used if seeding from file
-
 	int angio_boundary_type = 1;// 0 same as non angio materials, 1 pass through
 	int angio_boundary_groups = 1;//each bit in this parameter fragments can only travel between the groups they are in
-
-
-	double density_gradient_threshold = 0.01;//set this to be higher to turn off the direction change on encountering different densities
 
 	const bool io = true;
 	friend class FEParamContainer;

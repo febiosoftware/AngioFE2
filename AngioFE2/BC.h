@@ -1,6 +1,7 @@
 #pragma once
 #include "StdAfx.h"
 #include <FECore/vec3d.h>
+#include "FECore/FEMaterial.h"
 
 
 //-----------------------------------------------------------------------------
@@ -14,21 +15,24 @@ class FEAngioMaterial;
 
 
 //multAngioBC is boundary condition used when a segment would cross from one angio material to another
-class MBC
+class MBC : public FEMaterial
 {
 public:
 	virtual ~MBC(){}
-	explicit MBC(Culture * c){ culture = c; }
+	MBC(FEModel * model);
 	//returns whether or not this class is going to hanel the boundary between the two angio materials
 	virtual bool acceptBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1);
 	virtual void handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1, Segment & seg) = 0;
+
+	//must be called before anything else is done but construction
+	void SetCulture(Culture * cp);
 protected:
 	Culture * culture;
 };
 class SameMBC : public MBC
 {
 public:
-	explicit SameMBC(Culture * c): MBC(c){}
+	SameMBC(FEModel * model);
 	~SameMBC(){}
 	//returns whether or not this class is going to hanel the boundary between the two angio materials
 	void handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1, Segment & seg) override { assert(false); }
@@ -38,19 +42,19 @@ public:
 //-----------------------------------------------------------------------------
 // The BC class is used by the CULTURE class to handle boundary 
 // conditions within the model.
-class BC
+class BC : public FEMaterial
 {
 public:
-	enum {
-		STOP,		// the segment stops at the boundary
-		BOUNCY		// bouncy wall
-	};
+	BC(FEModel * model);
 
-	BC(FEAngio& angio, Culture * c);
+	//must be called before anything else is done but construction
+	void SetCulture(Culture * cp);
+
 	virtual ~BC();
 	
 	// checks if a new segment has cross the boundary
 	//tip 0 is assumed to be in bounds
+	//returns the address of the added segment
 	void CheckBC(Segment &seg);
 
 	//checks if a segment would leave it's current meterial
@@ -63,17 +67,16 @@ public:
 
 protected:
 	virtual void HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESolidElement * se) = 0;
-	FEAngio&	m_angio;
 	Culture * culture= nullptr;
+	FEPropertyT<MBC> mbc;
 private:
 	BC & operator=(const BC&);
-	MBC * mbc= nullptr;
 };
 
 class BouncyBC: public BC
 {
 public:
-	BouncyBC(FEAngio & angio, Culture * c): BC(angio, c){}
+	BouncyBC(FEModel * model);
 	virtual ~BouncyBC(){}
 protected:
 	void HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESolidElement * se) override;
@@ -83,7 +86,7 @@ private:
 class StopBC: public BC
 {
 public:
-	StopBC(FEAngio & angio, Culture * c) : BC(angio, c){}
+	StopBC(FEModel * model);
 	virtual ~StopBC(){}
 protected:
 	void HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESolidElement * se) override;
@@ -93,7 +96,7 @@ private:
 class PassThroughMBC : public MBC
 {
 public:
-	explicit PassThroughMBC(Culture * c) : MBC(c){}
+	PassThroughMBC(FEModel * model);
 	~PassThroughMBC(){}
 	void handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1, Segment & seg) override;
 protected:

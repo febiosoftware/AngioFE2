@@ -208,6 +208,37 @@ bool FEPlotMatrixViscoStress::Save(FEDomain& d, FEDataStream& str)
 	return true;
 }
 
+//-----------------------------------------------------------------------------
+bool FEPlotMatrixElasticStress::Save(FEDomain& d, FEDataStream& str)
+{
+	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	if (pmat == nullptr) return false;
+
+	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
+	int NE = dom.Elements();
+	for (int i = 0; i<NE; ++i)
+	{
+		FESolidElement& el = dom.Element(i);
+		int nint = el.GaussPoints();
+		mat3ds s;
+		s.zero();
+		for (int j = 0; j<nint; ++j)
+		{
+			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
+			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
+			FEViscoElasticMaterialPoint& matrix_visco_elastic = *angioPt->matPt->ExtractData<FEViscoElasticMaterialPoint>();
+			FEElasticMaterialPoint& emp = *angioPt->matPt->Next()->ExtractData<FEElasticMaterialPoint>();
+
+			mat3ds sj = emp.m_s;
+			s += sj;
+		}
+		s /= static_cast<double>(nint);
+
+		str << s;
+	}
+	return true;
+}
+
 FEPlotAngioGradientCenter::FEPlotAngioGradientCenter(FEModel* pfem): FEDomainData(PLT_VEC3F, FMT_ITEM)
 {
 };

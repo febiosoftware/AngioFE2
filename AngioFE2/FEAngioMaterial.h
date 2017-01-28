@@ -206,11 +206,15 @@ public:
 	void ApplySym();
 	void MirrorSym(vec3d x, mat3ds &si, SPROUT sp, double den_scale);
 	FEVecPropertyT<GrowDirectionModifier> grow_direction_modifiers;
+	FEPropertyT<FragmentSeeder> fseeder;
+	FEPropertyT<BC> bc;
+	FEPropertyT<FragmentBranching> fbrancher;
 private:
 	FEPropertyT<FESolidMaterial> vessel_material;
 	FEPropertyT<FESolidMaterial> matrix_material;
 	FEPropertyT<FEProbabilityDistribution> length_to_branch;
-	FEPropertyT<FragmentBranching> fbrancher;
+	
+	
 	
 };
 

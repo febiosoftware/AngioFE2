@@ -44,6 +44,10 @@ class GradientGrowDirectionModifier : public GrowDirectionModifier
 public:
 	GradientGrowDirectionModifier(FEModel * model);
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch) override;
+
+private:
+	double threshold = 0.01;//the threshold over which vessels will deflect on the gradient
+	DECLARE_PARAMETER_LIST();
 };
 //modifies the direction a segment grows based on its proximity to other segments
 class AnastamosisGrowDirectionModifier : public GrowDirectionModifier
@@ -51,4 +55,7 @@ class AnastamosisGrowDirectionModifier : public GrowDirectionModifier
 public:
 	AnastamosisGrowDirectionModifier(FEModel * model);
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch) override;
+
+private:
+	double search_radius;
 };
