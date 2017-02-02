@@ -153,6 +153,8 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 	{
 		rseg[0]->tip(1).length_to_branch -= seg.length();
 		rseg[0]->SetTimeOfBirth(starttime);
+		tip->connected = rseg[0];
+		rseg[0]->tip(0).connected = tip->parent;
 		if (rseg[0]->tip(1).length_to_branch < 0.0)
 		{
 			double bf = (rseg[0]->length() + rseg[0]->tip(1).length_to_branch) / rseg[0]->length();
@@ -176,6 +178,17 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 		assert(seg.tip(1).wait_time_to_branch >= 0.0);
 		double ct = starttime;
 		double l2b = seg.tip(1).length_to_branch;
+		tip->connected = rseg[0];
+		rseg[0]->tip(0).connected = tip->parent;
+		//set all of the adjacenty pointers
+		for (size_t i = 0; i < rseg.size(); i++)
+		{
+			if (rseg.size() >(i + 1))
+			{
+				rseg[i]->tip(1).connected = rseg[i + 1];
+				rseg[i + 1]->tip(0).connected = rseg[i];
+			}
+		}
 		for (size_t i = 0; i < rseg.size(); i++)
 		{
 			rseg[i]->SetTimeOfBirth(ct);

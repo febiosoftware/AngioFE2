@@ -344,8 +344,9 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 
 		if (reflSeg.length() >= culture->m_cultParams->min_segment_length)
 		{
-			return culture->AddNewSegmentNoClear(reflSeg);
-			//set the connected of the original segment
+			//record the index of recent
+			culture->AddNewSegmentNoClear(reflSeg);
+			return;
 		}
 			
 		
@@ -384,7 +385,11 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 			reflSeg.Update();
 
 			if (reflSeg.length() >= culture->m_cultParams->min_segment_length)
-				return culture->AddNewSegmentNoClear(reflSeg);
+			{
+				culture->AddNewSegmentNoClear(reflSeg);
+				return;
+			}
+				
 		}
 	}
 }
