@@ -250,7 +250,7 @@ void Fileout::save_timeline(FEAngio& angio)
 
 	while (iter != FragmentBranching::timeline.end())
 	{
-		fprintf(timeline_file, "%-12.7f,%-12.7f,%-12.7f,%d,%d,%d\n", iter->emerge_time, iter->epoch_time, iter->percent_of_parent, iter->priority, iter->callsite, iter->branch);
+		fprintf(timeline_file, "%-12.7f,%-12.7f,%-12.7f,%d\n", iter->emerge_time, iter->epoch_time, iter->percent_of_parent, iter->priority);
 		++iter;
 	}
 	fclose(timeline_file);

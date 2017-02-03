@@ -162,8 +162,9 @@ void Culture::BranchSegment(Segment::TIP& tip, double starttime, double grow_tim
 	Segment seg = GrowSegment(tip, starttime, grow_time ,true, true);
 
 	//copy the branch distance in from the tip
-	seg.tip(1).length_to_branch = tip.length_to_branch;
+	seg.tip(0).length_to_branch = tip.length_to_branch;
 	seg.tip(1).wait_time_to_branch = tip.wait_time_to_branch;
+	seg.tip(0).wait_time_to_branch = tip.wait_time_to_branch;
 
 	//will not scale with multiple threads
 	double prev_min_seg_length = m_cultParams->min_segment_length;

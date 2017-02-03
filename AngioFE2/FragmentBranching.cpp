@@ -54,7 +54,6 @@ void FragmentBranching::Grow()
 			//go with pg_iter
 #ifndef NDEBUG
 				BranchPoint pt = *pg_iter;
-				pt.branch = false;
 				timeline.insert(pt);
 #endif
 			pg_iter->brancher->UpdateSegmentBranchDistance(pg_iter);
@@ -67,7 +66,6 @@ void FragmentBranching::Grow()
 
 #ifndef NDEBUG
 			BranchPoint pt = *br_iter;
-			pt.branch = true;
 			timeline.insert(pt);
 #endif
 			//GrowSegment needs to populate the segment with branch times and recycle it if needed
@@ -142,10 +140,15 @@ PsuedoDeferedFragmentBranching::PsuedoDeferedFragmentBranching(FEModel * model) 
 }
 void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double starttime, double grow_time)
 {
+	assert(tip->length_to_branch > 0.0);
+	assert(tip->wait_time_to_branch >= 0.0);
 	static int nseg_add = 0;
 	Segment seg = culture->GrowSegment(*tip, starttime, grow_time);
+	if (seg.length() < culture->m_pmat->m_cultureParams.min_segment_length)
+		return;
 	//now calculate the length to branch from the new tip
 	seg.tip(1).length_to_branch = tip->length_to_branch;
+	seg.tip(0).length_to_branch = tip->length_to_branch;
 	seg.tip(1).wait_time_to_branch = tip->wait_time_to_branch;
 	culture->AddNewSegment(seg);
 	auto rseg = culture->RecentSegments();
@@ -163,7 +166,8 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 			double bt = mix(end_time.t - end_time.dt, end_time.t - end_time.dt + TimeOfGrowth(rseg[0]), bf);
 			//add the points
 			assert(tip->wait_time_to_branch >= 0.0);
-			BranchPoint bp(bt + tip->wait_time_to_branch, bt, rseg[0], bf, rseg[0]->m_nid, this, 4);
+			//change this if tips can grow across materials
+			BranchPoint bp(bt + tip->wait_time_to_branch, bt, rseg[0], bf, rseg[0]->m_nid, this);
 			branch_points.insert(bp);
 			parentgen.insert(bp);
 		}
@@ -174,13 +178,6 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 	}
 	else
 	{
-		assert(seg.tip(1).length_to_branch > 0.0);//force the update/intialization of values
-		assert(seg.tip(1).wait_time_to_branch >= 0.0);
-		double ct = starttime;
-		double l2b = seg.tip(1).length_to_branch;
-		tip->connected = rseg[0];
-		rseg[0]->tip(0).connected = tip->parent;
-		//set all of the adjacenty pointers
 		for (size_t i = 0; i < rseg.size(); i++)
 		{
 			if (rseg.size() >(i + 1))
@@ -189,9 +186,18 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 				rseg[i + 1]->tip(0).connected = rseg[i];
 			}
 		}
+		assert(seg.tip(1).length_to_branch > 0.0);//force the update/intialization of values
+		assert(seg.tip(1).wait_time_to_branch >= 0.0);
+		double ct = starttime;
+		double l2b = seg.tip(1).length_to_branch;
+		tip->connected = rseg[0];
+		rseg[0]->tip(0).connected = tip->parent;
+		//set all of the adjacenty pointers
+		
 		for (size_t i = 0; i < rseg.size(); i++)
 		{
 			rseg[i]->SetTimeOfBirth(ct);
+			rseg[i]->tip(0).length_to_branch = l2b;
 			l2b -= rseg[i]->length();
 			rseg[i]->tip(1).length_to_branch = l2b;
 			rseg[i]->tip(1).wait_time_to_branch = seg.tip(1).wait_time_to_branch;
@@ -206,7 +212,8 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 				assert(tip->wait_time_to_branch >= 0.0);
 				if (std::find(this->culture->m_pmat->domainptrs.begin(), this->culture->m_pmat->domainptrs.end(), rseg[i]->tip(1).pt.ndomain) != this->culture->m_pmat->domainptrs.end())
 				{
-					BranchPoint bp(bt + tip->wait_time_to_branch, bt, rseg[i], bf, rseg[i]->m_nid, this, 4);
+					//change this if tips can grow across materials
+					BranchPoint bp(bt + tip->wait_time_to_branch, bt, rseg[i], bf, rseg[i]->m_nid, this);
 					fb = this;
 					branch_points.insert(bp);
 					parentgen.insert(bp);
@@ -221,7 +228,8 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 							rseg[i]->tip(1).pt.ndomain) != this->culture->m_pmat->m_pangio->m_pmat[j]->domainptrs.end())
 						{
 							fb = this->culture->m_pmat->m_pangio->m_pmat[j]->fbrancher;
-							BranchPoint bp(bt + tip->wait_time_to_branch, bt, rseg[i], bf, rseg[i]->m_nid, fb, 4);
+							//change this if tips can grow across materials
+							BranchPoint bp(bt + tip->wait_time_to_branch, bt, rseg[i], bf, rseg[i]->m_nid, fb);
 							branch_points.insert(bp);
 							parentgen.insert(bp);
 							break;//only one angio material should contain a domain
@@ -254,7 +262,7 @@ void PsuedoDeferedFragmentBranching::PostProcess(Segment & seg)
 			//TODO: this is too generous with the timing of the segment, consider adding time of death to segments
 			double bt = mix(seg.GetTimeOfBirth(), end_time.t, bf);
 			//add the points
-			BranchPoint bp(bt + seg.tip(1).wait_time_to_branch, bt, &seg, bf, seg.m_nid, this, 5);
+			BranchPoint bp(bt + seg.tip(1).wait_time_to_branch, bt, &seg, bf, seg.m_nid, this);
 			branch_points.insert(bp);
 			parentgen.insert(bp);
 		}
@@ -322,11 +330,18 @@ void PsuedoDeferedFragmentBranching::ProcessNewSegments(double start_time)
 	else
 	{
 		double ct = start_time;
+		double lr = rseg[0]->tip(0).length_to_branch;
+		assert(lr > 0.0);
 		for (size_t i = 0; i < rseg.size(); i++)
 		{
 			rseg[i]->SetTimeOfBirth(ct);
+			rseg[i]->tip(0).length_to_branch = lr;
+			lr -= rseg[i]->length();
+			rseg[i]->tip(1).length_to_branch = lr;
 			ct += TimeOfGrowth(rseg[i]);
 		}
+		//currently branching in the initial growth of a branch is not implemented
+		assert(lr > 0.0);
 	}
 }
 void PsuedoDeferedFragmentBranching::UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp)
@@ -339,10 +354,36 @@ void PsuedoDeferedFragmentBranching::UpdateSegmentBranchDistance(std::set<Branch
 		SimulationTime end_time = culture->m_pmat->m_pangio->CurrentSimTime();
 		double bt = mix(bp->epoch_time, end_time.t, (old_l2b - bp->parent->tip(1).length_to_branch) / old_l2b);
 		double bpct = (bt - (end_time.t - end_time.dt)) / (-(end_time.t - end_time.dt) + end_time.t);
-		BranchPoint bpt(bt + bp->parent->tip(1).wait_time_to_branch, bt, bp->parent, bpct, bp->priority, this, 6);
+		BranchPoint bpt(bt + bp->parent->tip(1).wait_time_to_branch, bt, bp->parent, bpct, bp->priority, this);
 		parentgen.insert(bpt);
 		//make sure adding both back were wrong
 		branch_points.insert(bpt);
+	}
+	//propogate the length to branch point 
+	Segment * cur = bp->parent->tip(1).connected;
+	double dr = bp->parent->tip(1).length_to_branch;
+	//may need to have an additional condition when anastamosis is added or anastamosis may not connect segments
+	while(cur)
+	{
+		double len = cur->length();
+		dr = dr - len;
+		cur->tip(1).length_to_branch = dr;
+		if (dr < 0.0)
+		{
+			double bpct = (len + dr) / len;
+			dr += length_to_branch_point->NextValue(culture->m_pmat->m_pangio->rengine);
+			cur->tip(1).length_to_branch = dr;
+			//add it back to the queue
+			double bt = mix(bp->epoch_time, bp->epoch_time + TimeOfGrowth(cur), bpct);
+			
+			BranchPoint bpt(bt + bp->parent->tip(1).wait_time_to_branch, bt, bp->parent, bpct, bp->priority, this);
+			parentgen.insert(bpt);
+			//make sure adding both back was wrong
+			branch_points.insert(bpt);
+			break;//only one point should be added at a time
+		}
+
+		cur = cur->tip(1).connected;
 	}
 }
 double PsuedoDeferedFragmentBranching::GetLengthToBranch()

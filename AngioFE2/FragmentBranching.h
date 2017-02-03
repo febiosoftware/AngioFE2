@@ -24,18 +24,10 @@ public:
 			assert(emerge_time >= epoch_time);
 			assert(parent != nullptr);
 			assert(brancher != nullptr);
+			//check that the parent has the l2b set
+			assert(parent->tip(1).length_to_branch != 0.0);
+			assert(parent->tip(0).length_to_branch != 0.0);
 		}
-#ifndef NDEBUG
-		BranchPoint(double emt, double ept, Segment * p, double pctp, int prior, FragmentBranching * fb, int cs) :emerge_time(emt),
-			epoch_time(ept), parent(p), percent_of_parent(pctp), priority(prior), brancher(fb), callsite(cs), branch(false)
-		{
-			assert(emerge_time >= -1.0);
-			assert(epoch_time >= -1.0);
-			assert(emerge_time >= epoch_time);
-			assert(parent != nullptr);
-			assert(brancher != nullptr);
-		}
-#endif
 
 		~BranchPoint(){}
 
@@ -45,11 +37,6 @@ public:
 		double percent_of_parent;//0-1.0 determines where on the parent the branch will sprout from 0 is 100% contribution from tip(0)
 		int priority;//it there is a tie in time this will break it consistently needs to be athe same for the brnachpoints between runs with equivalent paramters and unique among branch points
 		FragmentBranching * brancher;//used to get the rng needed for this segment
-
-#ifndef NDEBUG
-		bool branch; //used in the timeline to tell if the generated point is generating a branch
-		int callsite;//used to record where the rng were generated
-#endif
 
 		//include utility if the other relational operators are needed
 		//should allos the set to be iterated over from low to high times
