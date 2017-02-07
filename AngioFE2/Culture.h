@@ -60,6 +60,7 @@ public:
 	// the addition of several new segments. 
 	void AddNewSegment(Segment& seg);
 
+
 	//same as AddNewSegment but does not clear the recent segments used in bouncy boundaries
 	void AddNewSegmentNoClear(Segment& seg);
 
@@ -107,6 +108,10 @@ private:
 	// Create a new segment connecting two existing segments that are fusing through anastomosis
 	static Segment ConnectSegment(Segment& it, Segment& it2, int k, int kk);
 
+	//should only be used by BC
+	void ClearRecents(){ recents.clear(); }
+	//should only be used by BC
+	void AddToRecents(Segment * seg){ recents.push_back(seg); }
 	
 
 

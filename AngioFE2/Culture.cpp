@@ -94,7 +94,7 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double starttime, double grow_ti
 	// determine the growth direction
 	vec3d seg_vec;
 	//now run it through the different filters
-	for (size_t i = 0; i < m_pmat->grow_direction_modifiers.size(); i++)
+	for (int i = 0; i < m_pmat->grow_direction_modifiers.size(); i++)
 	{
 		seg_vec = m_pmat->grow_direction_modifiers[i]->GrowModifyGrowDirection(seg_vec, tip, branch);
 	}

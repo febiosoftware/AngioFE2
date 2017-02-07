@@ -117,8 +117,7 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	ADD_PARAMETER(m_cultureParams.m_composite_material, FE_PARAM_INT, "composite_material");
 	ADD_PARAMETER2(m_cultureParams.m_sprout_force, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "sprout_force");
 
-	ADD_PARAMETER(m_cultureParams.angio_boundary_type, FE_PARAM_INT, "angio_boundary_type");
-	ADD_PARAMETER(m_cultureParams.angio_boundary_groups, FE_PARAM_INT, "angio_boundary_groups");
+	
 	
 END_PARAMETER_LIST();
 //-----------------------------------------------------------------------------

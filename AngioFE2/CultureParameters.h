@@ -62,8 +62,6 @@ public:
 
 	double min_segment_length = 0.1;
 
-	int angio_boundary_type = 1;// 0 same as non angio materials, 1 pass through
-	int angio_boundary_groups = 1;//each bit in this parameter fragments can only travel between the groups they are in
 
 	const bool io = true;
 	friend class FEParamContainer;

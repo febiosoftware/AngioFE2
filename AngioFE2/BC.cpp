@@ -18,6 +18,11 @@ BC::BC(FEModel * model) : FEMaterial(model)
 void BC::SetCulture(Culture * cp)
 {
 	culture = cp;
+	mbc->SetCulture(cp);
+}
+void MBC::SetCulture(Culture * cp)
+{
+	culture = cp;
 }
 
 //-----------------------------------------------------------------------------
@@ -74,9 +79,13 @@ void BC::CheckBC(Segment &seg)
 			seg.Update();
 			if (mbc->acceptBoundary(culture->m_pmat, angm) && (angm != this->culture->m_pmat))
 			{
+				angm->m_cult->ClearRecents();
 				mbc->handleBoundary(culture->m_pmat, angm, seg);
-				//printf("growing into angio material\n");
-				//seg.SetFlagOn(Segment::BC_DEAD);
+				auto orseg = angm->m_cult->RecentSegments();
+				for (int i = 0; i < orseg.size(); i++)
+				{
+					culture->AddToRecents(orseg[i]);
+				}
 				return;
 			}
 		}
@@ -207,6 +216,10 @@ bool BC::ChangeOfMaterial(Segment & seg) const
 
 	return false;
 }
+
+BEGIN_PARAMETER_LIST(BC, FEMaterial)
+ADD_PARAMETER(angio_boundary_groups, FE_PARAM_INT, "angio_boundary_groups");
+END_PARAMETER_LIST();
 SameMBC::SameMBC(FEModel * model) : MBC(model)
 {
 	
@@ -400,7 +413,8 @@ MBC::MBC(FEModel * model) : FEMaterial(model)
 
 bool MBC::acceptBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1)
 {
-	return (mat0->m_cultureParams.angio_boundary_groups & mat1->m_cultureParams.angio_boundary_groups) != 0;
+	assert(mat0 == culture->m_pmat);
+	return (mat0->bc->angio_boundary_groups & mat1->bc->angio_boundary_groups) != 0;
 }
 
 PassThroughMBC::PassThroughMBC(FEModel* model) : MBC(model)
@@ -507,7 +521,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 			s2.Update();
 			if (s2.length() > mat1->m_cultureParams.min_segment_length)
 			{
-				mat1->m_cult->m_pmat->bc->CheckBC(s2);
+				mat1->m_cult->AddNewSegment(s2);
 				found1 = true;
 				break;
 			}
@@ -534,6 +548,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 			{
 				s2.tip(1).bactive = true;
 				s2.tip(0).bactive = false;
+				//mat1's recents may need to be cleared
 				mat1->m_cult->AddSegment(s2);
 				found1 = true;
 			}

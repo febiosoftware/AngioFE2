@@ -110,6 +110,8 @@ public:
 
 	double TimeOfGrowth(Segment * seg);
 
+	FragmentBranching * GetBrancherForSegment(Segment * seg);
+
 	//Grow is a synchronized grow operation for all FragmentBranchers
 	static void Grow();
 

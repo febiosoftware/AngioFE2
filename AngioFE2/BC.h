@@ -65,12 +65,15 @@ public:
 	const double epsilon = 0.0001;//any elements with any dimension smaller than this may not be properly handled by collision detection
 	//consider looking at nextafter and nexttoward to replace this. the difficulty is they wil be in terms of the whole vector
 
+	int angio_boundary_groups = 1;//each bit in this parameter fragments can only travel between the groups they are in
 protected:
 	virtual void HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESolidElement * se) = 0;
 	Culture * culture= nullptr;
 	FEPropertyT<MBC> mbc;
+	
 private:
 	BC & operator=(const BC&);
+	DECLARE_PARAMETER_LIST();
 };
 
 class BouncyBC: public BC
