@@ -160,7 +160,7 @@ void BC::CheckBC(Segment &seg)
 	FESurfaceElement * surfe = culture->m_pmat->normal_proj->Project(seg.tip(0).pt.r, -dir, rs);
 	if (!surfe)
 	{
-		//printf("no surface element found\n");
+		printf("no surface element found\n");
 		//assert(false);
 		/*
 		surfe = culture->m_pmat->normal_proj->Project3(seg.tip(0).pt.r, -dir, rs);
@@ -283,6 +283,8 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 	//fill in the pt's data and add the segment
 	//remaining distance is ignored
 	double rdist = (lastGoodPt - seg.tip(1).pt.r).norm();
+	bool found0 = false;
+	bool found1 = false;
 	FEMesh * mesh = culture->m_pmat->m_pangio->GetMesh();
 	assert(rdist >= 0.0);
 	vec3d prevhead = seg.tip(1).pt.r;
@@ -299,10 +301,7 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 			seg.tip(0).bactive = false;
 			seg.tip(1).bactive = false;
 			culture->AddSegment(seg);
-		}
-		else
-		{
-			return;
+			found0 = true;
 		}
 	}
 
@@ -323,6 +322,7 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 		if (seg.length() >= culture->m_cultParams->min_segment_length)
 		{
 			culture->AddSegment(seg);
+			found0 = true;
 		}
 	}
 	assert(seg.tip(1).pt.nelem != -1);
@@ -359,10 +359,8 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 		{
 			//record the index of recent
 			culture->AddNewSegmentNoClear(reflSeg);
-			return;
+			found1 = true;
 		}
-			
-		
 	}
 	else
 	{
@@ -395,16 +393,23 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 			reflSeg.tip(1).nseed = seg.seed();
 			reflSeg.tip(0).nvessel = seg.m_nvessel;
 			reflSeg.tip(1).nvessel = seg.m_nvessel;
+			reflSeg.tip(0).connected = &seg;
 			reflSeg.Update();
 
 			if (reflSeg.length() >= culture->m_cultParams->min_segment_length)
 			{
 				culture->AddNewSegmentNoClear(reflSeg);
-				return;
+				found1 = true;
 			}
-				
 		}
 	}
+	auto rseg = culture->RecentSegments();
+	if (rseg.size())
+	{
+		size_t sz = rseg.size();
+		rseg[sz - 1]->tip(1).bactive = true;
+	}
+	//see if the previous tip needs reactivated
 }
 MBC::MBC(FEModel * model) : FEMaterial(model)
 {
@@ -450,12 +455,17 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 			seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
 			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
 			seg.Update();
-			seg.SetFlagOn(Segment::BC_DEAD);
+			
 			if (seg.length() > mat0->m_cultureParams.min_segment_length)
 			{
+				seg.SetFlagOn(Segment::BC_DEAD);
 				mat0->m_cult->AddSegment(seg);
 				found0 = true;
 				break;
+			}
+			else
+			{
+				seg.SetFlagOff(Segment::BC_DEAD);
 			}
 				
 		}
@@ -477,11 +487,16 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 			seg.tip(1).pt.q = mat0->m_pangio->FindRST(seg.tip(1).pt.r, vec2d(rs[0], rs[1]), dynamic_cast<FESolidElement*>(&se));
 
 			seg.Update();
-			seg.SetFlagOn(Segment::BC_DEAD);
+			
 			if ((seg.length() > mat0->m_cultureParams.min_segment_length) && (seg.length() < tdist))
 			{
+				seg.SetFlagOn(Segment::BC_DEAD);
 				mat0->m_cult->AddSegment(seg);
 				found0 = true;
+			}
+			else
+			{
+				seg.SetFlagOff(Segment::BC_DEAD);
 			}
 
 		}
@@ -525,6 +540,10 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 				found1 = true;
 				break;
 			}
+			else
+			{
+				seg.SetFlagOff(Segment::BC_DEAD);
+			}
 		}
 	}
 	if (!found1)
@@ -551,6 +570,10 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 				//mat1's recents may need to be cleared
 				mat1->m_cult->AddSegment(s2);
 				found1 = true;
+			}
+			else
+			{
+				seg.SetFlagOff(Segment::BC_DEAD);
 			}
 
 		}

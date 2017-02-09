@@ -24,6 +24,9 @@ public:
 			assert(emerge_time >= epoch_time);
 			assert(parent != nullptr);
 			assert(brancher != nullptr);
+			//bounds for pcp may be too generous
+			assert(percent_of_parent >= -0.1);
+			assert(percent_of_parent <= 1.1);
 			//check that the parent has the l2b set
 			assert(parent->tip(1).length_to_branch != 0.0);
 			assert(parent->tip(0).length_to_branch != 0.0);

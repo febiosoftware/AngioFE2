@@ -182,6 +182,10 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 	{
 		rseg[0]->tip(1).length_to_branch -= seg.length();
 		rseg[0]->SetTimeOfBirth(starttime);
+		rseg[0]->tip(0).length_to_branch = tip->length_to_branch;
+		rseg[0]->tip(1).length_to_branch = tip->length_to_branch - rseg[0]->length();
+		rseg[0]->tip(0).wait_time_to_branch = tip->wait_time_to_branch;
+		rseg[0]->tip(1).wait_time_to_branch = tip->wait_time_to_branch;
 		tip->connected = rseg[0];
 		rseg[0]->tip(0).connected = tip->parent;
 		if (rseg[0]->tip(1).length_to_branch < 0.0)
@@ -199,6 +203,8 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 	}
 	else if (rseg.size() == 0)
 	{
+		//reactivate the tip
+		tip->bactive = true;
 		nseg_add++;
 	}
 	else
@@ -313,12 +319,14 @@ void PsuedoDeferedFragmentBranching::GrowSegment(std::set<BranchPoint>::iterator
 		//the overwrite here is okay as it is a copy
 		tip0.length_to_branch = length_to_branch_point->NextValue(culture->m_pmat->m_pangio->rengine);
 		tip0.wait_time_to_branch = time_to_emerge->NextValue(culture->m_pmat->m_pangio->rengine);
+		assert(tip0.wait_time_to_branch > 0.0);
 		culture->BranchSegment(tip0, bp->emerge_time, st.t - bp->emerge_time);
 	}
 	else if (culture->m_pmat->FindGridPoint(pos, tip1.pt.ndomain, tip1.pt.elemindex, tip1.pt))
 	{
 		tip1.length_to_branch = length_to_branch_point->NextValue(culture->m_pmat->m_pangio->rengine);
 		tip1.wait_time_to_branch = time_to_emerge->NextValue(culture->m_pmat->m_pangio->rengine);
+		assert(tip1.wait_time_to_branch > 0.0);
 		culture->BranchSegment(tip1, bp->emerge_time, st.t - bp->emerge_time);
 	}
 	else
@@ -329,13 +337,30 @@ void PsuedoDeferedFragmentBranching::GrowSegment(std::set<BranchPoint>::iterator
 		{
 			tip0.length_to_branch = length_to_branch_point->NextValue(culture->m_pmat->m_pangio->rengine);
 			tip0.wait_time_to_branch = time_to_emerge->NextValue(culture->m_pmat->m_pangio->rengine);
+			assert(tip0.wait_time_to_branch > 0.0);
 			culture->BranchSegment(tip0, bp->emerge_time, st.t - bp->emerge_time);
-
 		}
 		else
 		{
+			//need to try other materials
+			bool found = false;
+			for (size_t i = 0; i < culture->m_pmat->m_pangio->m_pmat.size(); i++)
+			{
+				//this is when the segment is in another element ie the segment is growing through at least 2 elements
+				//this may indicate a problem in getting consistent results
+				//don't retest the material that has already been done
+				if ((culture->m_pmat != culture->m_pmat->m_pangio->m_pmat[i]) && culture->m_pmat->m_pangio->m_pmat[i]->FindGridPoint(pos, tip0.pt))
+				{
+					tip0.length_to_branch = length_to_branch_point->NextValue(culture->m_pmat->m_pangio->rengine);
+					tip0.wait_time_to_branch = time_to_emerge->NextValue(culture->m_pmat->m_pangio->rengine);
+					assert(tip0.wait_time_to_branch > 0.0);
+					culture->m_pmat->m_pangio->m_pmat[i]->m_cult->BranchSegment(tip0, bp->emerge_time, st.t - bp->emerge_time);
+					found = true;
+					break;
+				}
+			}
 			//failed to place the tip in another element
-			assert(false);
+			assert(found);
 		}
 	}
 	ProcessNewSegments(bp->emerge_time);
@@ -349,7 +374,7 @@ void PsuedoDeferedFragmentBranching::ProcessNewSegments(double start_time)
 	//consider handling when no segments are added
 	if (rseg.size() == 0)
 	{
-
+		printf("no segments added\n");
 	}
 	//the easy case just a single segment has been added
 	else
@@ -410,6 +435,7 @@ void PsuedoDeferedFragmentBranching::UpdateSegmentBranchDistance(std::set<Branch
 		parentgen.insert(bpt);
 		//make sure adding both back were wrong
 		branch_points.insert(bpt);
+		return;
 	}
 	//propogate the length to branch point 
 	Segment * cur = bp->parent->tip(1).connected;
