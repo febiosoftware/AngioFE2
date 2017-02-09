@@ -97,7 +97,7 @@ public:
 	//must be called before anything else is done but construction
 	void SetCulture(Culture * cp);
 
-	void GrowSegments();
+	void GrowSegments(double start_time, double grow_time);
 	//Grows a segment from an active tip
 	//this function should be time independent
 	//thsi grows a segment from an active tip and sets the BranchPoints needed to generate any needed rng
@@ -116,7 +116,7 @@ public:
 	FragmentBranching * GetBrancherForSegment(Segment * seg);
 
 	//Grow is a synchronized grow operation for all FragmentBranchers
-	static void Grow();
+	static void Grow(double start_time, double grow_time);
 
 	//call once to have this class record a timeline of the branch points it uses
 	static void OutputTimeline(){ create_timeline = true; }

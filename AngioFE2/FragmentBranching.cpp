@@ -17,7 +17,7 @@ void FragmentBranching::SetCulture(Culture * cp)
 }
 
 //this is the combined growth step for all cultures/fragments/FragmentBranchers
-void FragmentBranching::Grow()
+void FragmentBranching::Grow(double start_time, double grow_time)
 {
 	//get all segments which need values recalculated for them in this step
 	if (!fragment_branchers.size())
@@ -26,7 +26,7 @@ void FragmentBranching::Grow()
 	for (size_t i = 0; i < fragment_branchers.size(); i++)
 	{
 		assert(fragment_branchers[i] != nullptr);
-		fragment_branchers[i]->GrowSegments();
+		fragment_branchers[i]->GrowSegments(start_time, grow_time);
 	}
 	//keep track of the start iterators so that I can delete the processed data at the end of the step
 	auto start_parentgen = parentgen.begin();
@@ -34,9 +34,9 @@ void FragmentBranching::Grow()
 	auto start_branch_points = branch_points.begin();
 	//generate all of the needed random numbers
 	//note that branches length to branch will be generated at their emerge time
-	SimulationTime end_time = fragment_branchers[0]->culture->m_pmat->m_pangio->CurrentSimTime();
+	double end_time = start_time + grow_time;
 	//the time in SimulationTime is the end of the current timestep
-	assert((start_parentgen == parentgen.end()) || (start_parentgen->epoch_time <= end_time.t)); //parentgen should empty each timestep/ not be filled beyond the current step
+	assert((start_parentgen == parentgen.end()) || (start_parentgen->epoch_time <= end_time)); //parentgen should empty each timestep/ not be filled beyond the current step
 
 	auto pg_iter = start_parentgen;
 	auto br_iter = start_branch_points;
@@ -46,10 +46,10 @@ void FragmentBranching::Grow()
 		//kick out once all the points in this timestep have been processed
 		if (pg_iter == parentgen.end() && br_iter == branch_points.end())
 			break;
-		if (pg_iter == parentgen.end() && br_iter->emerge_time > end_time.t)
+		if (pg_iter == parentgen.end() && br_iter->emerge_time > end_time)
 			break;
 		//find which iterator happened first if there  is a tie go one direction all the time
-		if (br_iter == branch_points.end() || ((br_iter != branch_points.end() && pg_iter != parentgen.end()) && ((br_iter->emerge_time >= pg_iter->epoch_time) || (br_iter->emerge_time > end_time.t))))
+		if (br_iter == branch_points.end() || ((br_iter != branch_points.end() && pg_iter != parentgen.end()) && ((br_iter->emerge_time >= pg_iter->epoch_time) || (br_iter->emerge_time > end_time))))
 		{
 			//go with pg_iter
 #ifndef NDEBUG
@@ -88,15 +88,14 @@ void FragmentBranching::Grow()
 
 
 //does the portion of the grow that does not require rng
-void FragmentBranching::GrowSegments()
+void FragmentBranching::GrowSegments(double start_time, double grow_time)
 {
 	//update the vessel length and then grow the segments
-	SimulationTime & st = culture->m_pmat->m_pangio->CurrentSimTime();
 	const SegmentTipList & tiplist = culture->GetActiveTipList();
 	auto iter = tiplist.begin();
 	while (iter != tiplist.end())
 	{
-		GrowSegment(*iter, st.t - st.dt, st.dt);
+		GrowSegment(*iter, start_time, grow_time);
 		++iter;
 	}
 

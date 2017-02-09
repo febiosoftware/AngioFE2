@@ -891,7 +891,7 @@ vec3d FEAngio::Position(const GridPoint& pt) const
 	}
 	return r;
 }
-//TODO: refactor create materialparameters and genericProjectToPoint
+//TODO: consider having multiple projection methods
 std::vector<double> FEAngio::createVectorOfMaterialParameters(FEElement * elem,
 	double FEAngioNodeData::*materialparam)
 {
@@ -989,7 +989,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		
 		m_time.dt = fem.GetCurrentStep()->m_dt;
 
-		FragmentBranching::Grow(); //new grow method
+		FragmentBranching::Grow(m_time.t - m_time.dt,m_time.dt); //new grow method
 
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
