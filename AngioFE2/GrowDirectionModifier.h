@@ -13,7 +13,7 @@ class GrowDirectionModifier : public FEMaterial
 public:
 	GrowDirectionModifier(FEModel * model);
 	virtual ~GrowDirectionModifier(){}
-	virtual vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch) = 0;
+	virtual vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch, double start_time, double grow_time) = 0;
 	//used to sort these by priority
 
 	//must be called before anything else is done but construction
@@ -27,7 +27,7 @@ class DefaultGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
 	DefaultGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch) override;
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch, double start_time, double grow_time) override;
 };
 
 //this class changes the grow direction if the segment is a branch
@@ -35,7 +35,7 @@ class BranchGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
 	BranchGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch) override;
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch, double start_time, double grow_time) override;
 };
 
 //the class modifies the grow dierction if the gradeint is above a given threshold
@@ -43,7 +43,7 @@ class GradientGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
 	GradientGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch) override;
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch, double start_time, double grow_time) override;
 
 private:
 	double threshold = 0.01;//the threshold over which vessels will deflect on the gradient
@@ -54,7 +54,7 @@ class AnastamosisGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
 	AnastamosisGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch) override;
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch, double start_time, double grow_time) override;
 
 private:
 	double search_radius;

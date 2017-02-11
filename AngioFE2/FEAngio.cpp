@@ -7,6 +7,7 @@
 #include "Segment.h"
 #include "FESproutBodyForce.h"
 #include "FECore/FECoreKernel.h"
+#include "FECore/LoadCurve.h"
 #include "FEBioMech/FEElasticMaterial.h"
 #include "FEBioMech/FEElasticMixture.h"
 #include "FEBioMix/FESolute.h"
@@ -295,6 +296,44 @@ void FEAngio::UpdateECM()
 			m_fe_node_data[node.GetID()].m_ecm_den0 = m_fe_node_data[node.GetID()].m_ecm_den;
 		}
 	});
+}
+
+int FEAngio::FindGrowTimes(std::vector<std::pair<double, double>> & time_pairs, int start_index)
+{
+	double res = m_fem.GetGlobalConstant("angio_time_step_curve");
+	//0 will be returned on failure
+	int curve_index = static_cast<int>(res);
+	if (curve_index)
+	{
+		FELoadCurve * fecurve = m_fem.GetLoadCurve(curve_index -1);
+		SimulationTime st = CurrentSimTime();
+		assert(fecurve);
+		int index = start_index;
+		double start_time = st.t - st.dt;
+		for (int i = start_index; i < fecurve->Points(); i++)
+		{
+			LOADPOINT lp = fecurve->LoadPoint(i);
+			if (lp.time <= st.t)
+			{
+				double dt = lp.time - start_time;
+				assert(dt > 0.0);
+				time_pairs.push_back(std::pair<double, double>(start_time, dt));
+				start_time = lp.time;
+			}
+			else
+			{
+				return i;
+			}
+		}
+
+		return index;
+	}
+	else
+	{
+		SimulationTime st = CurrentSimTime();
+		time_pairs.push_back(std::pair<double, double>(st.t-st.dt, st.dt));
+	}
+	return 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -982,14 +1021,22 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 {
 	FEModel& fem = *pfem;
 	m_time.t = fem.m_ftime;
+	static int index = 0;
 
 	if (nwhen == CB_UPDATE_TIME)
 	{
 		// grab the time information
 		
 		m_time.dt = fem.GetCurrentStep()->m_dt;
-
-		FragmentBranching::Grow(m_time.t - m_time.dt,m_time.dt); //new grow method
+		
+		std::vector<std::pair<double,double>> times;
+		index = FindGrowTimes(times, index);
+		//new function to find the start time grow time and if this is the final iteration this timestep
+		for (int i = 0; i < times.size(); i++)
+		{
+			FragmentBranching::Grow(times[i].first, times[i].second); //new grow method
+		}
+		
 
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{

@@ -79,7 +79,7 @@ double Culture::SegmentLength(double starttime, double grow_time) const
 
 //-----------------------------------------------------------------------------
 // Create a new segment at the (active) tip of an existing segment
-Segment Culture::GrowSegment(Segment::TIP& tip, double starttime, double grow_time, bool branch, bool bnew_vessel)
+Segment Culture::GrowSegment(Segment::TIP& tip, double start_time, double grow_time, bool branch, bool bnew_vessel)
 {
 
 	// Make sure the tip is active
@@ -89,14 +89,14 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double starttime, double grow_ti
 	double den_scale = FindDensityScale(tip.pt);
 
 	// this is the new segment length
-	double seg_length = den_scale*SegmentLength(starttime, grow_time);
+	double seg_length = den_scale*SegmentLength(start_time, grow_time);
 	
 	// determine the growth direction
 	vec3d seg_vec;
 	//now run it through the different filters
 	for (int i = 0; i < m_pmat->grow_direction_modifiers.size(); i++)
 	{
-		seg_vec = m_pmat->grow_direction_modifiers[i]->GrowModifyGrowDirection(seg_vec, tip, branch);
+		seg_vec = m_pmat->grow_direction_modifiers[i]->GrowModifyGrowDirection(seg_vec, tip, branch,start_time,grow_time);
 	}
 
 	// Create a new segment
@@ -139,7 +139,7 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double starttime, double grow_ti
 	// update length and unit vector
 	seg.Update();
 
-	assert(grow_time <= 1.01*fbrancher->TimeOfGrowth(&seg));
+	assert(grow_time <= 1.01*fbrancher->TimeOfGrowth(&seg, start_time, grow_time));
 
 	return seg;
 }

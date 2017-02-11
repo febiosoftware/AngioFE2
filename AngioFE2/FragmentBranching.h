@@ -92,7 +92,7 @@ public:
 		fragment_branchers.erase(std::find(fragment_branchers.begin(), fragment_branchers.end(), this));
 	}
 	//Grows a segment from a branchpoint
-	virtual void GrowSegment(std::set<BranchPoint>::iterator bp) = 0;
+	virtual void GrowSegment(std::set<BranchPoint>::iterator bp, double start_time, double grow_time) = 0;
 
 	//must be called before anything else is done but construction
 	void SetCulture(Culture * cp);
@@ -103,15 +103,12 @@ public:
 	//thsi grows a segment from an active tip and sets the BranchPoints needed to generate any needed rng
 	virtual void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) = 0;
 
-	virtual void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) = 0;
-
-	//modify the length to brnach if needed and set the time of birth of the segment
-	virtual void PostProcess(Segment & seg) = 0;
+	virtual void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp, double starttime, double grow_time) = 0;
 
 	virtual double GetLengthToBranch() = 0;
 	virtual double GetTimeToEmerge(){ return 0.0; }
 
-	double TimeOfGrowth(Segment * seg);
+	double TimeOfGrowth(Segment * seg, double start_time, double time_of_growth);
 
 	FragmentBranching * GetBrancherForSegment(Segment * seg);
 
@@ -139,13 +136,12 @@ class PsuedoDeferedFragmentBranching :public FragmentBranching
 {
 public:
 	PsuedoDeferedFragmentBranching(FEModel * model);
-	void GrowSegment(std::set<BranchPoint>::iterator bp) override;
+	void GrowSegment(std::set<BranchPoint>::iterator bp, double starttime, double grow_time) override;
 	void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) override;
-	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) override;
-	void PostProcess(Segment & seg) override;
+	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp, double starttime, double grow_time) override;
 	double GetLengthToBranch() override;
 	double GetTimeToEmerge() override;
-	void ProcessNewSegments(double start_time);
+	void ProcessNewSegments(double start_time, double grow_time);
 private:
 	FEPropertyT<FEProbabilityDistribution> length_to_branch_point;
 	FEPropertyT<FEProbabilityDistribution> time_to_emerge;
@@ -155,9 +151,8 @@ class NoFragmentBranching : public FragmentBranching
 {
 public:
 	NoFragmentBranching(FEModel * model) : FragmentBranching(model){}
-	void GrowSegment(std::set<BranchPoint>::iterator bp) override{}
+	void GrowSegment(std::set<BranchPoint>::iterator bp, double starttime, double grow_time) override{}
 	void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) override;
-	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp) override{}
-	void PostProcess(Segment & seg) override {}
+	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp, double starttime, double grow_time) override{}
 	double GetLengthToBranch() override{ return 1000000.0; }
 };

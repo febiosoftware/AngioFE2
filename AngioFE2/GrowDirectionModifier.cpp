@@ -17,7 +17,7 @@ GradientGrowDirectionModifier::GradientGrowDirectionModifier(FEModel * model) : 
 
 }
 //begin implementations of grow direction modifiers
-vec3d GradientGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch)
+vec3d GradientGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch, double start_time, double grow_time)
 {
 	//calculate the density gradinet if above the threshold set the grow direction
 	std::vector<double> densities;
@@ -46,7 +46,7 @@ AnastamosisGrowDirectionModifier::AnastamosisGrowDirectionModifier(FEModel * mod
 {
 
 }
-vec3d AnastamosisGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch)
+vec3d AnastamosisGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch, double start_time, double grow_time)
 {
 	return previous_dir;
 }
@@ -54,7 +54,7 @@ BranchGrowDirectionModifier::BranchGrowDirectionModifier(FEModel * model) : Grow
 {
 
 }
-vec3d BranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch)
+vec3d BranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch, double start_time, double grow_time)
 {
 	// If new segment is a branch we modify the grow direction a bit
 	if (branch)
@@ -76,7 +76,7 @@ DefaultGrowDirectionModifier::DefaultGrowDirectionModifier(FEModel * model) : Gr
 	
 }
 
-vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch)
+vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch, double start_time, double grow_time)
 {
 	// Find the component of the new vessel direction determined by collagen fiber orientation    
 	vec3d coll_dir = culture->m_pmat->CollagenDirection(tip.pt);
@@ -84,7 +84,7 @@ vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, 
 	// Component of new vessel orientation resulting from previous vessel direction        
 	vec3d per_dir = tip.u;
 
-	vec3d new_dir = mix(per_dir, coll_dir, culture->m_pmat->m_cultureParams.GetWeightInterpolation(culture->m_pmat->m_pangio->CurrentSimTime().dt));
+	vec3d new_dir = mix(per_dir, coll_dir, culture->m_pmat->m_cultureParams.GetWeightInterpolation(grow_time));
 	new_dir.unit();
 
 	return new_dir;
