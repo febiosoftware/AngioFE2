@@ -4,12 +4,12 @@
     <LocalDebuggerCommand>C:\Users\mp4\Documents\FEBio2\VS2013\Debug\FEBio2.exe</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febio.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>..\..\branching\AngioFE_TestSuite\Control_3mgml_1fragst1</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\mdpassthroughdc\t4</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LocalDebuggerCommand>C:\Users\mp4\Documents\FEBio2\VS2013\Release\FEBio2.exe</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febioRelease.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
-    <LocalDebuggerWorkingDirectory>..\..\CoreInFieldModel\plugInField5000 - 2ZElements3mat</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\mdpassthroughdc\t4</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

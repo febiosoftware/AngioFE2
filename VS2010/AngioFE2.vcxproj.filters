@@ -48,9 +48,6 @@
     <ClInclude Include="..\AngioFE2\Fileout.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\AngioFE2\Grid.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\AngioFE2\Segment.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -58,9 +55,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\AngioFE2\targetver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="kdtree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\AngioFE2\CultureParameters.h">
@@ -73,6 +67,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\AngioFE2\GrowDirectionModifier.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AngioFE2\FEProbabilityDistribution.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -113,9 +110,6 @@
     <ClCompile Include="..\AngioFE2\Fileout.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\AngioFE2\Grid.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\AngioFE2\Segment.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -131,5 +125,11 @@
     <ClCompile Include="..\AngioFE2\GrowDirectionModifier.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\AngioFE2\FEProbabilityDistribution.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

@@ -10,6 +10,7 @@
 #pragma once
 
 #include "StdAfx.h"
+#include "zlib.h"
 
 class Segment;
 class FEAngio;
@@ -38,10 +39,12 @@ public:
 private:
 	std::ofstream logstream;
 	FILE*	m_stream;	// Open stream to 'data.ang' (stream)
-	FILE*	m_stream2;	// vessel state 
     FILE*	m_stream3;
 	FILE*	bf_stream;
 	FILE*	m_stream4;	// active tips
+
+	gzFile  vessel_state_stream;
+
 
 	FILE *time_stream;
 	bool time_write_headers;

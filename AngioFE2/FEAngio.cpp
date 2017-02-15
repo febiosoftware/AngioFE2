@@ -92,6 +92,10 @@ FEAngioMaterial* FEAngio::FindAngioMaterial(FEMaterial* pm)
 // Initializes the FEAngio object.
 bool FEAngio::Init()
 {
+	//create any classes which have nontrivial destructors 
+	//currently the destructors are not called for classes created by FEBio this allows destructors to be called
+	fileout = new Fileout();
+
 	// Init all the FE stuff
 	//must be done first initializes material
 	if (InitFEM() == false) return false;
@@ -215,16 +219,16 @@ void FEAngio::FinalizeFEM()
 	if (m_fem.GetGlobalConstant("io"))
 	{
 		// Output initial microvessel state
-		fileout.save_vessel_state(*this);
+		fileout->save_vessel_state(*this);
 
 		// save active tips
-		fileout.save_active_tips(*this);
+		fileout->save_active_tips(*this);
 
 		// Output time information
-		fileout.save_time(*this);
+		fileout->save_time(*this);
 
 		// Output initial collagen fiber orientation
-		fileout.writeCollFib(*this, true);
+		fileout->writeCollFib(*this, true);
 	}
 }
 
@@ -1064,24 +1068,29 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		if (m_fem.GetGlobalConstant("io"))
 		{
 			// Save the current vessel state
-			fileout.save_vessel_state(*this);
+			fileout->save_vessel_state(*this);
 
 			// save active tips
-			fileout.save_active_tips(*this);
+			fileout->save_active_tips(*this);
 
 			// Output time information	
-			fileout.save_time(*this);
+			fileout->save_time(*this);
 
 			// Print the status of angio3d to the user    
-			fileout.printStatus(*this);
+			fileout->printStatus(*this);
 		}
 	}
 	else if (nwhen == CB_SOLVED)
 	{
 		// do the final output
-		//TODO: consider making this a constant instead of a material parameter
 		if (m_fem.GetGlobalConstant("io"))
+		{
 			Output();
+		}
+		//force any destructors to be called that need it
+		delete fileout;
+		fileout = nullptr;
+			
 	}
 }
 
@@ -1092,19 +1101,19 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 void FEAngio::Output()
 {
 	// Output parameters for simulation (sproutf, tip_range, phi_stiff_factor)
-	fileout.output_params(*this);
+	fileout->output_params(*this);
 	
 	// Output data file
-	fileout.dataout(*this);
+	fileout->dataout(*this);
 		
 	// Output final collagen fiber orientation
-	fileout.writeCollFib(*this, false);
+	fileout->writeCollFib(*this, false);
 
 	// Output final matrix density
-	fileout.writeECMDen(*this);
+	fileout->writeECMDen(*this);
 
 	//write out the timeline of branchpoints
-	fileout.save_timeline(*this);
+	fileout->save_timeline(*this);
 }
 
 ///////////////////////////////////////////////////////////////////////

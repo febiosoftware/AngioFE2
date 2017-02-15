@@ -25,7 +25,9 @@ Fileout::Fileout()
     //stream3 = fopen("tracking.ang","wt");   // tracking.ang: time step, model time, total length in culture, number of branches in culture
 	m_stream = fopen("out_data.ang","wt");                                        // data.ang: Store 3D coordinates of begining and end of each vessel segment
 	// as well as total length of the segment}
-	m_stream2 = fopen("out_vess_state.ang", "wt");
+
+	vessel_state_stream = gzopen("out_vess_state.ang.gz" , "wt");//check the parameters consider setting the compression level
+
 	//m_stream2 = fopen("out_vess_state.ang","wb");						// Open the stream for the vessel state data file		
 	bf_stream = fopen("out_bf_state.ang","wt");						// Open the stream for the body force state data file
 
@@ -40,8 +42,7 @@ Fileout::Fileout()
 Fileout::~Fileout()
 {
     logstream.close();
-	//fputc(EOF, m_stream2);
-	fclose(m_stream2);
+	gzclose(vessel_state_stream);
 	fclose(bf_stream);
 	fclose(time_stream);
 }
@@ -200,8 +201,8 @@ void Fileout::writeECMDen(FEAngio & angio)
 // Save microvessel position at the current time point
 void Fileout::save_vessel_state(FEAngio& angio)
 {
-	fprintf(m_stream2,"%-5s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n","State","Time","X1","Y1","Z1","X2","Y2","Z2","Length");  // Write column labels to out_vess_state.ang
-	
+	gzprintf(vessel_state_stream, "%-5s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n", "State", "Time", "X1", "Y1", "Z1", "X2", "Y2", "Z2", "Length");  // Write column labels to out_vess_state.ang
+
 	for (size_t i = 0; i < angio.m_pmat.size(); i++)
 	{
 		Culture* cult = angio.m_pmat[i]->m_cult;
@@ -210,8 +211,7 @@ void Fileout::save_vessel_state(FEAngio& angio)
 		{
 			const vec3d& r0 = it->tip(0).pos();
 			const vec3d& r1 = it->tip(1).pos();
-			fprintf(m_stream2, "%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", angio.FE_state, it->GetTimeOfBirth(), r0.x, r0.y, r0.z, r1.x, r1.y, r1.z, it->length());  // Write to out_vess_state.ang
-
+			gzprintf(vessel_state_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", angio.FE_state, it->GetTimeOfBirth(), r0.x, r0.y, r0.z, r1.x, r1.y, r1.z, it->length());
 		}
 	}
 }

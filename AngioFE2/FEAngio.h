@@ -155,7 +155,7 @@ private:
 	SimulationTime	m_time;		// simulation time
 
     time_t m_start;			// time of start
-	Fileout fileout;		// output manager
+	Fileout * fileout = nullptr;		// output manager
 	
 	std::uniform_real_distribution<double> ztopi;
 	std::uniform_real_distribution<double> zto2pi;

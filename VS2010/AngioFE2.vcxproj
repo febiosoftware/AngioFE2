@@ -43,8 +43,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\mp4\Documents\FEBio2;$(FEBIO2Dir);$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\mp4\Documents\FEBio2\VS2013\Debug;$(FEBIO2Dir)\VS2013\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\mp4\Documents\AngioFE2\VS2010\packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\include;C:\Users\mp4\Documents\FEBio2;$(FEBIO2Dir);$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\mp4\Documents\AngioFE2\VS2010\packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\lib\native\v120\windesktop\msvcstl\dyn\rt-dyn\x64\Debug;C:\Users\mp4\Documents\FEBio2\VS2013\Debug;$(FEBIO2Dir)\VS2013\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
@@ -95,17 +95,16 @@
     <ClInclude Include="..\AngioFE2\Elem.h" />
     <ClInclude Include="..\AngioFE2\FEAngio.h" />
     <ClInclude Include="..\AngioFE2\FEAngioMaterial.h" />
+    <ClInclude Include="..\AngioFE2\FEProbabilityDistribution.h" />
     <ClInclude Include="..\AngioFE2\FESproutBodyForce.h" />
     <ClInclude Include="..\AngioFE2\Filein.h" />
     <ClInclude Include="..\AngioFE2\Fileout.h" />
     <ClInclude Include="..\AngioFE2\FragmentBranching.h" />
     <ClInclude Include="..\AngioFE2\FragmentSeeder.h" />
-    <ClInclude Include="..\AngioFE2\Grid.h" />
     <ClInclude Include="..\AngioFE2\GrowDirectionModifier.h" />
     <ClInclude Include="..\AngioFE2\Segment.h" />
     <ClInclude Include="..\AngioFE2\StdAfx.h" />
     <ClInclude Include="..\AngioFE2\targetver.h" />
-    <ClInclude Include="kdtree.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\AngioFE2\AngioFE.cpp" />
@@ -117,17 +116,22 @@
     <ClCompile Include="..\AngioFE2\Elem.cpp" />
     <ClCompile Include="..\AngioFE2\FEAngio.cpp" />
     <ClCompile Include="..\AngioFE2\FEAngioMaterial.cpp" />
+    <ClCompile Include="..\AngioFE2\FEProbabilityDistribution.cpp" />
     <ClCompile Include="..\AngioFE2\FESproutBodyForce.cpp" />
     <ClCompile Include="..\AngioFE2\Filein.cpp" />
     <ClCompile Include="..\AngioFE2\Fileout.cpp" />
     <ClCompile Include="..\AngioFE2\FragmentBranching.cpp" />
     <ClCompile Include="..\AngioFE2\FragmentSeeder.cpp" />
-    <ClCompile Include="..\AngioFE2\Grid.cpp" />
     <ClCompile Include="..\AngioFE2\GrowDirectionModifier.cpp" />
     <ClCompile Include="..\AngioFE2\Segment.cpp" />
     <ClCompile Include="..\AngioFE2\StdAfx.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.targets" Condition="Exists('packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.targets')" />
+    <Import Project="packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.targets" Condition="Exists('packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.targets')" />
   </ImportGroup>
 </Project>
