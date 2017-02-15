@@ -25,7 +25,7 @@ export CC = icpc
 export FLG = -O3 -fPIC -stdc++11
 
 # Can be removed if not using the Intel compiler.
-export LNKFLG = -static-intel -no-intel-extensions
+export LNKFLG = -static-intel -no-intel-extensions -lz
 export INC = -I$(FEBINC) -I$(ANGDIR)AngioLib
 export DBGFLG = 
 
