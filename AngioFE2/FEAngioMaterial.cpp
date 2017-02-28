@@ -117,11 +117,33 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	ADD_PARAMETER(m_cultureParams.m_composite_material, FE_PARAM_INT, "composite_material");
 	ADD_PARAMETER2(m_cultureParams.m_sprout_force, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "sprout_force");
 
-	
+	ADD_PARAMETER2(m_cultureParams.active_tip_threshold, FE_PARAM_INT, FE_RANGE_GREATER_OR_EQUAL(0), "active_tip_threshold");
+	ADD_PARAMETER2(m_cultureParams.stress_radius, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "stress_radius");
 	
 END_PARAMETER_LIST();
+
+FEAngioMaterial::SPROUT::SPROUT(vec3d dir, FEElement * el, double * local, FEAngioMaterial * m) : sprout(dir), pel(el), mat(m)
+{
+	r[0] = local[0];
+	r[1] = local[1];
+	r[2] = local[2];
+}
+
+std::vector<double> units3d(3, 1.0);
+
+std::vector<double> access_sprout(std::pair<size_t, std::vector<FEAngioMaterial::SPROUT> *> p)
+{
+	std::vector<double> rv;
+	FEAngioMaterial::SPROUT spr = (*p.second)[p.first];
+	vec3d cpos = spr.mat->CurrentPosition(spr.pel, spr.r[0], spr.r[1], spr.r[2]);
+	rv.push_back(cpos.x);
+	rv.push_back(cpos.y);
+	rv.push_back(cpos.z);
+	return rv;
+}
+
 //-----------------------------------------------------------------------------
-FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticMaterial(pfem)
+FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticMaterial(pfem), sprouts(access_sprout, ndim_distance, ndim_distance_to_plane, units3d)
 {
 	scale = 1.0;
 	
@@ -503,7 +525,7 @@ bool FEAngioMaterial::FindGridPoint(const vec3d & r, GridPoint & p) const
 		p.q.x = natc[0];
 		p.q.y = natc[1];
 		p.q.z = natc[2];
-		p.ndomain = se->GetDomain();
+		p.ndomain = dynamic_cast<FESolidDomain*>(se->GetDomain());
 		p.nelem = se->GetID();
 		//TODO: hack
 		p.elemindex = se->GetID() - 1 - meshOffsets.find(p.ndomain)->second;
@@ -518,7 +540,7 @@ bool FEAngioMaterial::FindGridPoint(const vec3d & r, GridPoint & p) const
 	return false;
 }
 
-bool FEAngioMaterial::FindGridPoint(const vec3d & r, FEDomain * domain, int elemindex, GridPoint & p) const
+bool FEAngioMaterial::FindGridPoint(const vec3d & r, FESolidDomain * domain, int elemindex, GridPoint & p) const
 {
 	FEMesh * mesh = m_pangio->GetMesh();
 	double natc[3];
@@ -652,6 +674,7 @@ void FEAngioMaterial::CreateSprouts(double scale)
 void FEAngioMaterial::UpdateSprouts(double scale)
 {
 	ClearSprouts();
+	
 
 	//#pragma omp parallel for
 	const SegmentTipList& tip_list = m_cult->GetActiveTipList();
@@ -711,6 +734,7 @@ void FEAngioMaterial::SetParameter(FEParam& p)
 void FEAngioMaterial::ClearSprouts()
 {
 	m_spr.clear();
+	sprouts.clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -721,13 +745,17 @@ void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t, FEDomain * domai
 	FEMesh& mesh = GetFEModel()->GetMesh();
 	FESolidDomain* dom = dynamic_cast<FESolidDomain*>(domain);
 
-	SPROUT s;
-	s.pel = &(dom->ElementRef(elemindex));
-	s.sprout = t;
+	vec3d dir = r;
+	double pos[3];
+	pos[0] = r.x;
+	pos[1] = r.y;
+	pos[2] = r.z;
 
+	SPROUT s(dir, &dom->Element(elemindex), pos, this);
 	assert(s.pel);
 
 	m_spr.push_back(s);
+	sprouts.insert(std::pair<size_t, std::vector<SPROUT> *>(m_spr.size() - 1, &m_spr));
 }
 //-----------------------------------------------------------------------------
 void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t, FEDomain * domain)
@@ -735,28 +763,33 @@ void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t, FEDomain * domai
 	assert(domain != nullptr);
 	FEMesh& mesh = GetFEModel()->GetMesh();
 	FESolidDomain * dom = dynamic_cast<FESolidDomain *>(domain);
+	double local[3];
+	FEElement * el = dom->FindElement(r,local);
+	vec3d dir = r;
+	double pos[3];
+	pos[0] = r.x;
+	pos[1] = r.y;
+	pos[2] = r.z;
 
-	SPROUT s;
-	s.pel = dom->FindElement(r,s.r);
-	s.sprout = t;
-
+	SPROUT s(dir, el, pos, this);
 	assert(s.pel);
 
 	m_spr.push_back(s);
+	sprouts.insert(std::pair<size_t, std::vector<SPROUT> *>(m_spr.size() - 1, &m_spr));
 }
 
 void FEAngioMaterial::AddSprout(const Segment::TIP & tip)
 {
-	SPROUT s;
-	s.pel = &tip.pt.ndomain->ElementRef(tip.pt.elemindex);
-	s.sprout = tip.u;
-	s.r[0] = tip.pt.q.x;
-	s.r[1] = tip.pt.q.y;
-	s.r[2] = tip.pt.q.z;
+	double pos[3];
+	pos[0] = tip.pt.q.x;
+	pos[1] = tip.pt.q.y;
+	pos[2] = tip.pt.q.z;
+
+	SPROUT s(tip.u, &tip.pt.ndomain->ElementRef(tip.pt.elemindex), pos, this);
 
 	assert(s.pel);
-
 	m_spr.push_back(s);
+	sprouts.insert(std::pair<size_t, std::vector<SPROUT> *>(m_spr.size() - 1, &m_spr));
 }
 
 //-----------------------------------------------------------------------------
@@ -828,31 +861,71 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 	}
 	else
 	{
-		//#pragma omp parallel for shared(s)
-		for (int i = 0; i<NS; ++i)
+		if (NS <= m_cultureParams.active_tip_threshold)
 		{
-			SPROUT& sp = m_spr[i];
+			//#pragma omp parallel for shared(s)
+			for (int i = 0; i<NS; ++i)
+			{
+				SPROUT& sp = m_spr[i];
 
-			// current position of sprout force
-			vec3d x = CurrentPosition(sp.pel, sp.r[0], sp.r[1], sp.r[2]);
+				// current position of sprout force
+				vec3d x = CurrentPosition(sp.pel, sp.r[0], sp.r[1], sp.r[2]);
 
-			vec3d r = y - x;
-			double l = r.unit();
+				vec3d r = y - x;
+				double l = r.unit();
 
-			sp.sprout.unit();															// Normalize the sprout direction vector
+				sp.sprout.unit();															// Normalize the sprout direction vector
 
-			double theta = acos(sp.sprout*r);											// Calculate theta, the angle between r and the sprout vector
+				double theta = acos(sp.sprout*r);											// Calculate theta, the angle between r and the sprout vector
 
-			//TODO: some of this may be precalculated
-			double p = den_scale*scale*m_cultureParams.sprout_s_mag*(pow(cos(theta / 2), m_cultureParams.sprout_s_width))*exp(-m_cultureParams.sprout_s_range*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
+				//TODO: some of this may be precalculated
+				double p = den_scale*scale*m_cultureParams.sprout_s_mag*(pow(cos(theta / 2), m_cultureParams.sprout_s_width))*exp(-m_cultureParams.sprout_s_range*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
 
-			//double p = sprout_s_mag*exp(-sprout_s_range*l);
+				//double p = sprout_s_mag*exp(-sprout_s_range*l);
 
-			mat3ds si = dyad(r)*p;
+				mat3ds si = dyad(r)*p;
 
-			//#pragma omp critical
-			s += si;
+				//#pragma omp critical
+				s += si;
+			}
 		}
+		else
+		{
+			std::vector<SPROUT>	temp;
+			double local[3];
+			local[0] = angioPt.m_pt.q.x;
+			local[1] = angioPt.m_pt.q.y;
+			local[2] = angioPt.m_pt.q.z;
+			SPROUT stemp(vec3d(), &angioPt.m_pt.ndomain->Element(angioPt.m_pt.elemindex), local, this);
+			temp.push_back(stemp);
+			std::pair<size_t, std::vector<SPROUT> *> dim = std::pair<size_t, std::vector<SPROUT> * >(0, &temp);
+			std::vector<std::pair<size_t, std::vector<SPROUT> *>> nst = sprouts.within(dim, m_cultureParams.stress_radius * m_cultureParams.stress_radius);
+			for (int i = 0; i<nst.size(); ++i)
+			{
+				SPROUT& sp = m_spr[nst[i].first];
+
+				// current position of sprout force
+				vec3d x = CurrentPosition(sp.pel, sp.r[0], sp.r[1], sp.r[2]);
+
+				vec3d r = y - x;
+				double l = r.unit();
+
+				sp.sprout.unit();															// Normalize the sprout direction vector
+
+				double theta = acos(sp.sprout*r);											// Calculate theta, the angle between r and the sprout vector
+
+				//TODO: some of this may be precalculated
+				double p = den_scale*scale*m_cultureParams.sprout_s_mag*(pow(cos(theta / 2), m_cultureParams.sprout_s_width))*exp(-m_cultureParams.sprout_s_range*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
+
+				//double p = sprout_s_mag*exp(-sprout_s_range*l);
+
+				mat3ds si = dyad(r)*p;
+
+				//#pragma omp critical
+				s += si;
+			}
+		}
+		
 	}
 	
 	return s;

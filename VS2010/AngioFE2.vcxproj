@@ -102,6 +102,7 @@
     <ClInclude Include="..\AngioFE2\FragmentBranching.h" />
     <ClInclude Include="..\AngioFE2\FragmentSeeder.h" />
     <ClInclude Include="..\AngioFE2\GrowDirectionModifier.h" />
+    <ClInclude Include="..\AngioFE2\KDTree\kdtree.h" />
     <ClInclude Include="..\AngioFE2\Segment.h" />
     <ClInclude Include="..\AngioFE2\StdAfx.h" />
     <ClInclude Include="..\AngioFE2\targetver.h" />

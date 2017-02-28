@@ -73,7 +73,7 @@ void BC::CheckBC(Segment &seg)
 		{
 			GridPoint & cpt = seg.tip(1).pt;
 			cpt.q = vec3d(r[0], r[1], r[2]);
-			cpt.ndomain = se->GetDomain();
+			cpt.ndomain = dynamic_cast<FESolidDomain*>(se->GetDomain());
 			cpt.nelem = se->GetID();
 			cpt.elemindex = se->GetID() - 1 - angm->meshOffsets.at(cpt.ndomain);
 			seg.Update();
@@ -82,7 +82,7 @@ void BC::CheckBC(Segment &seg)
 				angm->m_cult->ClearRecents();
 				mbc->handleBoundary(culture->m_pmat, angm, seg);
 				auto orseg = angm->m_cult->RecentSegments();
-				for (int i = 0; i < orseg.size(); i++)
+				for (size_t i = 0; i < orseg.size(); i++)
 				{
 					culture->AddToRecents(orseg[i]);
 				}
@@ -260,7 +260,7 @@ void StopBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESoli
 		seg.tip(1).pt.q = culture->m_pmat->m_pangio->FindRST(lastGoodPt, nrs, se);
 		seg.tip(1).pt.r = lastGoodPt;
 		seg.tip(1).pt.nelem = se->GetID();
-		seg.tip(1).pt.ndomain = culture->m_pmat->domainptrs[0]; //hack
+		seg.tip(1).pt.ndomain = dynamic_cast<FESolidDomain*>(culture->m_pmat->domainptrs[0]); //hack
 		seg.tip(1).pt.elemindex = se->GetID() - 1 - culture->m_pmat->meshOffsets.at(seg.tip(1).pt.ndomain);
 		seg.tip(1).pt.r = culture->m_pmat->m_pangio->Position(seg.tip(1).pt);
 		seg.Update();
@@ -313,7 +313,7 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 		seg.tip(1).pt.q = culture->m_pmat->m_pangio->FindRST(lastGoodPt, nrs, se);
 		seg.tip(1).pt.r = lastGoodPt;
 		seg.tip(1).pt.nelem = se->GetID();
-		seg.tip(1).pt.ndomain = culture->m_pmat->domainptrs[0]; //hack
+		seg.tip(1).pt.ndomain = dynamic_cast<FESolidDomain*>(culture->m_pmat->domainptrs[0]); //hack
 		seg.tip(1).pt.elemindex = se->GetID() - 1 - culture->m_pmat->meshOffsets.at(seg.tip(1).pt.ndomain);
 		seg.tip(1).pt.r = culture->m_pmat->m_pangio->Position(seg.tip(1).pt);
 		seg.Update();

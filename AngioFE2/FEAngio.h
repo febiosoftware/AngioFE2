@@ -55,7 +55,7 @@ public:
 	double FindECMDensity(const GridPoint& pt);
 	vec3d LocalToGlobal(FESolidElement * se, vec3d & rst) const;
 	vec3d FindRST(const vec3d & r, vec2d rs, FESolidElement * elem) const;
-	GridPoint FindGridPoint(FEDomain * domain, int nelem, vec3d& q) const;
+	GridPoint FindGridPoint(FESolidDomain * domain, int nelem, vec3d& q) const;
 	vec3d Position(const GridPoint& pt)  const;
 	// Creates a vector of specified paramenter
 	std::vector<double> createVectorOfMaterialParameters(FEElement * elem,

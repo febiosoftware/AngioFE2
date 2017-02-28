@@ -3,6 +3,7 @@
 #include <FECore/FEDomain.h>
 #include <FECore/FEMaterial.h>
 #include "CultureParameters.h"
+#include <FECore/FESolidDomain.h>
 
 
 //this header contains the definitions of all of the fragment seeder objects
@@ -16,7 +17,7 @@ struct SegGenItem
 {
 	bool operator<(SegGenItem const & item)const{ return weight < item.weight; }
 	double weight;
-	FEDomain * domain;
+	FESolidDomain * domain;
 	int ielement;
 };
 class Culture;

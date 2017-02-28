@@ -7,6 +7,7 @@
 #include "FEAngio.h"
 #include "Culture.h"
 #include "FEProbabilityDistribution.h"
+#include "KDTree/kdtree.h"
 
 //-----------------------------------------------------------------------------
 // A new material point class is defined to store the elastic parameters for 
@@ -79,10 +80,13 @@ class FEAngioMaterial : public FEElasticMaterial
 public:
 	struct SPROUT
 	{
+		explicit SPROUT(vec3d dir, FEElement * el, double * local, FEAngioMaterial * m);
 		vec3d		sprout;	// sprout direction
 		FEElement*	pel;	// element in which this sprout lies
 		double		r[3];	// iso-parameteric elements
+		FEAngioMaterial * mat;
 	};
+
 	FEAngioMaterial(FEModel* pfem);
 	virtual ~FEAngioMaterial();
 
@@ -163,7 +167,7 @@ public:
 	void SetupSurface();
 
 	bool FindGridPoint(const vec3d & r, GridPoint & p) const;
-	bool FindGridPoint(const vec3d & r, FEDomain * domain, int elemindex, GridPoint & p) const;
+	bool FindGridPoint(const vec3d & r, FESolidDomain * domain, int elemindex, GridPoint & p) const;
 private:
 	ECMInitializer * ecm_initializer;
 
@@ -173,9 +177,11 @@ private:
 
 	// user-defined sprouts
 	vec3d	m_s;	//!< dummy parameter used for reading sprouts from the input file
-	vector<vec3d>	m_suser;
+	std::vector<vec3d>	m_suser;
 
-	vector<SPROUT>	m_spr;
+	//m_spr is the underlying storage for sprouts
+	std::vector<SPROUT>	m_spr;
+	KDTree<std::pair<size_t, std::vector<SPROUT> *>, std::vector<double>> sprouts;
 
 	DECLARE_PARAMETER_LIST();
 

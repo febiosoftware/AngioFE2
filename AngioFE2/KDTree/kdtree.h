@@ -15,13 +15,12 @@
 #include <limits>
 
 //helper methods that provide sensible defaults to the kd-tree
-//TODO: make these references
 //computes the distance squared rather than the absolute distance
-double ndim_distance(std::vector<double> & first, std::vector<double> & second)
+inline double ndim_distance(std::vector<double> & first, std::vector<double> & second)
 {
     double rv =0;
     assert(first.size() == second.size());
-    for(int i =0; i < first.size(); i++)
+    for(size_t i =0; i < first.size(); i++)
     {
         double diff = first[i] - second[i];
         rv += diff*diff;
@@ -29,12 +28,12 @@ double ndim_distance(std::vector<double> & first, std::vector<double> & second)
     return rv;
 }
 
-std::vector<double> null_accessor(std::vector<double> d)
+inline std::vector<double> null_accessor(std::vector<double> d)
 {
     return d;
 }
 
-std::string vector_printer(std::vector<double> d)
+inline std::string vector_printer(std::vector<double> d)
 {
     std::string res ="";
     for(size_t i=0; i < d.size(); i++)
@@ -47,14 +46,14 @@ std::string vector_printer(std::vector<double> d)
 
 //this distance needs to relate to the distance computed by ndim_distance
 //so in this case this also used the distance squared
-double ndim_distance_to_plane(std::vector<double> & point,std::vector<double> & point_in_plane,std::vector<double> & normal)
+inline double ndim_distance_to_plane(std::vector<double> & point,std::vector<double> & point_in_plane,std::vector<double> & normal)
 {
     assert(point.size() ==  point_in_plane.size());
     assert(point.size() == normal.size());
     //consider checking that normal is a unit vector
     //computes dot((point - point_in_plane), normal)
     double rv = 0.0;
-    for(int i=0; i < point.size(); i++)
+    for(size_t i=0; i < point.size(); i++)
     {
         rv += (point[i] - point_in_plane[i]) *normal[i];
     }
@@ -64,7 +63,6 @@ double ndim_distance_to_plane(std::vector<double> & point,std::vector<double> & 
 
 
 //implements a K-d tree which automatically rebuilds itself as items are inserted into the structure
-//the dimensions must be stored in class that is a std::tuple or a class derived from it
 //the members of DIMR must have the less than operator defined on them, the default constructor must be defined and initialize each value to it's zero,
 template <typename DIM, typename DIMR>
 class KDTree
@@ -114,11 +112,14 @@ public:
 	std::vector<DIM> within(DIM item, double dist);//returns all of the nodes that are closer to item than dist
 	// an inplace rebuild of the tree only call this when the underlying nodes have moved eg mechanical step(s)
 	void rebuild();
+
+	//deletes the tree and allows the structure to be reused
+	void clear();
 	
-#ifdef NDEBUG
+#ifndef NDEBUG
         void verifyTree();
 #endif
-#ifndef NDEBUG
+#ifdef NDEBUG
         void verifyTree(){;}
 #endif
         
@@ -162,6 +163,18 @@ KDTree<DIM, DIMR>::~KDTree()
 		delete node;
 	}, root);
 }
+template <typename DIM, typename DIMR>
+void KDTree<DIM, DIMR>::clear()
+{
+	//recursively delete nodes
+	DFT([](KDNode * node)
+	{
+		delete node;
+	}, root);
+
+	root = nullptr;
+}
+
 template <typename DIM, typename DIMR>
 void KDTree<DIM, DIMR>::DFT(std::function<void(KDNode *)> func, KDNode * node)//depth first travelsal less, greater, node
 {
@@ -626,7 +639,7 @@ typename KDTree<DIM, DIMR>::KDNode * KDTree<DIM, DIMR>::KDify(typename  std::vec
 template <typename DIM, typename DIMR>
 typename KDTree<DIM, DIMR>::KDNode * KDTree<DIM, DIMR>::nearest_leaf_node(DIMR target,  KDNode * start)
 {
-    DIMR goal = _accessor(target);
+    DIMR goal = target;
     assert(goal.size() == ndim);
     int cdim = start->dimchoice;
     KDNode * current = start;
@@ -762,7 +775,7 @@ std::vector<DIM> KDTree<DIM, DIMR>::within(DIM item, double dist)
     KDNode * startNode = nearest_leaf_node(goal,  root);
     if(startNode)
     {
-        auto temp = _accessor(startNode->dimensions);
+        DIMR temp = _accessor(startNode->dimensions);
         std::stack<KDNode *> n2p;
         std::stack<KDNode *> end_nodes;
         n2p.push(startNode);
@@ -830,7 +843,7 @@ std::vector<DIM> KDTree<DIM, DIMR>::within(DIM item, double dist)
     return rv;
 }
 
-#ifdef NDEBUG
+#ifndef NDEBUG
 template <typename DIM, typename DIMR>
 void KDTree<DIM, DIMR>::verifyTree()
 {
@@ -861,7 +874,7 @@ void KDTree<DIM, DIMR>::verifyTree()
                 DIMR pcut = _accessor(current->dimensions);//parent cut
                 DIMR ccut = _accessor(c->dimensions);//current cut
                 //check the nodes exist before comparing in that direction
-                assert (ccut[cdim] < pcut[cdim]);
+                assert (ccut[cdim] <= pcut[cdim]);
             };
             if(current->childLess)
             {

@@ -1,6 +1,7 @@
 #pragma once
 #include <FECore/vec3d.h>
 #include <FECore/FEDomain.h>
+#include <FECore/FESolidDomain.h>
 
 //-----------------------------------------------------------------------------
 // A helper class for locating points on the grid using an element number and
@@ -10,7 +11,7 @@ class GridPoint
 public:
 	int		nelem;		// element id
 	int		elemindex;
-	FEDomain *		ndomain=nullptr;    //domain id
+	FESolidDomain *		ndomain=nullptr;    //domain id
 	vec3d	q;			// natural coordinates
 	vec3d	r;			// spatial position
 

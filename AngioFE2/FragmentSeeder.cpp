@@ -84,7 +84,7 @@ bool ClassicFragmentSeeder::createInitFrag(Segment& seg)
 		vec3d q = vrand();
 
 		// set the position of the first tip
-		p0 = culture->m_pmat->m_pangio->FindGridPoint(&mesh->Domain(0), elem_num, q);
+		p0 = culture->m_pmat->m_pangio->FindGridPoint(dynamic_cast<FESolidDomain*>(&mesh->Domain(0)), elem_num, q);
 
 		// Determine vessel orientation based off of collagen fiber orientation
 		vec3d seg_vec = vrand();
@@ -144,7 +144,7 @@ bool MultiDomainFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cu
 	{
 		// Create an initial segment
 		Segment seg;
-		sgi.domain = &mesh->Domain(culture->m_pmat->domains[ddist(culture->m_pmat->m_pangio->rengine)]);
+		sgi.domain = dynamic_cast<FESolidDomain*>(&mesh->Domain(culture->m_pmat->domains[ddist(culture->m_pmat->m_pangio->rengine)]));
 		sgi.ielement = edist(culture->m_pmat->m_pangio->rengine);
 		if (createInitFrag(seg, sgi, culture) == false) return false;
 
@@ -298,7 +298,7 @@ bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cul
 		Segment seg;
 		FEElement * elem = elements[ei];
 		sgi.ielement = elem->GetID() - 1 - culture->m_pmat->meshOffsets[elem->GetDomain()];
-		sgi.domain = elem->GetDomain();
+		sgi.domain = dynamic_cast<FESolidDomain*>(elem->GetDomain());
 
 		if (createInitFrag(seg, sgi, culture) == false) return false;
 

@@ -72,6 +72,9 @@
     <ClInclude Include="..\AngioFE2\FEProbabilityDistribution.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\AngioFE2\KDTree\kdtree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\AngioFE2\AngioFE.cpp">

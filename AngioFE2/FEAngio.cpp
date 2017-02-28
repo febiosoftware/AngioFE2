@@ -894,7 +894,7 @@ vec3d FEAngio::FindRST(const vec3d & v ,vec2d rs, FESolidElement * elem) const
 	return positions_local[best_index];
 }
 
-GridPoint FEAngio::FindGridPoint(FEDomain * domain, int nelem, vec3d& q) const
+GridPoint FEAngio::FindGridPoint(FESolidDomain * domain, int nelem, vec3d& q) const
 {
 	assert(domain != nullptr && nelem >= 0);
 	GridPoint pt;
@@ -1036,7 +1036,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		std::vector<std::pair<double,double>> times;
 		index = FindGrowTimes(times, index);
 		//new function to find the start time grow time and if this is the final iteration this timestep
-		for (int i = 0; i < times.size(); i++)
+		for (size_t i = 0; i < times.size(); i++)
 		{
 			FragmentBranching::Grow(times[i].first, times[i].second); //new grow method
 		}
