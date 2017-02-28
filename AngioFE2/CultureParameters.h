@@ -63,7 +63,7 @@ public:
 	double min_segment_length = 0.1;
 
 	int active_tip_threshold = 500;
-	double stress_radius = 150.0;
+	double stress_radius = 200.0;
 
 
 	const bool io = true;
