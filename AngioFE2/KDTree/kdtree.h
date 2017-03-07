@@ -109,18 +109,17 @@ public:
 	void insert(DIM item);//insert a single item
 	void insert(std::list<DIM> items);//can have better performace  than individual insertions
 	std::vector<DIM> nearest(DIM item, int n=1, bool order = false);//returns a list of the closest DIM to item. n has a max value of lg_2 elements, order determines if the elements are returned in a sorted fashion
-	std::vector<DIM> within(DIM item, double dist);//returns all of the nodes that are closer to item than dist
+	std::vector<DIM> within(DIM item, double dist, bool sorted = false);//returns all of the nodes that are closer to item than dist
 	// an inplace rebuild of the tree only call this when the underlying nodes have moved eg mechanical step(s)
 	void rebuild();
 
 	//deletes the tree and allows the structure to be reused
 	void clear();
 	
-#ifndef NDEBUG
+#if !defined(NDEBUG) && defined(KDDEBUG)
         void verifyTree();
-#endif
-#ifdef NDEBUG
-        void verifyTree(){;}
+#else
+	void verifyTree(){ ; }
 #endif
         
         void PrintTree(std::function<std::string(DIMR)> printer);
@@ -579,12 +578,14 @@ void KDTree<DIM, DIMR>::rebuild()
         }, root);
     KDNode * new_root = KDify(nodes.begin(),  nodes.end(),  0);
     root = new_root;
-    root->parent = nullptr;
-    for(int i = 0;i < nodes.size();i++)
-    {
-        nodes[i]->ReComputeDepth();
-    }
-    
+	if (new_root)
+	{
+		root->parent = nullptr;
+		for (size_t i = 0; i < nodes.size(); i++)
+		{
+			nodes[i]->ReComputeDepth();
+		}
+	}
 }
 
 
@@ -768,7 +769,7 @@ std::vector<DIM> KDTree<DIM, DIMR>::nearest(DIM item, int n, bool order)//return
     return rv;
 }
 template <typename DIM, typename DIMR>
-std::vector<DIM> KDTree<DIM, DIMR>::within(DIM item, double dist)
+std::vector<DIM> KDTree<DIM, DIMR>::within(DIM item, double dist, bool ordered)
 {
     std::vector<DIM> rv;
     DIMR goal = _accessor(item);
@@ -840,10 +841,23 @@ std::vector<DIM> KDTree<DIM, DIMR>::within(DIM item, double dist)
         }
 
     }
+
+	if (ordered)
+	{
+		std::sort(rv.begin(), rv.end(), [&goal, this](DIM one, DIM two)
+		{
+			auto temp1 = _accessor(one);
+			double d1 = _distancef(goal, temp1);
+
+			auto temp2 = _accessor(two);
+			double d2 = _distancef(goal, temp2);
+			return d1 < d2;
+		});
+	}
     return rv;
 }
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && defined(KDDEBUG)
 template <typename DIM, typename DIMR>
 void KDTree<DIM, DIMR>::verifyTree()
 {

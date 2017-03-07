@@ -6,6 +6,7 @@
 #include "FragmentSeeder.h"
 #include "FragmentBranching.h"
 #include "GrowDirectionModifier.h"
+#include "KDTree/kdtree.h"
 
 
 //-----------------------------------------------------------------------------
@@ -114,14 +115,15 @@ private:
 	void AddToRecents(Segment * seg){ recents.push_back(seg); }
 	
 
+	CultureParameters * m_cultParams;
+	FEAngio&	m_angio;
 
 	int					m_nsegs;				// Counter that stores in current number of Segments within the simulation domain
 	double				m_total_length;			// Total vascular length within the domain (sum of the length of all Segments) (in um)
-	list<Segment>		m_frag;					// vessel fragments
-	list<Segment::TIP*> m_active_tips;			// list of active tips
-	CultureParameters * m_cultParams;
-	FEAngio&	m_angio;
-	
+
+	SegmentList		m_frag;					// vessel fragments
+	SegmentTipList m_active_tips;			// list of active tips
+	KDTree<Segment *, std::vector<double>> tips;//tree of all side 1 tips
 	std::vector<Segment *> recents;//used to hold the segments added by the most recent call to AddNewSegment these segments will be ordered first to last
 
 public:
@@ -141,4 +143,6 @@ public:
 	friend class StopBC;
 	friend class MBC;
 	friend class PassThroughMBC;
+
+	friend class AnastamosisGrowDirectionModifier;
 };

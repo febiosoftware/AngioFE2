@@ -900,7 +900,7 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 			temp.push_back(stemp);
 			std::pair<size_t, std::vector<SPROUT> *> dim = std::pair<size_t, std::vector<SPROUT> * >(0, &temp);
 			std::vector<std::pair<size_t, std::vector<SPROUT> *>> nst = sprouts.within(dim, m_cultureParams.stress_radius * m_cultureParams.stress_radius);
-			for (int i = 0; i<nst.size(); ++i)
+			for (size_t i = 0; i<nst.size(); ++i)
 			{
 				SPROUT& sp = m_spr[nst[i].first];
 

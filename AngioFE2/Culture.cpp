@@ -13,9 +13,22 @@
 
 void DirectionalWeights(double da, double dw[2]);
 
+std::vector<double> SegTo1TipPos(Segment * seg)
+{
+	std::vector<double> rv;
+
+	vec3d pos = seg->tip(1).pos();
+
+	rv.push_back(pos.x);
+	rv.push_back(pos.y);
+	rv.push_back(pos.z);
+
+	return rv;
+}
+std::vector<double> units(3, 1.0);
 
 //-----------------------------------------------------------------------------
-Culture::Culture(FEAngio& angio, FEAngioMaterial * matl, CultureParameters * cp, FragmentBranching *fbr) : m_angio(angio)
+Culture::Culture(FEAngio& angio, FEAngioMaterial * matl, CultureParameters * cp, FragmentBranching *fbr) : m_angio(angio), tips(SegTo1TipPos, ndim_distance, ndim_distance_to_plane, units)
 {
 	assert(matl && cp);
 	m_cultParams = cp;
@@ -96,7 +109,7 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double start_time, double grow_t
 	//now run it through the different filters
 	for (int i = 0; i < m_pmat->grow_direction_modifiers.size(); i++)
 	{
-		seg_vec = m_pmat->grow_direction_modifiers[i]->GrowModifyGrowDirection(seg_vec, tip, branch,start_time,grow_time);
+		seg_vec = m_pmat->grow_direction_modifiers[i]->GrowModifyGrowDirection(seg_vec, tip, m_pmat,branch,start_time, grow_time, seg_length);
 	}
 
 	// Create a new segment
@@ -138,8 +151,6 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double start_time, double grow_t
 
 	// update length and unit vector
 	seg.Update();
-
-	assert(grow_time <= 1.01*fbrancher->TimeOfGrowth(&seg, start_time, grow_time));
 
 	return seg;
 }
@@ -301,7 +312,7 @@ void Culture::AddSegment(Segment& seg)
 	assert(m_nsegs == (int)m_frag.size());
 	//add the segment that was just created
 	recents.push_back(&m_frag.front());
-
+	tips.insert(&m_frag.front());
 	//add the sprouts to the material
 	if (seg.tip(0).bactive)
 	{
@@ -363,6 +374,7 @@ void Culture::FindActiveTips()
 // Use the displacement field from the FE solution to update microvessels into the current configuration
 void Culture::Update()
 {
+	
 	// loop over all fragments
 	for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)             // Iterate through all segments in frag list container (it)                               
 	{
@@ -387,4 +399,6 @@ void Culture::Update()
     {
         m_total_length += it->length();
     }
+	//rebuild the kd tree as the positions withn it may have moved
+	tips.rebuild();
 }   

@@ -17,7 +17,7 @@ GradientGrowDirectionModifier::GradientGrowDirectionModifier(FEModel * model) : 
 
 }
 //begin implementations of grow direction modifiers
-vec3d GradientGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch, double start_time, double grow_time)
+vec3d GradientGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
 {
 	//calculate the density gradinet if above the threshold set the grow direction
 	std::vector<double> densities;
@@ -46,15 +46,72 @@ AnastamosisGrowDirectionModifier::AnastamosisGrowDirectionModifier(FEModel * mod
 {
 
 }
-vec3d AnastamosisGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch, double start_time, double grow_time)
+vec3d AnastamosisGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
 {
+	if (branch)
+	{
+		return previous_dir;
+	}
+
+	std::vector<Segment *> segments_in_area = mat->m_cult->tips.within(tip.parent, search_radius*search_radius + seg_length*seg_length, true);
+	std::vector<bool> valid(segments_in_area.size(), true);//whether or not the segment is a valid anastamosis target
+	for (size_t i = 0; i < segments_in_area.size(); i++)
+	{
+		//how to chose the segmetns to pay attention to and grow towards
+		if (segments_in_area[i]->seed() == tip.parent->seed())
+		{
+			valid[i] = false;
+		}
+	}
+	Segment * nearest_valid_target = nullptr;
+	//choose nearest or do something else
+	for (size_t i = 0; i < segments_in_area.size(); i++)
+	{
+		//how to chose the segmetns to pay attention to and grow towards
+		if (valid[i])
+		{
+			nearest_valid_target = segments_in_area[i];
+			break;
+		}
+	}
+	if (nearest_valid_target)
+	{
+		//grow towards nearest valid target
+		vec3d dir_to_nearest = nearest_valid_target->tip(1).pos() - tip.pos();
+		//make this the same length as 
+		double new_length = dir_to_nearest.unit();
+
+		
+		//reduce the length if too high
+		seg_length = std::min(seg_length, new_length);
+		if (seg_length == new_length)
+		{
+			//deactivate the tip
+			tip.bactive = false;
+			tip.parent->SetFlagOn(Segment::ANAST);
+			//increment the anastamosis count of the underlying material
+			mat->m_cult->m_num_anastom++;
+
+			//TODO: consider adding connectivity information
+			//TODO: consider setting the id of all reachable tips from this network to be the same id
+			return dir_to_nearest;
+		}
+
+		return dir_to_nearest;
+	}
+
 	return previous_dir;
 }
+
+BEGIN_PARAMETER_LIST(AnastamosisGrowDirectionModifier, GrowDirectionModifier)
+ADD_PARAMETER(search_radius, FE_PARAM_DOUBLE, "search_radius");
+END_PARAMETER_LIST();
+
 BranchGrowDirectionModifier::BranchGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
 {
 
 }
-vec3d BranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch, double start_time, double grow_time)
+vec3d BranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
 {
 	// If new segment is a branch we modify the grow direction a bit
 	if (branch)
@@ -76,7 +133,7 @@ DefaultGrowDirectionModifier::DefaultGrowDirectionModifier(FEModel * model) : Gr
 	
 }
 
-vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, bool branch, double start_time, double grow_time)
+vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
 {
 	// Find the component of the new vessel direction determined by collagen fiber orientation    
 	vec3d coll_dir = culture->m_pmat->CollagenDirection(tip.pt);

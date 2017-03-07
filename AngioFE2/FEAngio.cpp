@@ -216,7 +216,7 @@ void FEAngio::FinalizeFEM()
 	felog.SetMode(Logfile::LOG_FILE);
 
 	// --- Output initial state of model ---
-	if (m_fem.GetGlobalConstant("io"))
+	if (!m_fem.GetGlobalConstant("no_io"))
 	{
 		// Output initial microvessel state
 		fileout->save_vessel_state(*this);
@@ -1065,7 +1065,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		}
 
 		++FE_state;
-		if (m_fem.GetGlobalConstant("io"))
+		if (!m_fem.GetGlobalConstant("no_io"))
 		{
 			// Save the current vessel state
 			fileout->save_vessel_state(*this);
@@ -1083,7 +1083,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 	else if (nwhen == CB_SOLVED)
 	{
 		// do the final output
-		if (m_fem.GetGlobalConstant("io"))
+		if (!m_fem.GetGlobalConstant("no_io"))
 		{
 			Output();
 		}
