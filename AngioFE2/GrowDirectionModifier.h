@@ -6,6 +6,9 @@
 class FEAngioMaterial;
 class Culture;
 
+
+
+
 //the interface for all operations that modify the growth direction
 //some examples of this include deflection due to gradient and change in direction for anastamosis
 //in the future this can be used to change the direction based on vegf concentrations, also consider a modifier for the weight of the previous direction
@@ -23,6 +26,23 @@ public:
 protected:
 	Culture * culture;
 };
+
+//a material which has a collection of grow direction modifiers
+class GrowDirectionModifiers : public FEMaterial
+{
+public:
+	GrowDirectionModifiers(FEModel * model);
+	virtual ~GrowDirectionModifiers(){}
+
+	vec3d ApplyModifiers(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length);
+
+	void SetCulture(Culture * c);
+
+private:
+	FEVecPropertyT<GrowDirectionModifier> grow_direction_modifiers;
+	Culture * culture;
+};
+
 //will ignore the previous direction and generate the direction a segmetn should grow based on collagen direction
 class DefaultGrowDirectionModifier : public GrowDirectionModifier
 {

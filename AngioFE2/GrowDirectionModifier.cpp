@@ -12,6 +12,30 @@ void GrowDirectionModifier::SetCulture(Culture * cp)
 {
 	culture = cp;
 }
+
+GrowDirectionModifiers::GrowDirectionModifiers(FEModel* model) : FEMaterial(model)
+{
+	AddProperty(&grow_direction_modifiers, "gdm");
+}
+
+
+vec3d GrowDirectionModifiers::ApplyModifiers(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
+{
+	for (int i = 0; i < grow_direction_modifiers.size(); i++)
+	{
+		previous_dir = grow_direction_modifiers[i]->GrowModifyGrowDirection(previous_dir, tip, mat, branch, start_time, grow_time, seg_length);
+	}
+	return previous_dir;
+}
+
+void GrowDirectionModifiers::SetCulture(Culture * c)
+{
+	for (int i = 0; i < grow_direction_modifiers.size(); i++)
+	{
+		grow_direction_modifiers[i]->SetCulture(c);
+	}
+}
+
 GradientGrowDirectionModifier::GradientGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
 {
 

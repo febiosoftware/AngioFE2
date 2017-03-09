@@ -12,14 +12,6 @@ public:
 	{
 	}
 
-	//not currently exposed
-	//These parameters govern the amount of growth at each time step for the microvessels
-	//          g(t) = y0 + a/(1+e^-(t-x0)/b)
-	double	m_y0 = -19.1278;   // Bottom of sigmoid curve
-	double	m_culture_a = 1900.0;    // Distance between top and bottom of the curve (a + y0 = top of curve)
-	double	m_x0 = 4.9474;   // Time point at which t is halfway between top & bottom
-	double	m_culture_b = 1.4549;    // Steepness of the curve
-
 	//this may supercede the above parameters
 	double growth_length_over_time = 140.0;//this is the number of units a segment would grow over 1 unit of time if the density is 3mgml. by using a curve the .feb creator has control of the distribution used and its approximation
 

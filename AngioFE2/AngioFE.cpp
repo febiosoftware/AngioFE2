@@ -26,6 +26,8 @@ FEPluginFactory_T<PsuedoDeferedFragmentBranching, FEMATERIAL_ID> psuedo_defered_
 
 FEPluginFactory_T<FENormalDistribution, FEMATERIAL_ID> normal_distribution_factory("normal_distribution");
 
+FEPluginFactory_T<GrowDirectionModifiers, FEMATERIAL_ID> grow_direction_modifiers_factory("grow_direction_modifiers");
+
 FEPluginFactory_T<DefaultGrowDirectionModifier, FEMATERIAL_ID> default_grow_direction_modifier_factory("default_grow_direction");
 FEPluginFactory_T<BranchGrowDirectionModifier, FEMATERIAL_ID> branch_grow_direction_modifier_factory("branch_grow_direction");
 FEPluginFactory_T<GradientGrowDirectionModifier, FEMATERIAL_ID> gradient_grow_direction_modifier_factory("gradient_grow_direction");
@@ -81,7 +83,7 @@ FECORE_EXPORT void GetPluginVersion(int & major, int & minor, int & patch)
 //-----------------------------------------------------------------------------
 FECORE_EXPORT int PluginNumClasses()
 {
-	return 35;
+	return 36;
 }
 
 //-----------------------------------------------------------------------------
@@ -159,6 +161,8 @@ FECORE_EXPORT FECoreFactory * PluginGetFactory(int i)
 		return &same_mbc_factory;
 	case 34:
 		return &passthrough_mbc_factory;
+	case 35:
+		return &grow_direction_modifiers_factory;
 	default:
 		return nullptr;
 	}

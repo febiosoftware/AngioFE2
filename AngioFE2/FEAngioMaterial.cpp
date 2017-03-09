@@ -107,6 +107,7 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 
 	ADD_PARAMETER2(m_cultureParams.m_length_adjustment, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "length_adjustment");
 	ADD_PARAMETER2(m_cultureParams.m_vessel_width, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "vessel_width");
+	ADD_PARAMETER(m_cultureParams.growth_length_over_time, FE_PARAM_DOUBLE, "growth_length_over_time");
 
 	ADD_PARAMETER2(m_cultureParams.m_matrix_condition, FE_PARAM_INT, FE_RANGE_CLOSED(0,4), "matrix_condition");
 	ADD_PARAMETER(m_cultureParams.ecm_control, FE_PARAM_INT, "ecm_seeder");
@@ -154,9 +155,9 @@ FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticMaterial(pfem), sprou
 	AddProperty(&vessel_material, "vessel");
 	AddProperty(&matrix_material , "matrix");
 	AddProperty(&fbrancher, "brancher");
-	AddProperty(&grow_direction_modifiers, "gdm");
 	AddProperty(&fseeder, "fragment_seeder");
 	AddProperty(&bc, "boundary_condition");
+	AddProperty(&gdms, "grow_direction_modifiers");
 
 }
 

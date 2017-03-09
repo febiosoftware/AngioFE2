@@ -5,6 +5,7 @@
 #include "FEAngio.h"
 #include "angio3d.h"
 #include "FEAngioMaterial.h"
+#include "GrowDirectionModifier.h"
 #include "FECore/FEMesh.h"
 #include <random>
 #include <regex>
@@ -66,12 +67,7 @@ bool Culture::Init()
 
 	fbrancher->SetCulture(this);
 
-
-	for (int i = 0; i < m_pmat->grow_direction_modifiers.size(); i++)
-	{
-		m_pmat->grow_direction_modifiers[i]->SetCulture(this);
-	}
-
+	m_pmat->gdms->SetCulture(this);
 
 	// do the initial seeding
 	if (!m_pmat->fseeder->SeedFragments(m_angio.CurrentSimTime(), this))
@@ -105,12 +101,8 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double start_time, double grow_t
 	double seg_length = den_scale*SegmentLength(start_time, grow_time);
 	
 	// determine the growth direction
-	vec3d seg_vec;
-	//now run it through the different filters
-	for (int i = 0; i < m_pmat->grow_direction_modifiers.size(); i++)
-	{
-		seg_vec = m_pmat->grow_direction_modifiers[i]->GrowModifyGrowDirection(seg_vec, tip, m_pmat,branch,start_time, grow_time, seg_length);
-	}
+	vec3d seg_vec = m_pmat->gdms->ApplyModifiers( vec3d(), tip, m_pmat, branch, start_time, grow_time, seg_length);
+
 
 	// Create a new segment
 	Segment seg;
