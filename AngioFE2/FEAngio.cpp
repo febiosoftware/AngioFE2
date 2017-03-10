@@ -7,7 +7,7 @@
 #include "Segment.h"
 #include "FESproutBodyForce.h"
 #include "FECore/FECoreKernel.h"
-#include "FECore/LoadCurve.h"
+#include "FECore/FEDataLoadCurve.h"
 #include "FEBioMech/FEElasticMaterial.h"
 #include "FEBioMech/FEElasticMixture.h"
 #include "FEBioMix/FESolute.h"
@@ -78,7 +78,8 @@ FEAngioMaterial* FEAngio::FindAngioMaterial(FEMaterial* pm)
 	}
 	else
 	{
-		pmat = pm->FindComponentByType("angio");
+		assert(false);
+		//pmat = pm->FindComponentByType("angio");
 	}
 	if (pmat)
 	{
@@ -309,7 +310,7 @@ int FEAngio::FindGrowTimes(std::vector<std::pair<double, double>> & time_pairs, 
 	int curve_index = static_cast<int>(res);
 	if (curve_index)
 	{
-		FELoadCurve * fecurve = m_fem.GetLoadCurve(curve_index -1);
+		FEDataLoadCurve * fecurve = dynamic_cast<FEDataLoadCurve*>(m_fem.GetLoadCurve(curve_index -1));
 		SimulationTime st = CurrentSimTime();
 		assert(fecurve);
 		int index = start_index;
@@ -1024,7 +1025,8 @@ bool FEAngio::InitCollagenFibers()
 void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 {
 	FEModel& fem = *pfem;
-	m_time.t = fem.m_ftime;
+	FETimeInfo fti = fem.GetTime();
+	m_time.t = fti.currentTime;
 	static int index = 0;
 
 	if (nwhen == CB_UPDATE_TIME)

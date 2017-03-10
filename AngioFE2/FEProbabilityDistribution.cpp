@@ -1,6 +1,7 @@
 #include "FEProbabilityDistribution.h"
 #include "FECore/FEModel.h"
 #include "FECore/LoadCurve.h"
+#include <FECore/FEDataLoadCurve.h>
 
 //implemenations of FENormalDistribution
 double FENormalDistribution::NextValue(angiofe_random_engine & re)
@@ -29,13 +30,13 @@ bool FENormalDistribution::Init()
 	FEModel * model = GetFEModel();
 	if (mlci > 0)
 	{
-		FELoadCurve * mlc = model->GetLoadCurve(mlci);
-		mlc->SetInterpolation(FELoadCurve::STEP);
+		FEDataLoadCurve * mlc = dynamic_cast<FEDataLoadCurve*>(model->GetLoadCurve(mlci));
+		mlc->SetInterpolation(FEDataLoadCurve::STEP);
 	}
 	if (slci > 0)
 	{
-		FELoadCurve * slc = model->GetLoadCurve(slci);
-		slc->SetInterpolation(FELoadCurve::STEP);
+		FEDataLoadCurve * slc = dynamic_cast<FEDataLoadCurve*>( model->GetLoadCurve(slci));
+		slc->SetInterpolation(FEDataLoadCurve::STEP);
 	}
 	return true;
 }

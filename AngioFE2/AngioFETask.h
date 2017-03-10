@@ -6,7 +6,7 @@
 class FEAngio;
 
 //-----------------------------------------------------------------------------
-class AngioFETask : public FECoreTask
+class FECORE_EXPORT AngioFETask : public FECoreTask
 {
 public:
 	AngioFETask(FEModel* pfem);

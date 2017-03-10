@@ -259,7 +259,8 @@ void FEAngioMaterial::FinalizeInit()
 		}
 		else
 		{
-			pam = dynamic_cast<FEAngioMaterial*>(pm->FindComponentByType("angio"));
+			assert(false);
+			//pam = dynamic_cast<FEAngioMaterial*>(pm->FindComponentByType("angio"));
 		}
 		if (pam == this)
 		{
