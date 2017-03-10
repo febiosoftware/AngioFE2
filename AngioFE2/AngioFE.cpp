@@ -3,6 +3,9 @@
 
 #include "StdAfx.h"
 
+#define FECORE_DLL
+#define FECORE_API
+
 #include "FECore/FECoreKernel.h"
 #include "AngioFETask.h"
 #include "FECore/FECoreFactory.h"
@@ -61,19 +64,22 @@ FEPluginFactory_T<FEPlotAngioGradientCenter  , FEPLOTDATA_ID> plot_angio_gradien
 FEPluginFactory_T<FEPlotAngioMaterialHop     , FEPLOTDATA_ID> plot_angio_material_hop      ("angio material hop"    );
 FEPluginFactory_T<FEPlotAngioSegmentBadGrowth, FEPLOTDATA_ID> plot_angio_segment_bad_growth("angio bad growth"      );
 
+extern "C"
+{
+
 //-----------------------------------------------------------------------------
-FECORE_EXPORT extern "C" __declspec(dllexport) unsigned int GetSDKVersion()
+FECORE_EXPORT  unsigned int GetSDKVersion()
 {
 	return FE_SDK_VERSION;
 }
 
 //-----------------------------------------------------------------------------
-FECORE_EXPORT extern "C" __declspec(dllexport)  void PluginInitialize(FECoreKernel& febio)
+FECORE_EXPORT  void PluginInitialize(FECoreKernel& febio)
 {
 	FECoreKernel::SetInstance(&febio);
 }
 
-FECORE_EXPORT extern "C" __declspec(dllexport) void GetPluginVersion(int & major, int & minor, int & patch)
+FECORE_EXPORT  void GetPluginVersion(int & major, int & minor, int & patch)
 {
 	major = 1;
 	minor = 0;
@@ -81,7 +87,7 @@ FECORE_EXPORT extern "C" __declspec(dllexport) void GetPluginVersion(int & major
 }
 
 //-----------------------------------------------------------------------------
-FECORE_EXPORT extern "C" __declspec(dllexport) FECoreFactory * PluginGetFactory(int i)
+FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 {
 	switch (i)
 	{
@@ -163,7 +169,9 @@ FECORE_EXPORT extern "C" __declspec(dllexport) FECoreFactory * PluginGetFactory(
 }
 
 //-----------------------------------------------------------------------------
-FECORE_EXPORT extern "C" __declspec(dllexport) void PluginCleanup()
+FECORE_EXPORT  void PluginCleanup()
 {
+
+}
 
 }
