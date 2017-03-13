@@ -76,28 +76,18 @@ vec3d AnastamosisGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_d
 	{
 		return previous_dir;
 	}
+	Segment * nearest_valid_target = mat->m_cult->tips.nearestCondition(tip.parent, [&tip](Segment * seg){return seg->seed() != tip.parent->seed(); });
 
-	std::vector<Segment *> segments_in_area = mat->m_cult->tips.within(tip.parent, search_radius*search_radius + seg_length*seg_length, true);
-	std::vector<bool> valid(segments_in_area.size(), true);//whether or not the segment is a valid anastamosis target
-	for (size_t i = 0; i < segments_in_area.size(); i++)
+	if (nearest_valid_target && (distance(nearest_valid_target->tip(1).pos().x,
+			tip.parent->tip(1).pos().x,
+		nearest_valid_target->tip(1).pos().y,
+		tip.parent->tip(1).pos().y,
+		nearest_valid_target->tip(1).pos().z, 
+		tip.parent->tip(1).pos().z) > (search_radius + seg_length )))
 	{
-		//how to chose the segmetns to pay attention to and grow towards
-		if (segments_in_area[i]->seed() == tip.parent->seed())
-		{
-			valid[i] = false;
-		}
+		nearest_valid_target = nullptr;
 	}
-	Segment * nearest_valid_target = nullptr;
-	//choose nearest or do something else
-	for (size_t i = 0; i < segments_in_area.size(); i++)
-	{
-		//how to chose the segmetns to pay attention to and grow towards
-		if (valid[i])
-		{
-			nearest_valid_target = segments_in_area[i];
-			break;
-		}
-	}
+
 	if (nearest_valid_target)
 	{
 		//grow towards nearest valid target

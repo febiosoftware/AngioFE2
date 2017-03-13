@@ -109,6 +109,7 @@ public:
 	void insert(DIM item);//insert a single item
 	void insert(std::list<DIM> items);//can have better performace  than individual insertions
 	std::vector<DIM> nearest(DIM item, int n=1, bool order = false);//returns a list of the closest DIM to item. n has a max value of lg_2 elements, order determines if the elements are returned in a sorted fashion
+	DIM nearestCondition(DIM item, std::function<bool(DIM)> condition);//returns the closest DIM to item. n has a max value of lg_2 elements, certain values may be discarded to condition
 	std::vector<DIM> within(DIM item, double dist, bool sorted = false);//returns all of the nodes that are closer to item than dist
 	// an inplace rebuild of the tree only call this when the underlying nodes have moved eg mechanical step(s)
 	void rebuild();
@@ -479,7 +480,7 @@ void KDTree<DIM, DIMR>::insert(std::list<DIM> items)
                 cdim = (cdim + 1) % ndim;
             }
         }
-        iter++;
+        ++iter;
     }
 
     // sort the nodes so the ones with lower depths are updated first
@@ -581,10 +582,10 @@ void KDTree<DIM, DIMR>::rebuild()
 	if (new_root)
 	{
 		root->parent = nullptr;
-		for (size_t i = 0; i < nodes.size(); i++)
+		DFT([&nodes](KDNode * node)
 		{
-			nodes[i]->ReComputeDepth();
-		}
+			node->ReComputeDepth();
+		}, root);
 	}
 }
 
@@ -768,6 +769,98 @@ std::vector<DIM> KDTree<DIM, DIMR>::nearest(DIM item, int n, bool order)//return
     }
     return rv;
 }
+
+template <typename DIM, typename DIMR>
+DIM KDTree<DIM, DIMR>::nearestCondition(DIM item, std::function<bool(DIM)> condition)
+{
+	DIMR goal = _accessor(item);
+	KDNode * startNode = nearest_leaf_node(goal, root);
+	KDNode * best_node = nullptr;
+	if (startNode)
+	{
+		auto temp = _accessor(startNode->dimensions);
+		double cbest = std::numeric_limits<double>::infinity();
+		std::stack<KDNode *> n2p;
+		std::stack<KDNode *> end_nodes;
+		n2p.push(startNode);
+		//end_nodes.push(root);
+		// see wikipedia on nn in KDTree
+		while (!n2p.empty())
+		{
+			KDNode * current = n2p.top();
+			n2p.pop();
+			temp = _accessor(current->dimensions);
+			double d = _distancef(goal, temp);
+			if ((d < cbest) && condition(current->dimensions))
+			{
+				cbest = d;
+				best_node = current;
+			}
+
+			if ((!end_nodes.empty()) && (current == end_nodes.top()))
+			{
+				end_nodes.pop();
+				continue;
+			}
+
+			//if points on the other side of spliting plane that could be closer
+			// goto the leaf of that tree and continue
+			DIMR zeros;
+			zeros.resize(ndim, 0.0);
+			int cdim = current->dimchoice;
+			zeros[cdim] = _units[cdim];
+			if (current->parent)
+				n2p.push(current->parent);
+
+			double d_pt_pl = _distancetoplane(goal, temp, zeros);
+			double d_g_b;
+			
+			if (best_node)
+			{
+				DIMR bn = _accessor(best_node->dimensions);
+				d_g_b = _distancef(bn, goal);
+			}
+			else
+			{
+				d_g_b = std::numeric_limits<double>::infinity();
+			}
+
+			if (d_pt_pl <= d_g_b)
+			{
+				// there may be points on the other side of the plane
+				if (goal[cdim] < temp[cdim])
+				{
+					if (current->childGreater)
+					{
+						KDNode * next_subtree = nearest_leaf_node(goal, current->childGreater);
+						if (next_subtree && (next_subtree != current))
+						{
+							n2p.push(next_subtree);
+							end_nodes.push(current);
+							continue;
+						}
+					}
+				}
+				else
+				{
+					if (current->childLess)
+					{
+						KDNode * next_subtree = nearest_leaf_node(goal, current->childLess);
+						if (next_subtree && (next_subtree != current))
+						{
+							n2p.push(next_subtree);
+							end_nodes.push(current);
+							continue;
+						}
+					}
+				}
+			}
+		}
+
+	}
+	return best_node->dimensions;
+}
+
 template <typename DIM, typename DIMR>
 std::vector<DIM> KDTree<DIM, DIMR>::within(DIM item, double dist, bool ordered)
 {

@@ -1027,13 +1027,12 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 	FEModel& fem = *pfem;
 	FETimeInfo fti = fem.GetTime();
 	m_time.t = fti.currentTime;
+	m_time.dt = fti.timeIncrement;
 	static int index = 0;
 
 	if (nwhen == CB_UPDATE_TIME)
 	{
 		// grab the time information
-		
-		m_time.dt = fem.GetCurrentStep()->m_dt;
 		
 		std::vector<std::pair<double,double>> times;
 		index = FindGrowTimes(times, index);
