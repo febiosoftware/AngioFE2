@@ -103,3 +103,29 @@ private:
 
 	DECLARE_PARAMETER_LIST();
 };
+
+
+class FEChiSquaredDistribution : public FEProbabilityDistribution
+{
+public:
+	FEChiSquaredDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
+
+	//generates the next value in the given sequence which fits a given distribution
+	//this value cannot be zero or less if the value is zero or less the result will be redrawn up to max_retries
+	//nan will be returned if the distribution fails to find a suitable number
+	double NextValue(angiofe_random_engine & re) override;
+
+	bool Init() override;
+
+	void StepToTime(double time) override;
+
+private:
+	double dof = 1.0;//distribution's x^2
+
+	std::chi_squared_distribution<double> cd;
+
+	double prev_dof = dof;
+	double mult = 1.0;
+
+	DECLARE_PARAMETER_LIST();
+};

@@ -164,3 +164,43 @@ BEGIN_PARAMETER_LIST(FECauchyDistribution, FEProbabilityDistribution)
 ADD_PARAMETER(a, FE_PARAM_DOUBLE, "a");
 ADD_PARAMETER(b, FE_PARAM_DOUBLE, "b");
 END_PARAMETER_LIST();
+
+
+//implemenations of FENormalDistribution
+double FEChiSquaredDistribution::NextValue(angiofe_random_engine & re)
+{
+	for (int i = 0; i < max_retries; i++)
+	{
+		double val = cd(re);
+		if (val > 0.0)
+			return mult*val;
+	}
+	return std::numeric_limits<double>::quiet_NaN();
+}
+
+bool FEChiSquaredDistribution::Init()
+{
+	cd = std::chi_squared_distribution<double>(dof);
+	prev_dof = dof;
+	//if load curves are used they must use step interpolation
+	SetLoadCurveToStep("dof");
+
+	return true;
+}
+
+void FEChiSquaredDistribution::StepToTime(double time)
+{
+	bool change = ChangeInParam("dof", time, prev_dof, dof);
+	if (change)
+	{
+		//rebuild the distribution
+		prev_dof = dof;
+		cd = std::chi_squared_distribution<double>(dof);
+	}
+}
+
+
+BEGIN_PARAMETER_LIST(FEChiSquaredDistribution, FEProbabilityDistribution)
+ADD_PARAMETER(dof, FE_PARAM_DOUBLE, "dof");
+ADD_PARAMETER(mult, FE_PARAM_DOUBLE, "mult");
+END_PARAMETER_LIST();
