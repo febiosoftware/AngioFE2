@@ -17,6 +17,9 @@ public:
 	
 protected:
 	int max_retries = 10;
+
+	void SetLoadCurveToStep(const char * param);
+	bool ChangeInParam(const char * param, double time, double & prev, double & new_p);
 private:
 	DECLARE_PARAMETER_LIST();
 };
@@ -44,6 +47,32 @@ private:
 	double prev_mean = 1.0;
 	double prev_stddev = 1.0;
 	
+
+	DECLARE_PARAMETER_LIST();
+};
+
+class FEExponentialDistribution : public FEProbabilityDistribution
+{
+public:
+	FEExponentialDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
+
+	//generates the next value in the given sequence which fits a given distribution
+	//this value cannot be zero or less if the value is zero or less the result will be redrawn up to max_retries
+	//nan will be returned if the distribution fails to find a suitable number
+	double NextValue(angiofe_random_engine & re) override;
+
+	bool Init() override;
+
+	void StepToTime(double time) override;
+
+private:
+	double lambda = 1.0;//distribution's lambda
+	double mult = 1.0;//multiplier
+
+	std::exponential_distribution<double> ed;
+
+	double prev_lambda = 1.0;
+
 
 	DECLARE_PARAMETER_LIST();
 };

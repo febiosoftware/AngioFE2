@@ -83,7 +83,7 @@ vec3d AnastamosisGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_d
 		nearest_valid_target->tip(1).pos().y,
 		tip.parent->tip(1).pos().y,
 		nearest_valid_target->tip(1).pos().z, 
-		tip.parent->tip(1).pos().z) > (search_radius + seg_length )))
+		tip.parent->tip(1).pos().z) > (search_radius + search_multiplier * seg_length )))
 	{
 		nearest_valid_target = nullptr;
 	}
@@ -119,6 +119,7 @@ vec3d AnastamosisGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_d
 
 BEGIN_PARAMETER_LIST(AnastamosisGrowDirectionModifier, GrowDirectionModifier)
 ADD_PARAMETER(search_radius, FE_PARAM_DOUBLE, "search_radius");
+ADD_PARAMETER(search_multiplier, FE_PARAM_DOUBLE, "search_multiplier");
 END_PARAMETER_LIST();
 
 BranchGrowDirectionModifier::BranchGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)

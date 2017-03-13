@@ -79,5 +79,6 @@ public:
 
 private:
 	double search_radius = 100.0;
+	double search_multiplier = 1.0;
 	DECLARE_PARAMETER_LIST();
 };
