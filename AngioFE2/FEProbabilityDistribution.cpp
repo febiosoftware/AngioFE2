@@ -29,12 +29,6 @@ bool FENormalDistribution::Init()
 
 void FENormalDistribution::StepToTime(double time)
 {
-	FEParam * m = GetParameter(ParamString("mean"));
-	FEParam * s = GetParameter(ParamString("stddev"));
-
-	int mlci = m->GetLoadCurve();
-	int slci = s->GetLoadCurve();
-
 	bool change = ChangeInParam("mean", time, prev_mean, mean) || ChangeInParam("stddev", time, prev_stddev, stddev);
 	if (change)
 	{
@@ -44,6 +38,12 @@ void FENormalDistribution::StepToTime(double time)
 		nd = std::normal_distribution<double>(mean, stddev);
 	}
 }
+
+
+BEGIN_PARAMETER_LIST(FENormalDistribution, FEProbabilityDistribution)
+ADD_PARAMETER(mean, FE_PARAM_DOUBLE, "mean");
+ADD_PARAMETER(stddev, FE_PARAM_DOUBLE, "stddev");
+END_PARAMETER_LIST();
 
 BEGIN_PARAMETER_LIST(FEProbabilityDistribution, FEMaterial)
 ADD_PARAMETER(max_retries, FE_PARAM_INT, "max_retries");
@@ -83,10 +83,6 @@ bool FEProbabilityDistribution::ChangeInParam(const char * param, double time, d
 	return false;
 }
 
-BEGIN_PARAMETER_LIST(FENormalDistribution, FEProbabilityDistribution)
-ADD_PARAMETER(mean, FE_PARAM_DOUBLE, "mean");
-ADD_PARAMETER(stddev, FE_PARAM_DOUBLE, "stddev");
-END_PARAMETER_LIST();
 
 
 
@@ -125,4 +121,46 @@ void FEExponentialDistribution::StepToTime(double time)
 BEGIN_PARAMETER_LIST(FEExponentialDistribution, FEProbabilityDistribution)
 ADD_PARAMETER(lambda, FE_PARAM_DOUBLE, "lambda");
 ADD_PARAMETER(mult, FE_PARAM_DOUBLE, "mult");
+END_PARAMETER_LIST();
+
+//implemenations of FENormalDistribution
+double FECauchyDistribution::NextValue(angiofe_random_engine & re)
+{
+	for (int i = 0; i < max_retries; i++)
+	{
+		double val = cd(re);
+		if (val > 0.0)
+			return val;
+	}
+	return std::numeric_limits<double>::quiet_NaN();
+}
+
+bool FECauchyDistribution::Init()
+{
+	cd = std::cauchy_distribution<double>(a, b);
+	prev_a = a;
+	prev_b = b;
+	//if load curves are used they must use step interpolation
+	SetLoadCurveToStep("a");
+	SetLoadCurveToStep("b");
+
+	return true;
+}
+
+void FECauchyDistribution::StepToTime(double time)
+{
+	bool change = ChangeInParam("a", time, prev_a, a) || ChangeInParam("b", time, prev_b, b);
+	if (change)
+	{
+		//rebuild the distribution
+		prev_a = a;
+		prev_b = b;
+		cd = std::cauchy_distribution<double>(a, b);
+	}
+}
+
+
+BEGIN_PARAMETER_LIST(FECauchyDistribution, FEProbabilityDistribution)
+ADD_PARAMETER(a, FE_PARAM_DOUBLE, "a");
+ADD_PARAMETER(b, FE_PARAM_DOUBLE, "b");
 END_PARAMETER_LIST();

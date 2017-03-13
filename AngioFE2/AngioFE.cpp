@@ -29,6 +29,7 @@ FEPluginFactory_T<PsuedoDeferedFragmentBranching, FEMATERIAL_ID> psuedo_defered_
 
 FEPluginFactory_T<FENormalDistribution, FEMATERIAL_ID> normal_distribution_factory("normal_distribution");
 FEPluginFactory_T<FEExponentialDistribution, FEMATERIAL_ID> exponential_distribution_factory("exponential_distribution");
+FEPluginFactory_T<FECauchyDistribution, FEMATERIAL_ID> cauchy_distribution_factory("cauchy_distribution");
 
 FEPluginFactory_T<GrowDirectionModifiers, FEMATERIAL_ID> grow_direction_modifiers_factory("grow_direction_modifiers");
 
@@ -166,6 +167,8 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		return &grow_direction_modifiers_factory;
 	case 36:
 		return &exponential_distribution_factory;
+	case 37:
+		return &cauchy_distribution_factory;
 	default:
 		return nullptr;
 	}

@@ -76,3 +76,30 @@ private:
 
 	DECLARE_PARAMETER_LIST();
 };
+
+class FECauchyDistribution : public FEProbabilityDistribution
+{
+public:
+	FECauchyDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
+
+	//generates the next value in the given sequence which fits a given distribution
+	//this value cannot be zero or less if the value is zero or less the result will be redrawn up to max_retries
+	//nan will be returned if the distribution fails to find a suitable number
+	double NextValue(angiofe_random_engine & re) override;
+
+	bool Init() override;
+
+	void StepToTime(double time) override;
+
+private:
+	double a = 1.0;//distribution's mean
+	double b = 1.0;//distribution's standard deviation
+
+	std::cauchy_distribution<double> cd;
+
+	double prev_a = a;
+	double prev_b = b;
+
+
+	DECLARE_PARAMETER_LIST();
+};
