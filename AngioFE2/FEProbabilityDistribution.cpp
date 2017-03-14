@@ -204,3 +204,89 @@ BEGIN_PARAMETER_LIST(FEChiSquaredDistribution, FEProbabilityDistribution)
 ADD_PARAMETER(dof, FE_PARAM_DOUBLE, "dof");
 ADD_PARAMETER(mult, FE_PARAM_DOUBLE, "mult");
 END_PARAMETER_LIST();
+
+
+//implemenations of FENormalDistribution
+double FEWeibullDistribution::NextValue(angiofe_random_engine & re)
+{
+	for (int i = 0; i < max_retries; i++)
+	{
+		double val = wd(re);
+		if (val > 0.0)
+			return val;
+	}
+	return std::numeric_limits<double>::quiet_NaN();
+}
+
+bool FEWeibullDistribution::Init()
+{
+	wd = std::weibull_distribution<double>(a, b);
+	prev_a = a;
+	prev_b = b;
+	//if load curves are used they must use step interpolation
+	SetLoadCurveToStep("a");
+	SetLoadCurveToStep("b");
+
+	return true;
+}
+
+void FEWeibullDistribution::StepToTime(double time)
+{
+	bool change = ChangeInParam("a", time, prev_a, a) || ChangeInParam("b", time, prev_b, b);
+	if (change)
+	{
+		//rebuild the distribution
+		prev_a = a;
+		prev_b = b;
+		wd = std::weibull_distribution<double>(a, b);
+	}
+}
+
+
+BEGIN_PARAMETER_LIST(FEWeibullDistribution, FEProbabilityDistribution)
+ADD_PARAMETER(a, FE_PARAM_DOUBLE, "a");
+ADD_PARAMETER(b, FE_PARAM_DOUBLE, "b");
+END_PARAMETER_LIST();
+
+
+//implemenations of FENormalDistribution
+double FEGammaDistribution::NextValue(angiofe_random_engine & re)
+{
+	for (int i = 0; i < max_retries; i++)
+	{
+		double val = gd(re);
+		if (val > 0.0)
+			return val;
+	}
+	return std::numeric_limits<double>::quiet_NaN();
+}
+
+bool FEGammaDistribution::Init()
+{
+	gd = std::gamma_distribution<double>(alpha, beta);
+	prev_alpha = alpha;
+	prev_beta = beta;
+	//if load curves are used they must use step interpolation
+	SetLoadCurveToStep("alpha");
+	SetLoadCurveToStep("beta");
+
+	return true;
+}
+
+void FEGammaDistribution::StepToTime(double time)
+{
+	bool change = ChangeInParam("alpha", time, prev_alpha, alpha) || ChangeInParam("beta", time, prev_beta, beta);
+	if (change)
+	{
+		//rebuild the distribution
+		prev_alpha = alpha;
+		prev_beta = beta;
+		gd = std::gamma_distribution<double>(alpha, beta);
+	}
+}
+
+
+BEGIN_PARAMETER_LIST(FEGammaDistribution, FEProbabilityDistribution)
+ADD_PARAMETER(alpha, FE_PARAM_DOUBLE, "alpha");
+ADD_PARAMETER(beta, FE_PARAM_DOUBLE, "beta");
+END_PARAMETER_LIST();

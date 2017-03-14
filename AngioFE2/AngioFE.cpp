@@ -19,35 +19,37 @@
 #endif
 
 //-----------------------------------------------------------------------------
-FEPluginFactory_T<AngioFETask                , FETASK_ID    > angiofe_task_factory         ("angio"                 );
-FEPluginFactory_T<FESproutBodyForce          , FEBODYLOAD_ID> angio_sprout_factory         ("sprout"                );
-FEPluginFactory_T<FEAngioMaterial            , FEMATERIAL_ID> angio_mat_factory            ("angio"                 );
-FEPluginFactory_T<FEPressureMaterial         , FEMATERIAL_ID> pressure_mat_factory         ("pressure"              );
+FEPluginFactory_T<AngioFETask       , FETASK_ID    > angiofe_task_factory("angio"   );
+FEPluginFactory_T<FESproutBodyForce , FEBODYLOAD_ID> angio_sprout_factory("sprout"  );
+FEPluginFactory_T<FEAngioMaterial   , FEMATERIAL_ID> angio_mat_factory   ("angio"   );
+FEPluginFactory_T<FEPressureMaterial, FEMATERIAL_ID> pressure_mat_factory("pressure");
 
-FEPluginFactory_T<NoFragmentBranching        , FEMATERIAL_ID> no_fragment_branching_factory("no_branch"             );
+FEPluginFactory_T<NoFragmentBranching           , FEMATERIAL_ID> no_fragment_branching_factory            ("no_branch"            );
 FEPluginFactory_T<PsuedoDeferedFragmentBranching, FEMATERIAL_ID> psuedo_defered_fragment_branching_factory("psuedo_defered_branch");
 
-FEPluginFactory_T<FENormalDistribution, FEMATERIAL_ID> normal_distribution_factory("normal_distribution");
+FEPluginFactory_T<FENormalDistribution     , FEMATERIAL_ID> normal_distribution_factory     ("normal_distribution"     );
 FEPluginFactory_T<FEExponentialDistribution, FEMATERIAL_ID> exponential_distribution_factory("exponential_distribution");
-FEPluginFactory_T<FECauchyDistribution, FEMATERIAL_ID> cauchy_distribution_factory("cauchy_distribution");
-FEPluginFactory_T<FEChiSquaredDistribution, FEMATERIAL_ID> chi_squared_distribution_factory("chi_squared_distribution");
+FEPluginFactory_T<FECauchyDistribution     , FEMATERIAL_ID> cauchy_distribution_factory     ("cauchy_distribution"     );
+FEPluginFactory_T<FEChiSquaredDistribution , FEMATERIAL_ID> chi_squared_distribution_factory("chi_squared_distribution");
+FEPluginFactory_T<FEWeibullDistribution    , FEMATERIAL_ID> weibull_distribution_factory    ("weibull_distribution"    );
+FEPluginFactory_T<FEGammaDistribution      , FEMATERIAL_ID> gamma_distribution_factory      ("gamma_distribution"      );
 
 FEPluginFactory_T<GrowDirectionModifiers, FEMATERIAL_ID> grow_direction_modifiers_factory("grow_direction_modifiers");
 
-FEPluginFactory_T<DefaultGrowDirectionModifier, FEMATERIAL_ID> default_grow_direction_modifier_factory("default_grow_direction");
-FEPluginFactory_T<BranchGrowDirectionModifier, FEMATERIAL_ID> branch_grow_direction_modifier_factory("branch_grow_direction");
-FEPluginFactory_T<GradientGrowDirectionModifier, FEMATERIAL_ID> gradient_grow_direction_modifier_factory("gradient_grow_direction");
+FEPluginFactory_T<DefaultGrowDirectionModifier    , FEMATERIAL_ID> default_grow_direction_modifier_factory    ("default_grow_direction"    );
+FEPluginFactory_T<BranchGrowDirectionModifier     , FEMATERIAL_ID> branch_grow_direction_modifier_factory     ("branch_grow_direction"     );
+FEPluginFactory_T<GradientGrowDirectionModifier   , FEMATERIAL_ID> gradient_grow_direction_modifier_factory   ("gradient_grow_direction"   );
 FEPluginFactory_T<AnastamosisGrowDirectionModifier, FEMATERIAL_ID> anastamosis_grow_direction_modifier_factory("anastamosis_grow_direction");
 
-FEPluginFactory_T<ClassicFragmentSeeder, FEMATERIAL_ID> classic_fragment_seeder_factory("classic");
-FEPluginFactory_T<MDByVolumeFragmentSeeder, FEMATERIAL_ID> mdbyvol_fragment_seeder_factory("MDbyVolume");
-FEPluginFactory_T<MultiDomainFragmentSeeder, FEMATERIAL_ID> md_fragment_seeder_factory("MD");
-FEPluginFactory_T<MDAngVessFileFragmentSeeder, FEMATERIAL_ID> md_file_seeder_factory("from_file");
+FEPluginFactory_T<ClassicFragmentSeeder      , FEMATERIAL_ID> classic_fragment_seeder_factory("classic"   );
+FEPluginFactory_T<MDByVolumeFragmentSeeder   , FEMATERIAL_ID> mdbyvol_fragment_seeder_factory("MDbyVolume");
+FEPluginFactory_T<MultiDomainFragmentSeeder  , FEMATERIAL_ID> md_fragment_seeder_factory     ("MD"        );
+FEPluginFactory_T<MDAngVessFileFragmentSeeder, FEMATERIAL_ID> md_file_seeder_factory         ("from_file" );
 
 FEPluginFactory_T<BouncyBC, FEMATERIAL_ID> bouncybc_factory("bouncy");
-FEPluginFactory_T<StopBC, FEMATERIAL_ID> stopbc_factory("stop");
+FEPluginFactory_T<StopBC  , FEMATERIAL_ID> stopbc_factory  ("stop"  );
 
-FEPluginFactory_T<SameMBC, FEMATERIAL_ID> same_mbc_factory("same");
+FEPluginFactory_T<SameMBC       , FEMATERIAL_ID> same_mbc_factory       ("same"        );
 FEPluginFactory_T<PassThroughMBC, FEMATERIAL_ID> passthrough_mbc_factory("pass_through");
 
 FEPluginFactory_T<FEPlotAngioStress          , FEPLOTDATA_ID> plot_angio_stress            ("angio stress"          );
@@ -172,6 +174,10 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		return &cauchy_distribution_factory;
 	case 38:
 		return &chi_squared_distribution_factory;
+	case 39:
+		return &weibull_distribution_factory;
+	case 40:
+		return &gamma_distribution_factory;
 	default:
 		return nullptr;
 	}

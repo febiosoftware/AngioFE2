@@ -129,3 +129,55 @@ private:
 
 	DECLARE_PARAMETER_LIST();
 };
+
+class FEWeibullDistribution : public FEProbabilityDistribution
+{
+public:
+	FEWeibullDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
+
+	//generates the next value in the given sequence which fits a given distribution
+	//this value cannot be zero or less if the value is zero or less the result will be redrawn up to max_retries
+	//nan will be returned if the distribution fails to find a suitable number
+	double NextValue(angiofe_random_engine & re) override;
+
+	bool Init() override;
+
+	void StepToTime(double time) override;
+
+private:
+	double a = 1.0;
+	double b = 1.0;
+
+	std::weibull_distribution<double> wd;
+
+	double prev_a = a;
+	double prev_b = b;
+
+	DECLARE_PARAMETER_LIST();
+};
+
+class FEGammaDistribution : public FEProbabilityDistribution
+{
+public:
+	FEGammaDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
+
+	//generates the next value in the given sequence which fits a given distribution
+	//this value cannot be zero or less if the value is zero or less the result will be redrawn up to max_retries
+	//nan will be returned if the distribution fails to find a suitable number
+	double NextValue(angiofe_random_engine & re) override;
+
+	bool Init() override;
+
+	void StepToTime(double time) override;
+
+private:
+	double alpha = 1.0;
+	double beta = 1.0;
+
+	std::gamma_distribution<double> gd;
+
+	double prev_alpha = alpha;
+	double prev_beta = beta;
+
+	DECLARE_PARAMETER_LIST();
+};
