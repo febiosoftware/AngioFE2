@@ -108,6 +108,8 @@ public:
 	virtual double GetLengthToBranch() = 0;
 	virtual double GetTimeToEmerge(){ return 0.0; }
 
+	virtual void UpdateToTime(double starttime)=0;
+
 	double TimeOfGrowth(Segment * seg, double start_time, double time_of_growth);
 
 	FragmentBranching * GetBrancherForSegment(Segment * seg);
@@ -142,6 +144,7 @@ public:
 	double GetLengthToBranch() override;
 	double GetTimeToEmerge() override;
 	void ProcessNewSegments(double start_time, double grow_time);
+	void UpdateToTime(double starttime) override;
 private:
 	FEPropertyT<FEProbabilityDistribution> length_to_branch_point;
 	FEPropertyT<FEProbabilityDistribution> time_to_emerge;
@@ -155,4 +158,5 @@ public:
 	void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) override;
 	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp, double starttime, double grow_time) override{}
 	double GetLengthToBranch() override{ return 1000000.0; }
+	void UpdateToTime(double starttime) override{}
 };

@@ -22,6 +22,7 @@ void FragmentBranching::Grow(double start_time, double grow_time)
 	//get all segments which need values recalculated for them in this step
 	if (!fragment_branchers.size())
 		return;
+
 	//Grow the segments populate the sets 
 	for (size_t i = 0; i < fragment_branchers.size(); i++)
 	{
@@ -90,7 +91,9 @@ void FragmentBranching::Grow(double start_time, double grow_time)
 //does the portion of the grow that does not require rng
 void FragmentBranching::GrowSegments(double start_time, double grow_time)
 {
-	//update the vessel length and then grow the segments
+	//update the probability distributions needed
+	UpdateToTime(start_time);
+
 	const SegmentTipList & tiplist = culture->GetActiveTipList();
 	auto iter = tiplist.begin();
 	while (iter != tiplist.end())
@@ -444,4 +447,10 @@ double PsuedoDeferedFragmentBranching::GetTimeToEmerge()
 	double rv = time_to_emerge->NextValue(culture->m_pmat->m_pangio->rengine);
 	assert(rv >= 0.0);
 	return rv;
+}
+
+void PsuedoDeferedFragmentBranching::UpdateToTime(double starttime)
+{
+	time_to_emerge->StepToTime(starttime);
+	length_to_branch_point->StepToTime(starttime);
 }

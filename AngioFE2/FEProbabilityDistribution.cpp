@@ -104,12 +104,14 @@ bool FEExponentialDistribution::Init()
 	prev_lambda = lambda;
 	//if load curves are used they must use step interpolation
 	SetLoadCurveToStep("lambda");
+	SetLoadCurveToStep("mult");
 	return true;
 }
 
 void FEExponentialDistribution::StepToTime(double time)
 {
 	bool change = ChangeInParam("lambda", time, prev_lambda, lambda);
+	ChangeInParam("mult", time, prev_mult, mult);
 	if (change)
 	{
 		//rebuild the distribution
@@ -184,6 +186,7 @@ bool FEChiSquaredDistribution::Init()
 	prev_dof = dof;
 	//if load curves are used they must use step interpolation
 	SetLoadCurveToStep("dof");
+	SetLoadCurveToStep("mult");
 
 	return true;
 }
@@ -191,6 +194,7 @@ bool FEChiSquaredDistribution::Init()
 void FEChiSquaredDistribution::StepToTime(double time)
 {
 	bool change = ChangeInParam("dof", time, prev_dof, dof);
+	ChangeInParam("mult", time, prev_mult, mult);
 	if (change)
 	{
 		//rebuild the distribution

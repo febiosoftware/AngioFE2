@@ -72,7 +72,7 @@ private:
 	std::exponential_distribution<double> ed;
 
 	double prev_lambda = 1.0;
-
+	double prev_mult = mult;
 
 	DECLARE_PARAMETER_LIST();
 };
@@ -121,11 +121,13 @@ public:
 
 private:
 	double dof = 1.0;//distribution's x^2
+	double mult = 1.0;
 
 	std::chi_squared_distribution<double> cd;
 
 	double prev_dof = dof;
-	double mult = 1.0;
+	double prev_mult = mult;
+	
 
 	DECLARE_PARAMETER_LIST();
 };
