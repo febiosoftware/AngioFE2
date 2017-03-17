@@ -108,8 +108,8 @@ public:
 	~KDTree();
 	void insert(DIM item);//insert a single item
 	void insert(std::list<DIM> items);//can have better performace  than individual insertions
-	std::vector<DIM> nearest(DIM item, int n=1, bool order = false);//returns a list of the closest DIM to item. n has a max value of lg_2 elements, order determines if the elements are returned in a sorted fashion
-	DIM nearestCondition(DIM item, std::function<bool(DIM)> condition);//returns the closest DIM to item. n has a max value of lg_2 elements, certain values may be discarded to condition
+	DIM nearest(DIM item);//returns the DIM closest to item, returns item if the tree is empty/ a best node cannot otherwise be found
+	DIM nearestCondition(DIM item, std::function<bool(DIM)> condition);//returns the closest DIM to item meeting the condition returns item if there are no valid DIM's in the tree
 	std::vector<DIM> within(DIM item, double dist, bool sorted = false);//returns all of the nodes that are closer to item than dist
 	// an inplace rebuild of the tree only call this when the underlying nodes have moved eg mechanical step(s)
 	void rebuild();
@@ -685,9 +685,9 @@ typename KDTree<DIM, DIMR>::KDNode * KDTree<DIM, DIMR>::nearest_leaf_node(DIMR t
 }
 
 template <typename DIM, typename DIMR>
-std::vector<DIM> KDTree<DIM, DIMR>::nearest(DIM item, int n, bool order)//returns a list of the closest DIM to item
+DIM KDTree<DIM, DIMR>::nearest(DIM item)
+//returns a list of the closest DIM to item
 {
-    std::vector<DIM> rv;
     DIMR goal = _accessor(item);
     KDNode * startNode = nearest_leaf_node(goal,  root);
     KDNode * best_node = nullptr;
@@ -765,9 +765,9 @@ std::vector<DIM> KDTree<DIM, DIMR>::nearest(DIM item, int n, bool order)//return
     
     if(best_node)
     {
-        rv.push_back(best_node->dimensions);
+        return (best_node->dimensions);
     }
-    return rv;
+    return item;
 }
 
 template <typename DIM, typename DIMR>
@@ -858,7 +858,11 @@ DIM KDTree<DIM, DIMR>::nearestCondition(DIM item, std::function<bool(DIM)> condi
 		}
 
 	}
-	return best_node->dimensions;
+	if (best_node)
+	{
+		return best_node->dimensions;
+	}
+	return item;
 }
 
 template <typename DIM, typename DIMR>
