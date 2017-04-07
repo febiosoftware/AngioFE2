@@ -69,6 +69,15 @@ FEPluginFactory_T<FEPlotAngioGradientCenter  , FEPLOTDATA_ID> plot_angio_gradien
 FEPluginFactory_T<FEPlotAngioMaterialHop     , FEPLOTDATA_ID> plot_angio_material_hop      ("angio material hop"    );
 FEPluginFactory_T<FEPlotAngioSegmentBadGrowth, FEPLOTDATA_ID> plot_angio_segment_bad_growth("angio bad growth"      );
 
+FEPluginFactory_T<FEPlotMatrixElastic_m_Q, FEPLOTDATA_ID> plot_matrix_elastic_m_Q("matrix elastic mQ");
+
+FEPluginFactory_T<FEPlotMatrixElastic_m_Q_fiber, FEPLOTDATA_ID> plot_matrix_elastic_m_Q_fiber("matrix elastic mQ fiber?");
+FEPluginFactory_T<FEPlotMatrixElastic_m_Q_minoraxis1, FEPLOTDATA_ID> plot_matrix_elastic_m_Q_minoraxis1("matrix elastic mQ m1");
+FEPluginFactory_T<FEPlotMatrixElastic_m_Q_minoraxis2, FEPLOTDATA_ID> plot_matrix_elastic_m_Q_minoraxis2("matrix elastic mQ m2");
+
+
+FEPluginFactory_T<NullFiberInitializer, FEMATERIAL_ID> null_fiber_initializer("null_fiber_initializer");
+FEPluginFactory_T<RandomFiberInitializer, FEMATERIAL_ID> random_fiber_initializer("random_fiber_initializer");
 extern "C"
 {
 
@@ -178,6 +187,18 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		return &weibull_distribution_factory;
 	case 40:
 		return &gamma_distribution_factory;
+	case 41:
+		return &plot_matrix_elastic_m_Q;
+	case 42:
+		return &plot_matrix_elastic_m_Q_fiber;
+	case 43:
+		return &plot_matrix_elastic_m_Q_minoraxis1;
+	case 44:
+		return &plot_matrix_elastic_m_Q_minoraxis2;
+	case 45:
+		return &null_fiber_initializer;
+	case 46:
+		return &random_fiber_initializer;
 	default:
 		return nullptr;
 	}

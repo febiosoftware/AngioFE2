@@ -239,6 +239,131 @@ bool FEPlotMatrixElasticStress::Save(FEDomain& d, FEDataStream& str)
 	return true;
 }
 
+//-----------------------------------------------------------------------------
+bool FEPlotMatrixElastic_m_Q::Save(FEDomain& d, FEDataStream& str)
+{
+	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	if (pmat == nullptr) return false;
+
+	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
+	int NE = dom.Elements();
+	for (int i = 0; i<NE; ++i)
+	{
+		FESolidElement& el = dom.Element(i);
+		int nint = el.GaussPoints();
+		mat3d s;
+		s.zero();
+		for (int j = 0; j<nint; ++j)
+		{
+			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
+			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
+			FEViscoElasticMaterialPoint& matrix_visco_elastic = *angioPt->matPt->ExtractData<FEViscoElasticMaterialPoint>();
+			assert(angioPt->matPt->Next());
+			FEElasticMaterialPoint& emp = *angioPt->matPt->Next()->ExtractData<FEElasticMaterialPoint>();
+
+			mat3d sj = emp.m_Q;
+			s += sj;
+		}
+		s /= static_cast<double>(nint);
+
+		str << s;
+	}
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+bool FEPlotMatrixElastic_m_Q_fiber::Save(FEDomain& d, FEDataStream& str)
+{
+	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	if (pmat == nullptr) return false;
+
+	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
+	int NE = dom.Elements();
+	for (int i = 0; i<NE; ++i)
+	{
+		FESolidElement& el = dom.Element(i);
+		int nint = el.GaussPoints();
+		vec3d s;
+		for (int j = 0; j<nint; ++j)
+		{
+			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
+			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
+			FEViscoElasticMaterialPoint& matrix_visco_elastic = *angioPt->matPt->ExtractData<FEViscoElasticMaterialPoint>();
+			assert(angioPt->matPt->Next());
+			FEElasticMaterialPoint& emp = *angioPt->matPt->Next()->ExtractData<FEElasticMaterialPoint>();
+
+			vec3d sj = emp.m_F * vec3d(emp.m_Q[0][0], emp.m_Q[1][0], emp.m_Q[2][0]);
+			s += sj;
+		}
+		s /= static_cast<double>(nint);
+
+		str << s;
+	}
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+bool FEPlotMatrixElastic_m_Q_minoraxis1::Save(FEDomain& d, FEDataStream& str)
+{
+	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	if (pmat == nullptr) return false;
+
+	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
+	int NE = dom.Elements();
+	for (int i = 0; i<NE; ++i)
+	{
+		FESolidElement& el = dom.Element(i);
+		int nint = el.GaussPoints();
+		vec3d s;
+		for (int j = 0; j<nint; ++j)
+		{
+			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
+			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
+			FEViscoElasticMaterialPoint& matrix_visco_elastic = *angioPt->matPt->ExtractData<FEViscoElasticMaterialPoint>();
+			assert(angioPt->matPt->Next());
+			FEElasticMaterialPoint& emp = *angioPt->matPt->Next()->ExtractData<FEElasticMaterialPoint>();
+
+			vec3d sj = emp.m_F * vec3d(emp.m_Q[0][1], emp.m_Q[1][1], emp.m_Q[2][1]);
+			s += sj;
+		}
+		s /= static_cast<double>(nint);
+
+		str << s;
+	}
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+bool FEPlotMatrixElastic_m_Q_minoraxis2::Save(FEDomain& d, FEDataStream& str)
+{
+	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	if (pmat == nullptr) return false;
+
+	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
+	int NE = dom.Elements();
+	for (int i = 0; i<NE; ++i)
+	{
+		FESolidElement& el = dom.Element(i);
+		int nint = el.GaussPoints();
+		vec3d s;
+		for (int j = 0; j<nint; ++j)
+		{
+			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
+			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
+			FEViscoElasticMaterialPoint& matrix_visco_elastic = *angioPt->matPt->ExtractData<FEViscoElasticMaterialPoint>();
+			assert(angioPt->matPt->Next());
+			FEElasticMaterialPoint& emp = *angioPt->matPt->Next()->ExtractData<FEElasticMaterialPoint>();
+
+			vec3d sj = emp.m_F * vec3d(emp.m_Q[0][2], emp.m_Q[1][2], emp.m_Q[2][2]);
+			s += sj;
+		}
+		s /= static_cast<double>(nint);
+
+		str << s;
+	}
+	return true;
+}
+
 FEPlotAngioGradientCenter::FEPlotAngioGradientCenter(FEModel* pfem): FEDomainData(PLT_VEC3F, FMT_ITEM)
 {
 };
@@ -355,6 +480,8 @@ bool FEPlotAngioCollagenFibers::Save(FEMesh& m, FEDataStream& a)
 	}
 	return true;
 }
+
+
 bool FEPlotAngioGradient::Save(FEMesh & m, FEDataStream & a)
 {
 	//this has problems on the boundaries between materials

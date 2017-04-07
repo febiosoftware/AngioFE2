@@ -135,7 +135,9 @@ vec3d BranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, S
 		//      If the vessel is aligned with the collagen (and the initial fragments are)
 		//      then  the new branch will overlap the old segment.
 		vec3d seg_vec = -previous_dir;
-		vec3d coll_fib = culture->m_pmat->CollagenDirection(tip.pt);
+		double lambda;
+		vec3d coll_fib = culture->m_pmat->CollagenDirection(tip.pt,lambda);
+
 		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
 		seg_vec.unit();
 		return seg_vec;
@@ -151,7 +153,8 @@ DefaultGrowDirectionModifier::DefaultGrowDirectionModifier(FEModel * model) : Gr
 vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
 {
 	// Find the component of the new vessel direction determined by collagen fiber orientation    
-	vec3d coll_dir = culture->m_pmat->CollagenDirection(tip.pt);
+	double lambda;
+	vec3d coll_dir = culture->m_pmat->CollagenDirection(tip.pt,lambda);
 
 	// Component of new vessel orientation resulting from previous vessel direction        
 	vec3d per_dir = tip.u;

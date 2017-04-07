@@ -35,6 +35,38 @@ public:
 };
 
 //-----------------------------------------------------------------------------
+class FEPlotMatrixElastic_m_Q : public FEDomainData
+{
+public:
+	FEPlotMatrixElastic_m_Q(FEModel* pfem) : FEDomainData(PLT_MAT3F, FMT_ITEM){}
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+
+//-----------------------------------------------------------------------------
+class FEPlotMatrixElastic_m_Q_fiber : public FEDomainData
+{
+public:
+	FEPlotMatrixElastic_m_Q_fiber(FEModel* pfem) : FEDomainData(PLT_VEC3F, FMT_ITEM){}
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+
+//-----------------------------------------------------------------------------
+class FEPlotMatrixElastic_m_Q_minoraxis1 : public FEDomainData
+{
+public:
+	FEPlotMatrixElastic_m_Q_minoraxis1(FEModel* pfem) : FEDomainData(PLT_VEC3F, FMT_ITEM){}
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+
+//-----------------------------------------------------------------------------
+class FEPlotMatrixElastic_m_Q_minoraxis2 : public FEDomainData
+{
+public:
+	FEPlotMatrixElastic_m_Q_minoraxis2(FEModel* pfem) : FEDomainData(PLT_VEC3F, FMT_ITEM){}
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+
+//-----------------------------------------------------------------------------
 class FEPlotVesselStress : public FEDomainData
 {
 public:

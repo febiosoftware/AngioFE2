@@ -136,9 +136,6 @@ bool FEAngio::Init()
 	//TODO: degree of anisotropy values will only get initialized if density is set to 0
 	if (InitECMDensity() == false) return false;
 
-	// assign collagen fibers to grid nodes
-	if (InitCollagenFibers() == false) return false;
-
 	// assign concentration values to grid nodes
 	//if (InitSoluteConcentration() == false) return false;
 
@@ -153,6 +150,8 @@ bool FEAngio::Init()
 
 	FinalizeFEM();
 	
+
+
 	// start timer
 	time(&m_start);
 
@@ -211,6 +210,9 @@ void FEAngio::FinalizeFEM()
 		//TODO: remove this constant or make it a user parameter
 		m_pmat[i]->CreateSprouts(0.5);
 		m_pmat[i]->AdjustMeshStiffness();
+		m_pmat[i]->UpdateFiberManager();
+		m_pmat[i]->InitializeFibers();
+		m_pmat[i]->UpdateFiberManager();
 	}
 
 	// only output to the logfile (not to the screen)
@@ -1010,18 +1012,6 @@ double FEAngio::FindECMDensity(const GridPoint& pt)
 }
 
 //-----------------------------------------------------------------------------
-// Initialize nodal collagen fiber directions
-bool FEAngio::InitCollagenFibers()
-{
-	bool rv = true;
-	for (size_t i = 0; i < m_pmat.size(); i++)
-	{
-		rv &= m_pmat[i]->InitCollagenFibers();
-	}
-	return rv;
-}
-
-//-----------------------------------------------------------------------------
 void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 {
 	FEModel& fem = *pfem;
@@ -1029,6 +1019,15 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 	m_time.t = fti.currentTime;
 	m_time.dt = fti.timeIncrement;
 	static int index = 0;
+	static bool start = false;
+	if (!start)
+	{
+		for (size_t i = 0; i < m_pmat.size(); i++)
+		{
+			m_pmat[i]->Update();
+		}
+		start = true;
+	}
 
 	if (nwhen == CB_UPDATE_TIME)
 	{

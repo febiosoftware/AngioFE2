@@ -8,6 +8,7 @@
 #include "Culture.h"
 #include "FEProbabilityDistribution.h"
 #include "KDTree/kdtree.h"
+#include "FiberManager.h"
 
 //-----------------------------------------------------------------------------
 // A new material point class is defined to store the elastic parameters for 
@@ -101,7 +102,9 @@ public:
 
 	void AdjustMeshStiffness();
 
-	bool InitCollagenFibers();
+	void UpdateFiberManager();
+
+	void InitializeFibers();
 
 	void CreateSprouts(double scale);
 
@@ -117,7 +120,7 @@ public:
 
 	bool Overwrite() const;
 
-	vec3d CollagenDirection(GridPoint& pt);
+	vec3d CollagenDirection(GridPoint& pt, double& lambda);
 
 	bool InitECMDensity(FEAngio * angio);
 
@@ -183,6 +186,8 @@ private:
 	std::vector<SPROUT>	m_spr;
 	KDTree<std::pair<size_t, std::vector<SPROUT> *>, std::vector<double>> sprouts;
 
+	FiberManager * fiber_manager;
+
 	DECLARE_PARAMETER_LIST();
 
 public:
@@ -220,6 +225,7 @@ private:
 	FEPropertyT<FESolidMaterial> vessel_material;
 	FEPropertyT<FESolidMaterial> matrix_material;
 	FEPropertyT<FEProbabilityDistribution> length_to_branch;
+	FEPropertyT<FiberInitializer> fiber_initializer;
 	
 	
 	

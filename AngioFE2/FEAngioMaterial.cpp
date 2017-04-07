@@ -6,6 +6,7 @@
 #include "Culture.h"
 #include "FEBioMech/FEElasticMixture.h"
 #include "FEBioMech/FEViscoElasticMaterial.h"
+#include "FEBioMech/FESPRProjection.h"
 #include <iostream>
 #include "angio3d.h"
 
@@ -109,7 +110,6 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	ADD_PARAMETER2(m_cultureParams.m_vessel_width, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "vessel_width");
 	ADD_PARAMETER(m_cultureParams.growth_length_over_time, FE_PARAM_DOUBLE, "growth_length_over_time");
 
-	ADD_PARAMETER2(m_cultureParams.m_matrix_condition, FE_PARAM_INT, FE_RANGE_CLOSED(0,4), "matrix_condition");
 	ADD_PARAMETER(m_cultureParams.ecm_control, FE_PARAM_INT, "ecm_seeder");
 	ADD_PARAMETER2(m_cultureParams.m_matrix_density, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "matrix_density");
 
@@ -155,6 +155,7 @@ FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticMaterial(pfem), sprou
 	AddProperty(&vessel_material, "vessel");
 	AddProperty(&matrix_material , "matrix");
 	AddProperty(&fbrancher, "brancher");
+	AddProperty(&fiber_initializer, "fiber_initializer");
 	AddProperty(&fseeder, "fragment_seeder");
 	AddProperty(&bc, "boundary_condition");
 	AddProperty(&gdms, "grow_direction_modifiers");
@@ -238,7 +239,7 @@ bool FEAngioMaterial::Init()
 	}
 	m_suser.clear();
 
-	
+	fiber_manager = new FiberManager(this);
 
 	return true;
 }
@@ -319,34 +320,9 @@ void FEAngioMaterial::SetupSurface()
 	}
 }
 
-vec3d FEAngioMaterial::CollagenDirection(GridPoint& pt)
+vec3d FEAngioMaterial::CollagenDirection(GridPoint& pt, double& lambda)
 {
-	assert(pt.elemindex >= 0);
-	assert(pt.ndomain != nullptr);
-	FEMesh & mesh = m_pangio->m_fem.GetMesh();
-	// get the element
-	FEElement * elem = &pt.ndomain->ElementRef(pt.elemindex);
-
-	FESolidElement * selem = dynamic_cast<FESolidElement *>(elem);
-
-	//TODO: may be refactored to remove shape function and dependencies 
-	// Obtain shape function weights
-	double shapeF[FEElement::MAX_NODES];
-	assert(selem);
-	selem->shape_fnc(shapeF, pt.q.x, pt.q.y, pt.q.z);//check these numbers
-
-	// Determine component of new vessel direction due to nodal collagen fiber orientation
-	vec3d coll_angle(0, 0, 0);
-	for (int i = 0; i<8; ++i)
-	{
-		int n = elem->m_node[i];
-		coll_angle += m_pangio->m_fe_node_data[mesh.Node(n).GetID()].m_collfib*shapeF[i];
-	}
-
-	// make unit vector
-	coll_angle.unit();
-
-	return coll_angle;
+	return fiber_manager->GetFiberDirection(pt,lambda);
 }
 
 void FEAngioMaterial::AdjustMeshStiffness()
@@ -563,102 +539,16 @@ bool FEAngioMaterial::FindGridPoint(const vec3d & r, FESolidDomain * domain, int
 	}
 	return false;
 }
-
-bool FEAngioMaterial::InitCollagenFibers()
+void FEAngioMaterial::InitializeFibers()
 {
-	std::vector<int> matls;
-	matls.push_back(GetID());
-	//remove later
-	FEMesh * mesh = m_pangio->GetMesh();
-	std::vector<vec3d> colfibs;
-	colfibs.reserve(mesh->Nodes());
-	//modes 1,3 are multimaterila safe
-	switch (m_cultureParams.m_matrix_condition)
-	{
-	case 0: // random orientation
-		//TODO: ask jeff if this should be removed?
-		//this mode is the old way of doing things and should only be used for verifying that the test suite still passes
-		for (int i = 0; i < mesh->Nodes(); i++)
-		{
-			vec3d v = vrand();
-			if (m_cultureParams.m_bzfibflat) v.z *= 0.25;
-
-			// normalize the vector
-			v.unit();
-			colfibs.push_back(v);
-		}
-
-		for (int i = 0; i < mesh->Nodes();i++)
-		{
-			// assign the node
-			FENode & node = mesh->Node(i);
-		
-			vec3d v = colfibs[i];
-			m_pangio->m_fe_node_data[node.GetID()].m_collfib0 = v;
-			m_pangio->m_fe_node_data[node.GetID()].m_collfib = v;
-		}//, matls);
-		
-		break;
-	case 1: //multimaterial safe method
-
-		m_pangio->ForEachNode([&](FENode & node)
-		{
-			vec3d v = m_pangio->uniformRandomDirection();
-			v.unit();
-			m_pangio->m_fe_node_data[node.GetID()].m_collfib0 = v;
-			m_pangio->m_fe_node_data[node.GetID()].m_collfib = v;
-		}, matls);
-		break;
-	case 3:	// from element's local coordinates
-		m_pangio->ForEachElement([&](FESolidElement & se, FESolidDomain & sd)
-		{
-			size_t neln = se.Nodes();
-			size_t nint = se.GaussPoints();
-
-			// local fiber orientation at integration points
-			double fx[FEElement::MAX_INTPOINTS], fy[FEElement::MAX_INTPOINTS], fz[FEElement::MAX_INTPOINTS];
-			for (size_t n = 0; n<nint; ++n)
-			{
-				// generate a coordinate transformation at this integration point
-				FEMaterialPoint* mpoint = se.GetMaterialPoint(n);
-				FEElasticMaterialPoint& pt = *mpoint->ExtractData<FEElasticMaterialPoint>();
-				mat3d m = pt.m_Q;
-
-				// grab the first column as the fiber orientation
-				fx[n] = m[0][0];
-				fy[n] = m[1][0];
-				fz[n] = m[2][0];
-			}
-
-			// now that we have the values at the integration points
-			// we need to map it to the nodes
-			double gx[FEElement::MAX_NODES], gy[FEElement::MAX_NODES], gz[FEElement::MAX_NODES];
-			se.project_to_nodes(fx, gx);
-			se.project_to_nodes(fy, gy);
-			se.project_to_nodes(fz, gz);
-			
-
-			for (size_t k = 0; k < neln; k++)
-			{
-				vec3d v = vec3d(gx[k], gy[k], gz[k]);
-				if (m_cultureParams.m_bzfibflat) v.z *= 0.25;
-				// normalize the vector
-				v.unit();
-
-				// assign the node
-				m_pangio->m_fe_node_data[sd.Node(se.m_node[k]).GetID()].m_collfib0 = v;
-				m_pangio->m_fe_node_data[sd.Node(se.m_node[k]).GetID()].m_collfib = v;
-			}
-			//consider setting the fiber orientation of the element here
-		}, matls);
-
-		break;
-	default:
-		//invalid option
-		assert(false);
-	}
-	return true;
+	fiber_initializer->InitializeFibers(fiber_manager);
 }
+
+void FEAngioMaterial::UpdateFiberManager()
+{
+	fiber_manager->Update();
+}
+
 void FEAngioMaterial::CreateSprouts(double scale)
 {
 	//#pragma omp parallel for
@@ -851,7 +741,7 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 			//TODO: some of this may be precalculated
 			double p = den_scale*scale*m_cultureParams.sprout_s_mag*(pow(cos(theta / 2), m_cultureParams.sprout_s_width))*exp(-m_cultureParams.sprout_s_range*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
 
-			//double p = sprout_s_mag*exp(-sprout_s_range*l);
+			//do we care about the sign of p?
 
 			mat3ds si = dyad(r)*p;
 														// If symmetry is turned on, apply symmetry
@@ -935,6 +825,7 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 
 void FEAngioMaterial::Update()
 {
+	fiber_manager->Update();
 	m_cult->Update();
 }
 void FEAngioMaterial::UpdateECM()

@@ -101,9 +101,6 @@ private:
 	int FindGrowTimes(std::vector<std::pair<double, double>> & time_pairs, int start_index);
 
 	// Initialize nodal collagen fiber directions
-	bool InitCollagenFibers();
-
-	// Initialize nodal collagen fiber directions
 	bool InitSoluteConcentration();
 
 	int FindVEGF();
