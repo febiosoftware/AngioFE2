@@ -75,6 +75,9 @@
     <ClInclude Include="..\AngioFE2\KDTree\kdtree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\AngioFE2\FiberManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\AngioFE2\AngioFE.cpp">
@@ -129,6 +132,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\AngioFE2\FEProbabilityDistribution.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AngioFE2\FiberManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

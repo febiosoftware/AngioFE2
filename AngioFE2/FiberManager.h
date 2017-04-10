@@ -1,0 +1,61 @@
+#pragma once
+
+#include "StdAfx.h"
+#include "Segment.h"
+#include "FECore/FEMaterial.h"
+
+class FEAngioMaterial;
+class FiberManager;
+
+//the base class for classes that initialize the fibers
+class FiberInitializer : public FEMaterial
+{
+public:
+	FiberInitializer(FEModel * model):FEMaterial(model){}
+	virtual ~FiberInitializer(){}
+	virtual void InitializeFibers(FiberManager * fman) = 0;
+
+	void nodeToInt(FiberManager * fman);
+	void GridPointOfIntPoint(FESolidElement * se, int ei, int intp, GridPoint & gp);
+};
+//does nothing the fiber direction will be unchanged
+class NullFiberInitializer : public FiberInitializer
+{
+public:
+	NullFiberInitializer(FEModel * model) : FiberInitializer(model){}
+	virtual ~NullFiberInitializer(){}
+	void InitializeFibers(FiberManager * fman) override{}
+};
+//set the fibers to a random orientation
+class RandomFiberInitializer : public FiberInitializer
+{
+public:
+	RandomFiberInitializer(FEModel * model) : FiberInitializer(model){}
+	virtual ~RandomFiberInitializer(){}
+	void InitializeFibers(FiberManager * fman) override;
+};
+
+class FiberManager
+{
+public:
+	FiberManager(FEAngioMaterial * mat){ material = mat; }
+	virtual ~FiberManager(){}
+
+	vec3d GetFiberDirection(GridPoint & pt, double& lambda);
+	vec3d GetMinorAxisDirection1(GridPoint & pt);
+	vec3d GetMinorAxisDirection2(GridPoint & pt);
+	vec3d GetFiberAtNode(int node);
+	void Update();
+
+private:
+	FEAngioMaterial * material;
+	std::vector<std::vector<double>> fiber_at_int_pts[3];
+	std::vector<double> fibers_at_nodes[3];
+	std::vector<double> minoraxis1_at_nodes[3];
+	std::vector<double> minoraxis2_at_nodes[3];
+	std::unordered_map<size_t, size_t> node_map[3];
+
+	friend class FiberInitializer;
+	friend class RandomFiberInitializer;
+};
+

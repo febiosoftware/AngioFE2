@@ -78,8 +78,6 @@ FEPluginFactory_T<FEPlotMatrixElastic_m_Q_minoraxis2, FEPLOTDATA_ID> plot_matrix
 
 FEPluginFactory_T<NullFiberInitializer, FEMATERIAL_ID> null_fiber_initializer("null_fiber_initializer");
 FEPluginFactory_T<RandomFiberInitializer, FEMATERIAL_ID> random_fiber_initializer("random_fiber_initializer");
-extern "C"
-{
 
 //-----------------------------------------------------------------------------
 FECORE_EXPORT  unsigned int GetSDKVersion()
@@ -210,4 +208,3 @@ FECORE_EXPORT  void PluginCleanup()
 
 }
 
-}
