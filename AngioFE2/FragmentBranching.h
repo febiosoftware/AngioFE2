@@ -83,7 +83,7 @@ public:
 
 	FragmentBranching(FEModel * model):FEMaterial(model)
 	{
-		fragment_branchers.push_back(this);
+		fragment_branchers.emplace_back(this);
 	}
 	
 	virtual ~FragmentBranching()

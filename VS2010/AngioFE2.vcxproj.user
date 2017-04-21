@@ -6,13 +6,31 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\mdpassthroughdc\t4kd</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Debug\FEBio2.exe</LocalDebuggerCommand>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug OMP|Win32'">
+    <LocalDebuggerCommand>C:\Users\mp4\Documents\FEBio2\VS2013\Debug\FEBio2.exe</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febio.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\mdpassthroughdc\t4kd</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Debug\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febio.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\chi_squared_mat_axis_random_nm\t3</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug OMP|x64'">
+    <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Debug OMP\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febio.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\chi_squared_mat_axis_random_nm\t3</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LocalDebuggerCommand>C:\Users\mp4\Documents\FEBio2\VS2013\Release\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febioRelease.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\mdpassthroughdc\t4</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release OMP|Win32'">
     <LocalDebuggerCommand>C:\Users\mp4\Documents\FEBio2\VS2013\Release\FEBio2.exe</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febioRelease.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\mdpassthroughdc\t4</LocalDebuggerWorkingDirectory>
@@ -21,7 +39,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Release\FEBio2.exe</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febioRelease.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
-    <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\chi_squared_mat_axis\t4</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\chi_squared_mat_axis_random_pe\t4</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release OMP|x64'">
+    <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Release OMP\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febioReleaseOMP.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\chi_squared_mat_axis_random_pe\t3</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

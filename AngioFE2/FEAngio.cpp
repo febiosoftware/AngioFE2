@@ -183,8 +183,8 @@ bool FEAngio::InitFEM()
 		FEAngioMaterial * cmat = dynamic_cast<FEAngioMaterial*>(m_fem.GetMaterial(i));
 		if (cmat)
 		{
-			m_pmat.push_back(cmat);
-			m_pmat_ids.push_back(cmat->GetID());
+			m_pmat.emplace_back(cmat);
+			m_pmat_ids.emplace_back(cmat->GetID());
 			//TODO: check that material parameters are set here
 			cmat->ApplySym();
 			cmat->SetFEAngio(this);
@@ -324,7 +324,7 @@ int FEAngio::FindGrowTimes(std::vector<std::pair<double, double>> & time_pairs, 
 			{
 				double dt = lp.time - start_time;
 				assert(dt > 0.0);
-				time_pairs.push_back(std::pair<double, double>(start_time, dt));
+				time_pairs.emplace_back(std::pair<double, double>(start_time, dt));
 				start_time = lp.time;
 			}
 			else
@@ -338,7 +338,7 @@ int FEAngio::FindGrowTimes(std::vector<std::pair<double, double>> & time_pairs, 
 	else
 	{
 		SimulationTime st = CurrentSimTime();
-		time_pairs.push_back(std::pair<double, double>(st.t-st.dt, st.dt));
+		time_pairs.emplace_back(std::pair<double, double>(st.t-st.dt, st.dt));
 	}
 	return 0;
 }
@@ -442,6 +442,54 @@ void FEAngio::ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<i
 		FESolidDomain & d = reinterpret_cast<FESolidDomain&>(mesh.Domain(dl[i]));
 		f(d);
 	}
+}
+
+mat3d FEAngio::unifromRandomRotationMatrix()
+{
+	//collagen fibers are right handed so the following transformation is legal
+	//the following will only produce right handed bases for the collagen fibers which is molecularly accurate
+	double alpha = zto2pi(rengine) - pi;
+	double beta = zto2pi(rengine) -pi;
+	double gamma = zto2pi(rengine) -pi;
+
+
+	double c_alpha = cos(alpha);
+	double c_beta = cos(beta);
+	double c_gamma = cos(gamma);
+	double s_alpha = sin(alpha);
+	double s_beta = sin(beta);
+	double s_gamma = sin(gamma);
+	//see: https://en.wikipedia.org/wiki/Change_of_basis Three dimensions section
+	mat3d rv(c_alpha*c_gamma - s_alpha*c_beta*s_gamma, -c_alpha*s_gamma - s_alpha*c_beta*c_gamma, s_beta*s_alpha,
+		s_alpha*c_gamma + c_alpha*c_beta*s_gamma, - s_alpha*s_gamma+c_alpha*c_beta*c_gamma, -s_beta*c_alpha,
+		s_beta*s_gamma, s_beta*c_gamma, c_beta
+		);
+	//rv = rv.transinv();
+#ifndef NDEBUG
+	//do some testing that bases run tthrough this are still orthogonal
+	vec3d x(1, 0, 0);
+	vec3d y(0, 1, 0);
+	vec3d z(0, 0, 1);
+	vec3d xt = rv * x;
+	vec3d yt = rv * y;
+	vec3d zt = rv * z;
+	double tol = 0.01;
+	double val = xt * yt;
+	assert(xt * yt < tol && xt * yt > -tol);
+	val = xt * zt;
+	assert(xt * zt < tol && xt * zt > -tol);
+	val = zt * yt;
+	assert(zt * yt < tol && zt * yt > -tol);
+
+	double noq = xt.norm();
+	double nom1 = yt.norm();
+	double nom2 = zt.norm();
+	tol = 0.01;
+	assert(noq < (1 + tol) && noq >(1 - tol));
+	assert(nom1 < (1 + tol) && nom1 >(1 - tol));
+	assert(nom2 < (1 + tol) && nom2 >(1 - tol));
+#endif
+	return rv;
 }
 vec3d FEAngio::uniformRandomDirection()
 {
@@ -622,263 +670,263 @@ vec3d FEAngio::FindRST(const vec3d & v ,vec2d rs, FESolidElement * elem) const
 	//r
 	vec3d cpos = vec3d(1, rs[0], rs[1]);
 	cur = LocalToGlobal(elem,cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(1, rs[1], rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-1, rs[0], rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-1, rs[1], rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	//s
 	cpos = vec3d(rs[0], 1, rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(rs[1], 1, rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(rs[0], -1, rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(rs[1], -1, rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	//t
 	cpos = vec3d(rs[0], rs[1], 1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(rs[1], rs[0], 1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(rs[0], rs[1], -1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(rs[1], rs[0], -1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	//do all of the negations
 	//first
 	//r
 	cpos = vec3d(1, -rs[0], rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(1, -rs[1], rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-1, -rs[0], rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-1, -rs[1], rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	//s
 	cpos = vec3d(-rs[0], 1, rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-rs[1], 1, rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-rs[0], -1, rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-rs[1], -1, rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	//t
 	cpos = vec3d(-rs[0], rs[1], 1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-rs[1], rs[0], 1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-rs[0], rs[1], -1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-rs[1], rs[0], -1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	//second
 	//r
 	cpos = vec3d(1, rs[0], -rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(1, rs[1], -rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-1, rs[0], -rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-1, rs[1], -rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	//s
 	cpos = vec3d(rs[0], 1, -rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(rs[1], 1, -rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(rs[0], -1, -rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(rs[1], -1, -rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	//t
 	cpos = vec3d(rs[0], -rs[1], 1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(rs[1], -rs[0], 1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(rs[0], -rs[1], -1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(rs[1], -rs[0], -1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 
 	//both
 	//r
 	cpos = vec3d(1, -rs[0], -rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(1, -rs[1], -rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-1, -rs[0], -rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-1, -rs[1], -rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	//s
 	cpos = vec3d(-rs[0], 1, -rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-rs[1], 1, -rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-rs[0], -1, -rs[1]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-rs[1], -1, -rs[0]);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	//t
 	cpos = vec3d(-rs[0], -rs[1], 1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-rs[1], -rs[0], 1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-rs[0], -rs[1], -1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 	cpos = vec3d(-rs[1], -rs[0], -1);
 	cur = LocalToGlobal(elem, cpos);
-	positions_global.push_back(cur);
-	positions_local.push_back(cpos);
+	positions_global.emplace_back(cur);
+	positions_local.emplace_back(cpos);
 
 
 	double best_dist = DBL_MAX;
-	int best_index = -1;
+	size_t best_index = -1;
 	for (size_t i = 0; i < positions_global.size(); i++)
 	{
 		double cdist = (v - positions_global[i]).norm();

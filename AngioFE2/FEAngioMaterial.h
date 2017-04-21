@@ -95,6 +95,9 @@ public:
 	friend class FEPlotMatrixStress;
 	friend class FEPlotVesselStress;
 	friend class FEPlotMatrixTangent;
+	friend class FEPlotAngioCollagenFibersNodes;
+	friend class FEPlotAngioCollagenFibersMinorAxis1Node;
+	friend class FEPlotAngioCollagenFibersMinorAxis2Node;
 
 	// material initialization
 	bool Init() override;
@@ -202,6 +205,7 @@ public:
 
 	std::vector<int> domains;
 	std::vector<FEDomain*> domainptrs;
+	std::unordered_map<int, int> node_map;//maps global node number to domain local node numbers
 	std::unordered_map<FEDomain *,int> meshOffsets;
 	FESurface * exterior_surface;
 	FENormalProjection * normal_proj;

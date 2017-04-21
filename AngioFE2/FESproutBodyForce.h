@@ -43,7 +43,7 @@ public:
 		SPROUT sp;
 		sp.rc = r;
 		sp.sprout = s;
-		m_sp.push_back(sp);
+		m_sp.emplace_back(sp);
 	}
 
 	void ClearSprouts() { m_sp.clear(); }

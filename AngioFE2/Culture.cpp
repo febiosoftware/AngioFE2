@@ -18,11 +18,11 @@ std::vector<double> SegTo1TipPos(Segment * seg)
 {
 	std::vector<double> rv;
 
-	vec3d pos = seg->tip(1).pos();
+	const vec3d & pos = seg->tip(1).pos();
 
-	rv.push_back(pos.x);
-	rv.push_back(pos.y);
-	rv.push_back(pos.z);
+	rv.emplace_back(pos.x);
+	rv.emplace_back(pos.y);
+	rv.emplace_back(pos.z);
 
 	return rv;
 }
@@ -300,10 +300,10 @@ void Culture::AddSegment(Segment& seg)
 
 	seg.m_nid = m_nsegs;
 	m_nsegs++;
-	m_frag.push_front(seg);
+	m_frag.emplace_front(seg);
 	assert(m_nsegs == (int)m_frag.size());
 	//add the segment that was just created
-	recents.push_back(&m_frag.front());
+	recents.emplace_back(&m_frag.front());
 	tips.insert(&m_frag.front());
 	//add the sprouts to the material
 	if (seg.tip(0).bactive)
@@ -357,8 +357,8 @@ void Culture::FindActiveTips()
 	m_active_tips.clear();
 	for (SegIter it = m_frag.begin(); it != m_frag.end(); ++it)
 	{
-		if (it->tip(0).bactive) m_active_tips.push_back(&it->tip(0));
-		if (it->tip(1).bactive) m_active_tips.push_back(&it->tip(1));
+		if (it->tip(0).bactive) m_active_tips.emplace_back(&it->tip(0));
+		if (it->tip(1).bactive) m_active_tips.emplace_back(&it->tip(1));
 	} 
 }
 

@@ -133,7 +133,7 @@ bool MultiDomainFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cu
 	for (size_t i = 0; i < culture->m_pmat->domains.size(); i++)
 	{
 		elementsInDomains += culture->m_pmat->m_pangio->GetMesh()->Domain(culture->m_pmat->domains[i]).Elements();
-		domains.push_back(&culture->m_pmat->m_pangio->GetMesh()->Domain(culture->m_pmat->domains[i]));
+		domains.emplace_back(&culture->m_pmat->m_pangio->GetMesh()->Domain(culture->m_pmat->domains[i]));
 	}
 
 	std::uniform_int_distribution<int> ddist(0, culture->m_pmat->domains.size() - 1);
@@ -267,7 +267,7 @@ bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cul
 	for (size_t i = 0; i < culture->m_pmat->domains.size(); i++)
 	{
 		elementsInDomains += culture->m_pmat->m_pangio->GetMesh()->Domain(culture->m_pmat->domains[i]).Elements();
-		domains.push_back(&culture->m_pmat->m_pangio->GetMesh()->Domain(culture->m_pmat->domains[i]));
+		domains.emplace_back(&culture->m_pmat->m_pangio->GetMesh()->Domain(culture->m_pmat->domains[i]));
 	}
 	double * totalWeightsBegin = new double[elementsInDomains];
 	double * totalWeightsEnd = new double[elementsInDomains];
@@ -293,7 +293,7 @@ bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cul
 	{
 		//do a binary search to find the element that contains the volume
 		double vol = voluchoice(culture->m_pmat->m_pangio->rengine);
-		int ei = findElement(vol, 0, elementsInDomains - 1, totalWeightsBegin, totalWeightsEnd);
+		size_t ei = findElement(vol, 0, elementsInDomains - 1, totalWeightsBegin, totalWeightsEnd);
 		// Create an initial segment
 		Segment seg;
 		FEElement * elem = elements[ei];

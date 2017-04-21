@@ -137,9 +137,9 @@ std::vector<double> access_sprout(std::pair<size_t, std::vector<FEAngioMaterial:
 	std::vector<double> rv;
 	FEAngioMaterial::SPROUT spr = (*p.second)[p.first];
 	vec3d cpos = spr.mat->CurrentPosition(spr.pel, spr.r[0], spr.r[1], spr.r[2]);
-	rv.push_back(cpos.x);
-	rv.push_back(cpos.y);
-	rv.push_back(cpos.z);
+	rv.emplace_back(cpos.x);
+	rv.emplace_back(cpos.y);
+	rv.emplace_back(cpos.z);
 	return rv;
 }
 
@@ -215,12 +215,12 @@ bool FEAngioMaterial::Init()
 
 	// add the user sprouts
 	std::vector<int> matls;
-	matls.push_back(this->GetID());
+	matls.emplace_back(this->GetID());
 	FEMesh& mesh = GetFEModel()->GetMesh();
 	mesh.DomainListFromMaterial(matls, domains);
 	for (size_t i = 0; i < domains.size(); i++)
 	{
-		domainptrs.push_back(&mesh.Domain(domains[i]));
+		domainptrs.emplace_back(&mesh.Domain(domains[i]));
 	}
 	int co = 0;
 	for (auto i = 0; i < mesh.Domains(); i++)
@@ -297,6 +297,11 @@ void FEAngioMaterial::FinalizeInit()
 			}
 		}
 	}
+	for (int i = 0; i < domainptrs[0]->Nodes(); i++)
+	{
+		int nn = domainptrs[0]->NodeIndex(i);
+		node_map[nn] = i;
+	}
 }
 void FEAngioMaterial::SetupSurface()
 {
@@ -316,7 +321,7 @@ void FEAngioMaterial::SetupSurface()
 		FESurfaceElement & surfe = exterior_surface->Element(i);
 		auto base_eindex = surfe.m_elem[0];
 
-		m_pangio->m_fe_element_data[base_eindex + 1].surfacesIndices.push_back(i);
+		m_pangio->m_fe_element_data[base_eindex + 1].surfacesIndices.emplace_back(i);
 	}
 }
 
@@ -334,7 +339,7 @@ void FEAngioMaterial::AdjustMeshStiffness()
 	int elem_num = 0;													// Element number
 	vec3d vess_vect;													// Vessel vector
 	std::vector<int> matls;
-	matls.push_back(GetID());
+	matls.emplace_back(GetID());
 	int Nsub = 2;														// Number of subdivisions used to calculate vessel orientation
 	double sub_scale = 1 / static_cast<double>(Nsub);									// Calculate the subdivision scale 
 	vec3d mid;
@@ -618,7 +623,7 @@ void FEAngioMaterial::SetParameter(FEParam& p)
 {
 	if (strcmp(p.name(), "sprout") == 0)
 	{
-		m_suser.push_back(m_s);
+		m_suser.emplace_back(m_s);
 	}
 }
 
@@ -646,7 +651,7 @@ void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t, FEDomain * domai
 	SPROUT s(dir, &dom->Element(elemindex), pos, this);
 	assert(s.pel);
 
-	m_spr.push_back(s);
+	m_spr.emplace_back(s);
 	sprouts.insert(std::pair<size_t, std::vector<SPROUT> *>(m_spr.size() - 1, &m_spr));
 }
 //-----------------------------------------------------------------------------
@@ -666,7 +671,7 @@ void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t, FEDomain * domai
 	SPROUT s(dir, el, pos, this);
 	assert(s.pel);
 
-	m_spr.push_back(s);
+	m_spr.emplace_back(s);
 	sprouts.insert(std::pair<size_t, std::vector<SPROUT> *>(m_spr.size() - 1, &m_spr));
 }
 
@@ -680,7 +685,7 @@ void FEAngioMaterial::AddSprout(const Segment::TIP & tip)
 	SPROUT s(tip.u, &tip.pt.ndomain->ElementRef(tip.pt.elemindex), pos, this);
 
 	assert(s.pel);
-	m_spr.push_back(s);
+	m_spr.emplace_back(s);
 	sprouts.insert(std::pair<size_t, std::vector<SPROUT> *>(m_spr.size() - 1, &m_spr));
 }
 
@@ -789,7 +794,7 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 			local[1] = angioPt.m_pt.q.y;
 			local[2] = angioPt.m_pt.q.z;
 			SPROUT stemp(vec3d(), &angioPt.m_pt.ndomain->Element(angioPt.m_pt.elemindex), local, this);
-			temp.push_back(stemp);
+			temp.emplace_back(stemp);
 			std::pair<size_t, std::vector<SPROUT> *> dim = std::pair<size_t, std::vector<SPROUT> * >(0, &temp);
 			std::vector<std::pair<size_t, std::vector<SPROUT> *>> nst = sprouts.within(dim, m_cultureParams.stress_radius * m_cultureParams.stress_radius);
 			for (size_t i = 0; i<nst.size(); ++i)
@@ -849,7 +854,7 @@ bool FEAngioMaterial::InitECMDensity(FEAngio * angio)
 void ECMInitializerConstant::seedECMDensity(FEAngioMaterial * mat)
 {
 	std::vector<int> matls;
-	matls.push_back(mat->GetID());
+	matls.emplace_back(mat->GetID());
 	mat->m_pangio->ForEachNode([this, mat](FENode & node)
 	{
 		mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den0 = mat->m_cultureParams.m_matrix_density;
@@ -860,7 +865,7 @@ void ECMInitializerConstant::seedECMDensity(FEAngioMaterial * mat)
 void ECMInitializer::updateECMdensity(FEAngioMaterial * mat)
 {
 	std::vector<int> matls;
-	matls.push_back(mat->GetID());
+	matls.emplace_back(mat->GetID());
 	FEMesh * mesh = mat->m_pangio->GetMesh();
 	mat->m_pangio->ForEachElement([mesh, mat](FESolidElement & elem, FESolidDomain & d)
 	{
@@ -934,7 +939,7 @@ void ECMInitializer::updateECMdensity(FEAngioMaterial * mat)
 void ECMInitializerSpecified::seedECMDensity(FEAngioMaterial * mat)
 {
 	std::vector<int> matls;
-	matls.push_back(mat->GetID());
+	matls.emplace_back(mat->GetID());
 	FEMesh * mesh = mat->m_pangio->GetMesh();
 	mat->m_pangio->ForEachElement([this, mat, mesh](FESolidElement & se, FESolidDomain & sd)
 	{
@@ -964,7 +969,7 @@ void ECMInitializerSpecified::seedECMDensity(FEAngioMaterial * mat)
 void ECMInitializerNoOverwrite::seedECMDensity(FEAngioMaterial * mat)
 {
 	std::vector<int> matls;
-	matls.push_back(mat->GetID());
+	matls.emplace_back(mat->GetID());
 	mat->m_pangio->ForEachNode([this, mat](FENode & node)
 	{
 		if (mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den0 == 0.0)

@@ -129,10 +129,24 @@ public:
 };
 
 //-----------------------------------------------------------------------------
-class FEPlotAngioCollagenFibers : public FENodeData
+class FEPlotAngioCollagenFibersNodes : public FENodeData
 {
 public:
-	FEPlotAngioCollagenFibers(FEModel* pfem) : FENodeData(PLT_VEC3F, FMT_ITEM){}
+	FEPlotAngioCollagenFibersNodes(FEModel* pfem) : FENodeData(PLT_VEC3F, FMT_ITEM){}
+	bool Save(FEMesh& m, FEDataStream& a)  override;
+};
+//-----------------------------------------------------------------------------
+class FEPlotAngioCollagenFibersMinorAxis1Node : public FENodeData
+{
+public:
+	FEPlotAngioCollagenFibersMinorAxis1Node(FEModel* pfem) : FENodeData(PLT_VEC3F, FMT_ITEM) {}
+	bool Save(FEMesh& m, FEDataStream& a)  override;
+};
+//-----------------------------------------------------------------------------
+class FEPlotAngioCollagenFibersMinorAxis2Node : public FENodeData
+{
+public:
+	FEPlotAngioCollagenFibersMinorAxis2Node(FEModel* pfem) : FENodeData(PLT_VEC3F, FMT_ITEM) {}
 	bool Save(FEMesh& m, FEDataStream& a)  override;
 };
 

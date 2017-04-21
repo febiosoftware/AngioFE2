@@ -73,6 +73,7 @@ public:
 	void ForEachDomain(std::function<void(FESolidDomain&)> f);
 	void ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<int> & matls);
 
+	mat3d unifromRandomRotationMatrix();
 	vec3d uniformRandomDirection();
 	vec3d uniformInUnitCube();
 
@@ -83,7 +84,7 @@ public:
 
 	//these freindships are for displaying/reading the data and are okay
 	friend class Fileout;
-	friend class FEPlotAngioCollagenFibers;
+	friend class FEPlotAngioCollagenFibersNodes;
 	friend class FEPlotAngioECMDensity;
 	friend class FEPlotAngioECMAlpha;
 	friend class FEPlotAngioGradient;
@@ -143,8 +144,9 @@ public:	// parameters read directly from file
 
 	angiofe_random_engine rengine;
 
-private:
 	FEModel&		m_fem;		// the FE model
+private:
+	
 	//both nodes and elements id's go from 1 to n+1 for n items
 	//first element is padding so the id can be used to lookup the data for that node
 	

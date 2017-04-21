@@ -136,7 +136,7 @@ private:
 	std::function<DIMR(DIM)> _accessor;
 	std::function<double(DIMR &, DIMR &)> _distancef;
 	std::function<double(DIMR &, DIMR &, DIMR &)> _distancetoplane;
-	int ndim;
+	size_t ndim;
 	DIMR _units;
 
 };
@@ -238,7 +238,7 @@ void KDTree<DIM, DIMR>::BFS(std::function<bool(KDNode *)> func, KDNode * node)
     if(node)
     {
         std::queue<KDNode *> process;
-        process.push(node);
+        process.emplace(node);
         while(!process.empty())
         {
             if(func(process.front()))
@@ -246,11 +246,11 @@ void KDTree<DIM, DIMR>::BFS(std::function<bool(KDNode *)> func, KDNode * node)
                 //add the children of the node
                 if(process.front()->childGreater)
                 {
-                    process.push(process.front()->childGreater);
+                    process.emplace(process.front()->childGreater);
                 }
                 if(process.front()->childLess)
                 {
-                    process.push(process.front()->childLess);
+                    process.emplace(process.front()->childLess);
                 }
                 
             }
@@ -283,7 +283,7 @@ void KDTree<DIM, DIMR>::insert(DIM item)
         while (!found)
         {
                 DIMR ccut = _accessor(current->dimensions);//current cut
-                touched.push_front(current);
+                touched.emplace_front(current);
                 if(cdim != current->dimchoice)
                 {
                     PrintTree(vector_printer);
@@ -371,7 +371,7 @@ void KDTree<DIM, DIMR>::insert(DIM item)
                         std::vector<KDNode *> nodes;
                         DFT([&nodes](KDNode * node)
                         {
-                                nodes.push_back(node);
+                                nodes.emplace_back(node);
                         }, *iterr);
 
                         //fix the pointers that weren't fixed by KDify
@@ -428,7 +428,7 @@ void KDTree<DIM, DIMR>::insert(std::list<DIM> items)
         {
             KDNode *node = new KDNode(0, *iter);
             root = node;
-            touched.push_back(root);
+            touched.emplace_back(root);
             verifyTree();
         }
         else
@@ -437,7 +437,7 @@ void KDTree<DIM, DIMR>::insert(std::list<DIM> items)
             while (!found)
             {
                 DIMR ccut = _accessor(current->dimensions); //current cut
-                touched.push_back(current);
+                touched.emplace_back(current);
                 if(cdim != current->dimchoice)
                 {
                     PrintTree(vector_printer);
@@ -531,7 +531,7 @@ void KDTree<DIM, DIMR>::insert(std::list<DIM> items)
             std::vector<KDNode *> nodes;
             DFT([&nodes](KDNode * node)
                 {
-                    nodes.push_back(node);
+                    nodes.emplace_back(node);
                 }, *iterr);
 
             //fix the pointers that weren't fixed by KDify
@@ -575,7 +575,7 @@ void KDTree<DIM, DIMR>::rebuild()
     std::vector<KDNode *> nodes;
     DFT([&nodes](KDNode * node)
         {
-            nodes.push_back(node);
+            nodes.emplace_back(node);
         }, root);
     KDNode * new_root = KDify(nodes.begin(),  nodes.end(),  0);
     root = new_root;
@@ -697,7 +697,7 @@ DIM KDTree<DIM, DIMR>::nearest(DIM item)
         double cbest = std::numeric_limits<double>::infinity();
         std::stack<KDNode *> n2p;
         std::stack<KDNode *> end_nodes;
-        n2p.push(startNode);
+        n2p.emplace(startNode);
         //end_nodes.push(root);
         // see wikipedia on nn in KDTree
         while(!n2p.empty())
@@ -728,7 +728,7 @@ DIM KDTree<DIM, DIMR>::nearest(DIM item)
             auto bn = _accessor(best_node->dimensions);
             double d_g_b = _distancef(bn, goal);
             if(current->parent)
-                n2p.push(current->parent);
+                n2p.emplace(current->parent);
             if(d_pt_pl <= d_g_b)
             {
                 // there may be points on the other side of the plane
@@ -739,8 +739,8 @@ DIM KDTree<DIM, DIMR>::nearest(DIM item)
                         KDNode * next_subtree = nearest_leaf_node(goal, current->childGreater);
                         if(next_subtree && (next_subtree !=  current))
                         {
-                            n2p.push(next_subtree);
-                            end_nodes.push(current);
+                            n2p.emplace(next_subtree);
+                            end_nodes.emplace(current);
                             continue;
                         }
                     } 
@@ -752,8 +752,8 @@ DIM KDTree<DIM, DIMR>::nearest(DIM item)
                         KDNode * next_subtree = nearest_leaf_node(goal, current->childLess);
                         if(next_subtree && (next_subtree != current))
                         {
-                            n2p.push(next_subtree);
-                            end_nodes.push(current);
+                            n2p.emplace(next_subtree);
+                            end_nodes.emplace(current);
                             continue;
                         }
                     }
@@ -783,7 +783,7 @@ DIM KDTree<DIM, DIMR>::nearestCondition(DIM item, std::function<bool(DIM)> condi
 		double cbest = std::numeric_limits<double>::infinity();
 		std::stack<KDNode *> n2p;
 		std::stack<KDNode *> end_nodes;
-		n2p.push(startNode);
+		n2p.emplace(startNode);
 		//end_nodes.push(root);
 		// see wikipedia on nn in KDTree
 		while (!n2p.empty())
@@ -811,7 +811,7 @@ DIM KDTree<DIM, DIMR>::nearestCondition(DIM item, std::function<bool(DIM)> condi
 			int cdim = current->dimchoice;
 			zeros[cdim] = _units[cdim];
 			if (current->parent)
-				n2p.push(current->parent);
+				n2p.emplace(current->parent);
 
 			double d_pt_pl = _distancetoplane(goal, temp, zeros);
 			double d_g_b;
@@ -836,8 +836,8 @@ DIM KDTree<DIM, DIMR>::nearestCondition(DIM item, std::function<bool(DIM)> condi
 						KDNode * next_subtree = nearest_leaf_node(goal, current->childGreater);
 						if (next_subtree && (next_subtree != current))
 						{
-							n2p.push(next_subtree);
-							end_nodes.push(current);
+							n2p.emplace(next_subtree);
+							end_nodes.emplace(current);
 							continue;
 						}
 					}
@@ -849,8 +849,8 @@ DIM KDTree<DIM, DIMR>::nearestCondition(DIM item, std::function<bool(DIM)> condi
 						KDNode * next_subtree = nearest_leaf_node(goal, current->childLess);
 						if (next_subtree && (next_subtree != current))
 						{
-							n2p.push(next_subtree);
-							end_nodes.push(current);
+							n2p.emplace(next_subtree);
+							end_nodes.emplace(current);
 							continue;
 						}
 					}
@@ -878,7 +878,7 @@ std::vector<DIM> KDTree<DIM, DIMR>::within(DIM item, double dist, bool ordered)
         DIMR temp = _accessor(startNode->dimensions);
         std::stack<KDNode *> n2p;
         std::stack<KDNode *> end_nodes;
-        n2p.push(startNode);
+        n2p.emplace(startNode);
         //end_nodes.push(root);
         // see wikipedia on nn in KDTree
         while(!n2p.empty())
@@ -889,7 +889,7 @@ std::vector<DIM> KDTree<DIM, DIMR>::within(DIM item, double dist, bool ordered)
             double d = _distancef(goal,  temp);
             if(d < dist)
             {
-                rv.push_back(current->dimensions);
+                rv.emplace_back(current->dimensions);
             }
 
             if((!end_nodes.empty()) && (current == end_nodes.top()))
@@ -906,7 +906,7 @@ std::vector<DIM> KDTree<DIM, DIMR>::within(DIM item, double dist, bool ordered)
             zeros[cdim] = _units[cdim];
             double d_pt_pl = _distancetoplane(goal,  temp,  zeros);
             if(current->parent)
-            n2p.push(current->parent);
+            n2p.emplace(current->parent);
             if(d_pt_pl <= dist)
             {
                 // there may be points on the other side of the plane
@@ -917,8 +917,8 @@ std::vector<DIM> KDTree<DIM, DIMR>::within(DIM item, double dist, bool ordered)
                         KDNode * next_subtree = nearest_leaf_node(goal, current->childGreater);
                         if(next_subtree && (next_subtree !=  current))
                         {
-                            n2p.push(next_subtree);
-                            end_nodes.push(current);
+                            n2p.emplace(next_subtree);
+                            end_nodes.emplace(current);
                         continue;
                         }
                     } 
@@ -930,8 +930,8 @@ std::vector<DIM> KDTree<DIM, DIMR>::within(DIM item, double dist, bool ordered)
                         KDNode * next_subtree = nearest_leaf_node(goal, current->childLess);
                         if(next_subtree && (next_subtree != current))
                         {
-                            n2p.push(next_subtree);
-                            end_nodes.push(current);
+                            n2p.emplace(next_subtree);
+                            end_nodes.emplace(current);
                         continue;
                         }
                     }

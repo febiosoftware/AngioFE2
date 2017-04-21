@@ -35,6 +35,23 @@ public:
 	void InitializeFibers(FiberManager * fman) override;
 };
 
+//set the fibers to a random orientation without mangling the relationship between the material axes at the integration points
+class RandomFiberInitializerNonMangling : public FiberInitializer
+{
+public:
+	RandomFiberInitializerNonMangling(FEModel * model) : FiberInitializer(model) {}
+	virtual ~RandomFiberInitializerNonMangling() {}
+	void InitializeFibers(FiberManager * fman) override;
+};
+//set the fibers to a random orientation on a per element basis
+class RandomFiberInitializerPE : public FiberInitializer
+{
+public:
+	RandomFiberInitializerPE(FEModel * model) : FiberInitializer(model) {}
+	virtual ~RandomFiberInitializerPE() {}
+	void InitializeFibers(FiberManager * fman) override;
+};
+
 class FiberManager
 {
 public:
@@ -45,6 +62,8 @@ public:
 	vec3d GetMinorAxisDirection1(GridPoint & pt);
 	vec3d GetMinorAxisDirection2(GridPoint & pt);
 	vec3d GetFiberAtNode(int node);
+	vec3d GetMinor1AtNode(int node);
+	vec3d GetMinor2AtNode(int node);
 	void Update();
 
 private:
@@ -53,9 +72,10 @@ private:
 	std::vector<double> fibers_at_nodes[3];
 	std::vector<double> minoraxis1_at_nodes[3];
 	std::vector<double> minoraxis2_at_nodes[3];
-	std::unordered_map<size_t, size_t> node_map[3];
 
 	friend class FiberInitializer;
 	friend class RandomFiberInitializer;
+	friend class RandomFiberInitializerNonMangling;
+	friend class RandomFiberInitializerPE;
 };
 

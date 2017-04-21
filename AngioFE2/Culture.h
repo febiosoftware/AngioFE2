@@ -112,7 +112,7 @@ private:
 	//should only be used by BC
 	void ClearRecents(){ recents.clear(); }
 	//should only be used by BC
-	void AddToRecents(Segment * seg){ recents.push_back(seg); }
+	void AddToRecents(Segment * seg){ recents.emplace_back(seg); }
 	
 
 	CultureParameters * m_cultParams;

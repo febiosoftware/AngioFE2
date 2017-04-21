@@ -463,15 +463,52 @@ bool FEPlotAngioEffectiveStress::Save(FEDomain& d, FEDataStream& str)
 };
 
 //-----------------------------------------------------------------------------
-bool FEPlotAngioCollagenFibers::Save(FEMesh& m, FEDataStream& a)
+bool FEPlotAngioCollagenFibersNodes::Save(FEMesh& m, FEDataStream& a)
 {
 	if (pfeangio == nullptr) return false;
 	//multiple materials average their *
 	for (int i = 0; i < pfeangio->m_fem.GetMesh().Nodes(); i++)
 	{
-		if (pfeangio->m_fe_node_data.count(pfeangio->m_fem.GetMesh().Node(i).GetID()))
+		if (pfeangio->m_pmat[0]->node_map.count(pfeangio->m_fem.GetMesh().Node(i).GetID()))
 		{
-			a << pfeangio->m_fe_node_data[pfeangio->m_fem.GetMesh().Node(i).GetID()].m_collfib;
+			a << pfeangio->m_pmat[0]->fiber_manager->GetFiberAtNode(pfeangio->m_pmat[0]->node_map[pfeangio->m_fem.GetMesh().Node(i).GetID()]);
+		}
+		else
+		{
+			a << vec3d(0, 0, 0);//is all zero's okay for this parameter
+		}
+	}
+	return true;
+}
+//-----------------------------------------------------------------------------
+bool FEPlotAngioCollagenFibersMinorAxis1Node::Save(FEMesh& m, FEDataStream& a)
+{
+	if (pfeangio == nullptr) return false;
+	//multiple materials average their *
+	for (int i = 0; i < pfeangio->m_fem.GetMesh().Nodes(); i++)
+	{
+		if (pfeangio->m_pmat[0]->node_map.count(pfeangio->m_fem.GetMesh().Node(i).GetID()))
+		{
+			a << pfeangio->m_pmat[0]->fiber_manager->GetMinor1AtNode(pfeangio->m_pmat[0]->node_map[pfeangio->m_fem.GetMesh().Node(i).GetID()]);
+		}
+		else
+		{
+			a << vec3d(0, 0, 0);//is all zero's okay for this parameter
+		}
+	}
+	return true;
+}
+//-----------------------------------------------------------------------------
+bool FEPlotAngioCollagenFibersMinorAxis2Node::Save(FEMesh& m, FEDataStream& a)
+{
+	if (pfeangio == nullptr) return false;
+	//multiple materials average their *
+	for (int i = 0; i < pfeangio->m_fem.GetMesh().Nodes(); i++)
+	{
+		if (pfeangio->m_pmat[0]->node_map.count(pfeangio->m_fem.GetMesh().Node(i).GetID()))
+		{
+			
+			a << pfeangio->m_pmat[0]->fiber_manager->GetMinor2AtNode(pfeangio->m_pmat[0]->node_map[pfeangio->m_fem.GetMesh().Node(i).GetID()]);
 		}
 		else
 		{
