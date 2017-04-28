@@ -1,6 +1,7 @@
 #pragma once
 #include "StdAfx.h"
 #include <FEBioMech/FEElasticMaterial.h>
+#include <FEBioMech/FEElasticFiberMaterial.h>
 #include <FECore/FEDataArray.h>
 #include <FECore/FESurface.h>
 #include <FECore/FENormalProjection.h>
@@ -76,7 +77,7 @@ class ECMInitializerNoOverwrite : public ECMInitializer
 
 //-----------------------------------------------------------------------------
 // Class implementing a stress induced by a non-local point force
-class FEAngioMaterial : public FEElasticMaterial
+class FEAngioMaterial : public FEElasticFiberMaterial
 {
 public:
 	struct SPROUT

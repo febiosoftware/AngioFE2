@@ -27,7 +27,6 @@ class FEAngioElementData
 public:
 	FEAngioElementData();
 	double alpha;
-	vec3d fiber_orient;
 	std::vector<int> surfacesIndices;
 	int flags;//used for boolean flags bit 0 is segment crossed entire material
 };

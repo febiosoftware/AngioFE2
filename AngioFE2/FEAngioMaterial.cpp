@@ -5,6 +5,7 @@
 #include "Elem.h"
 #include "Culture.h"
 #include "FEBioMech/FEElasticMixture.h"
+#include "FEBioMech/FEFiberMaterialPoint.h"
 #include "FEBioMech/FEViscoElasticMaterial.h"
 #include "FEBioMech/FESPRProjection.h"
 #include <iostream>
@@ -144,7 +145,7 @@ std::vector<double> access_sprout(std::pair<size_t, std::vector<FEAngioMaterial:
 }
 
 //-----------------------------------------------------------------------------
-FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticMaterial(pfem), sprouts(access_sprout, ndim_distance, ndim_distance_to_plane, units3d)
+FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticFiberMaterial(pfem), sprouts(access_sprout, ndim_distance, ndim_distance_to_plane, units3d)
 {
 	scale = 1.0;
 	
@@ -352,7 +353,6 @@ void FEAngioMaterial::AdjustMeshStiffness()
 	{
 		int elemnum = se.GetID();
 		m_pangio->m_fe_element_data[elemnum].alpha = 0.0;
-		m_pangio->m_fe_element_data[elemnum].fiber_orient = vec3d(0, 0, 0);
 	}, matls);
 
 	const SegmentList& seg_list = m_cult->GetSegmentList();
@@ -414,16 +414,6 @@ void FEAngioMaterial::AdjustMeshStiffness()
 				volume_fraction = subunit_volume / elem_volume;				// Calculate the volume fraction
 
 				el.alpha = el.alpha + volume_fraction;	// Add the volume fraction for each subdivision to alpha
-
-				// Calculate the vessel orientation vector 
-				if ((el.fiber_orient.x == 0) && (el.fiber_orient.y == 0) && (el.fiber_orient.z == 0)){	// If the vessel orientation vector hasn't been assigned yet...
-					el.fiber_orient = vess_vect;			// Set the vessel orientation vector					
-				}
-				else{														// If it has been...	
-					el.fiber_orient.x = (el.fiber_orient.x + vess_vect.x) / 2;	// Average together the vessel orientation vector
-					el.fiber_orient.y = (el.fiber_orient.y + vess_vect.y) / 2;
-					el.fiber_orient.z = (el.fiber_orient.z + vess_vect.z) / 2;
-				}
 			}
 
 			// Set the origin of the next subdivision to the end of the current one
@@ -453,39 +443,12 @@ void FEAngioMaterial::AdjustMeshStiffness()
 			m_pangio->m_fe_node_data[id].alpha = alpha;
 		}
 
-		// Set e1 to the vessel orientation vector
-		e1 = eg.fiber_orient;
-
-		if ((e1.x == 0) && (e1.y == 0) && (e1.z == 0)){						// If there is not vessels in the element, set the material basis to the global coordinate basis
-			e1 = vec3d(1, 0, 0);
-			e2 = vec3d(0, 1, 0);
-			e3 = vec3d(0, 0, 1);
-		}
-		else{																// Else, set the other two directions to be orthogonal to the vessel orientation
-			e2.y = 1;
-			e2 = e1^e2;
-			e3 = e1^e2;
-		}
-
 		for (int n = 0; n < nint; ++n)										// For each gauss point...
 		{
 			FEMaterialPoint& mp = *(e.GetMaterialPoint(n));
 			FEAngioMaterialPoint* pt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp); // get the mixture material point
 			pt->vessel_weight = alpha;
 			pt->matrix_weight = 1.0 - alpha;
-
-			if (m_cultureParams.m_composite_material == 2){													// If the transversely isotropic material is being used...
-				FEElasticMaterialPoint& pt2 = *mp.ExtractData<FEElasticMaterialPoint>();
-				pt2.m_Q[0][0] = e1.x;												// Set the first column of Q to e1
-				pt2.m_Q[1][0] = e1.y;
-				pt2.m_Q[2][0] = e1.z;
-				pt2.m_Q[0][1] = e2.x;												// Set the second column of Q to e2
-				pt2.m_Q[1][1] = e2.y;
-				pt2.m_Q[2][1] = e2.z;
-				pt2.m_Q[0][2] = e3.x;												// Set the third column of Q to e3
-				pt2.m_Q[1][2] = e3.y;
-				pt2.m_Q[2][2] = e3.z;
-			}
 		}
 
 		num_elem++;
@@ -601,21 +564,33 @@ void FEAngioMaterial::UpdateSproutStressScaling()
 
 void FEAngioMaterial::SetLocalCoordinateSystem(FEElement& el, int n, FEMaterialPoint& mp)
 {
-	FEElasticMaterial::SetLocalCoordinateSystem(el, n, mp);
-	FEElasticMaterialPoint& pt = *(mp.ExtractData<FEElasticMaterialPoint>());
-	FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
+	// get the material's coordinate system (if defined)
+	FECoordSysMap* pmap = GetCoordinateSystemMap();
+	//this allows the local coordinates to work correctly
+	assert(pmap);
+	if (pmap)
+	{
+		FEElasticMaterial::SetLocalCoordinateSystem(el, n, mp);
+		FEElasticMaterialPoint& pt = *(mp.ExtractData<FEElasticMaterialPoint>());
+		FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
 
-	FEElasticMaterialPoint& vessel_elastic = *angioPt->vessPt->ExtractData<FEElasticMaterialPoint>();
-	FEElasticMaterialPoint& matrix_elastic = *angioPt->matPt->ExtractData<FEElasticMaterialPoint>();
+		FEElasticMaterialPoint& vessel_elastic = *angioPt->vessPt->ExtractData<FEElasticMaterialPoint>();
+		FEElasticMaterialPoint& matrix_elastic = *angioPt->matPt->ExtractData<FEElasticMaterialPoint>();
 
-	vessel_elastic.m_Q = pt.m_Q;
-	matrix_elastic.m_Q = pt.m_Q;
+		// compound the local map with the global material axes
+		//mat3d Qlocal = pmap->LocalElementCoord(el, n);
+		//pt.m_Q = pt.m_Q * Qlocal;
 
-	FEElasticMaterial* vess_elastic = vessel_material->GetElasticMaterial();
-	FEElasticMaterial* mat_elastic = matrix_material->GetElasticMaterial();
+		vessel_elastic.m_Q = pt.m_Q;
+		matrix_elastic.m_Q = pt.m_Q;
 
-	vess_elastic->SetLocalCoordinateSystem(el, n, *angioPt->vessPt);
-	mat_elastic->SetLocalCoordinateSystem(el, n, *angioPt->matPt);
+		FEElasticMaterial* vess_elastic = vessel_material->GetElasticMaterial();
+		FEElasticMaterial* mat_elastic = matrix_material->GetElasticMaterial();
+
+		vess_elastic->SetLocalCoordinateSystem(el, n, *angioPt->vessPt);
+		mat_elastic->SetLocalCoordinateSystem(el, n, *angioPt->matPt);
+	}
+	
 }
 
 //-----------------------------------------------------------------------------
@@ -1011,10 +986,18 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 		matrix_elastic.m_r0 = elastic_pt.m_r0;
 		matrix_elastic.m_F = elastic_pt.m_F;
 		matrix_elastic.m_J = elastic_pt.m_J;
-		mat3ds activeStress = AngioStress(*angioPt);
+
+		vec3d fiberdir = elastic_pt.m_F * elastic_pt.m_Q * vec3d(1, 0, 0);
+		fiberdir.unit();
+		//see FEFiberEFDNeoHookean.cpp:118 for similar calculation
+		mat3ds activeStress = AngioStress(*angioPt) ;
 		vessel_elastic.m_s = vessel_material->Stress(*angioPt->vessPt);
 		matrix_elastic.m_s = matrix_material->Stress(*angioPt->matPt);
+
+		
 		s = activeStress + angioPt->vessel_weight*vessel_elastic.m_s + angioPt->matrix_weight*matrix_elastic.m_s;
+		
+
 	}
 	return s;
 }
@@ -1183,5 +1166,5 @@ void FEAngioMaterial::MirrorSym(vec3d y, mat3ds &s, SPROUT sp, double den_scale)
 //-----------------------------------------------------------------------------
 FEMaterialPoint* FEAngioMaterial::CreateMaterialPointData()
 {
-	return new FEAngioMaterialPoint(new FEElasticMaterialPoint, vessel_material->CreateMaterialPointData(), matrix_material->CreateMaterialPointData()); 
+	return new FEAngioMaterialPoint(new FEFiberMaterialPoint(FEElasticMaterial::CreateMaterialPointData()), vessel_material->CreateMaterialPointData(), matrix_material->CreateMaterialPointData());
 }

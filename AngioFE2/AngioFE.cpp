@@ -63,8 +63,6 @@ FEPluginFactory_T<FEPlotMatrixElasticStress  , FEPLOTDATA_ID> plot_matrix_elasti
 FEPluginFactory_T<FEPlotAngioEffectiveStress , FEPLOTDATA_ID> plot_angio_eff_stress        ("angio effective stress");
 
 FEPluginFactory_T<FEPlotAngioCollagenFibersNodes  , FEPLOTDATA_ID> plot_angio_fibers            ("angio collagen fiber"  );
-FEPluginFactory_T<FEPlotAngioCollagenFibersMinorAxis1Node, FEPLOTDATA_ID> plot_angio_fibers_m1("angio collagen fiber m1");
-FEPluginFactory_T<FEPlotAngioCollagenFibersMinorAxis2Node, FEPLOTDATA_ID> plot_angio_fibers_m2("angio collagen fiber m2");
 
 FEPluginFactory_T<FEPlotAngioECMDensity      , FEPLOTDATA_ID> plot_angio_ecm               ("angio ECM density"     );
 FEPluginFactory_T<FEPlotAngioECMAlpha        , FEPLOTDATA_ID> plot_angio_alpha             ("angio ECM alpha"       );
@@ -76,8 +74,6 @@ FEPluginFactory_T<FEPlotAngioSegmentBadGrowth, FEPLOTDATA_ID> plot_angio_segment
 FEPluginFactory_T<FEPlotMatrixElastic_m_Q, FEPLOTDATA_ID> plot_matrix_elastic_m_Q("matrix elastic mQ");
 
 FEPluginFactory_T<FEPlotMatrixElastic_m_Q_fiber, FEPLOTDATA_ID> plot_matrix_elastic_m_Q_fiber("matrix elastic mQ fiber?");
-FEPluginFactory_T<FEPlotMatrixElastic_m_Q_minoraxis1, FEPLOTDATA_ID> plot_matrix_elastic_m_Q_minoraxis1("matrix elastic mQ m1");
-FEPluginFactory_T<FEPlotMatrixElastic_m_Q_minoraxis2, FEPLOTDATA_ID> plot_matrix_elastic_m_Q_minoraxis2("matrix elastic mQ m2");
 
 
 FEPluginFactory_T<NullFiberInitializer, FEMATERIAL_ID> null_fiber_initializer("null_fiber_initializer");
@@ -196,21 +192,14 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 	case 42:
 		return &plot_matrix_elastic_m_Q_fiber;
 	case 43:
-		return &plot_matrix_elastic_m_Q_minoraxis1;
+		return &random_fiber_initializer_non_mangling;
 	case 44:
-		return &plot_matrix_elastic_m_Q_minoraxis2;
+		return &random_fiber_initializer_pe;
 	case 45:
 		return &null_fiber_initializer;
 	case 46:
 		return &random_fiber_initializer;
-	case 47:
-		return &random_fiber_initializer_non_mangling;
-	case 48:
-		return &random_fiber_initializer_pe;
-	case 49:
-		return &plot_angio_fibers_m1;
-	case 50:
-		return &plot_angio_fibers_m2;
+
 	default:
 		return nullptr;
 	}

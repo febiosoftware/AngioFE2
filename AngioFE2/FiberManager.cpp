@@ -1,5 +1,6 @@
 #include "FiberManager.h"
 #include <FEBioMech/FESPRProjection.h>
+#include <FEBioMech/FEFiberMaterialPoint.h>
 #include "FEAngioMaterial.h"
 
 vec3d FiberManager::GetFiberDirection(GridPoint & pt, double& lambda)
@@ -123,29 +124,8 @@ void FiberManager::Update()
 		int nint = el.GaussPoints();
 		for (int j = 0; j<nint; ++j)
 		{
-			vec3d fd;
-			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
-			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
-			assert(angioPt->matPt->Next());
-			FEElasticMaterialPoint*  emp = angioPt->matPt->Next()->ExtractData<FEElasticMaterialPoint>();
-			for (int n = 0; n < 3; ++n)
-			{	
-				//fiber_at_int_pts[n][i][j] = emp.m_Q[n][0];
-				switch (n)
-				{
-				case 0:
-					fd.x = emp->m_Q[n][0];
-					break;
-				case 1:
-					fd.y = emp->m_Q[n][0];
-					break;
-				case 2:
-					fd.z = emp->m_Q[n][0];
-					break;
-				}
-			}
-			//multiply by the defgrad
-			fd = emp->m_F * fd;
+			FEMaterialPoint * mp = el.GetMaterialPoint(j);
+			vec3d fd = material->GetFiberVector(*mp);
 
 			//store the data
 			fiber_at_int_pts[0][i][j] = fd.x;
@@ -157,92 +137,6 @@ void FiberManager::Update()
 	{
 		// project to nodes
 		map.Project(*sd, fiber_at_int_pts[n], fibers_at_nodes[n]);
-	}
-
-	//fill minor axis1
-	for (int i = 0; i<NE; ++i)
-	{
-		FESolidElement& el = sd->Element(i);
-		int nint = el.GaussPoints();
-		for (int j = 0; j<nint; ++j)
-		{
-			vec3d fd;
-			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
-			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
-			assert(angioPt->matPt->Next());
-			FEElasticMaterialPoint& emp = *angioPt->matPt->Next()->ExtractData<FEElasticMaterialPoint>();
-			for (int n = 0; n < 3; ++n)
-			{
-				//fiber_at_int_pts[n][i][j] = emp.m_Q[n][0];
-				switch (n)
-				{
-				case 0:
-					fd.x = emp.m_Q[n][1];
-					break;
-				case 1:
-					fd.y = emp.m_Q[n][1];
-					break;
-				case 2:
-					fd.z = emp.m_Q[n][1];
-					break;
-				}
-			}
-			//multiply by the defgrad
-			fd = emp.m_F * fd;
-
-			//store the data
-			fiber_at_int_pts[0][i][j] = fd.x;
-			fiber_at_int_pts[1][i][j] = fd.y;
-			fiber_at_int_pts[2][i][j] = fd.z;
-		}
-	}
-	for (int n = 0; n<3; ++n)
-	{
-		// project to nodes
-		map.Project(*sd, fiber_at_int_pts[n], minoraxis1_at_nodes[n]);
-	}
-
-	//fill minor axis1
-	for (int i = 0; i<NE; ++i)
-	{
-		FESolidElement& el = sd->Element(i);
-		int nint = el.GaussPoints();
-		for (int j = 0; j<nint; ++j)
-		{
-			vec3d fd;
-			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
-			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
-			assert(angioPt->matPt->Next());
-			FEElasticMaterialPoint& emp = *angioPt->matPt->Next()->ExtractData<FEElasticMaterialPoint>();
-			for (int n = 0; n < 3; ++n)
-			{
-				//fiber_at_int_pts[n][i][j] = emp.m_Q[n][0];
-				switch (n)
-				{
-				case 0:
-					fd.x = emp.m_Q[n][2];
-					break;
-				case 1:
-					fd.y = emp.m_Q[n][2];
-					break;
-				case 2:
-					fd.z = emp.m_Q[n][2];
-					break;
-				}
-			}
-			//multiply by the defgrad
-			fd = emp.m_F * fd;
-
-			//store the data
-			fiber_at_int_pts[0][i][j] = fd.x;
-			fiber_at_int_pts[1][i][j] = fd.y;
-			fiber_at_int_pts[2][i][j] = fd.z;
-		}
-	}
-	for (int n = 0; n<3; ++n)
-	{
-		// project to nodes
-		map.Project(*sd, fiber_at_int_pts[n], minoraxis2_at_nodes[n]);
 	}
 
 }
@@ -393,30 +287,12 @@ void RandomFiberInitializerNonMangling::InitializeFibers(FiberManager * fman)
 				
 
 				FEMaterialPoint * mp = se->GetMaterialPoint(k);
-				FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(mp);
-				FEElasticMaterialPoint *  emp = angioPt->matPt->Next()->ExtractData<FEElasticMaterialPoint>();
+				FEFiberMaterialPoint *  fp = mp->ExtractData<FEFiberMaterialPoint>();
+				//FEElasticMaterialPoint *  emp = angioPt->matPt->Next()->ExtractData<FEElasticMaterialPoint>();
 
-				vec3d fiber = vec3d(
-					emp->m_Q[0][0],
-					emp->m_Q[1][0],
-					emp->m_Q[2][0]
-				);
-				vec3d m1 = vec3d(
-					emp->m_Q[0][1],
-					emp->m_Q[1][1],
-					emp->m_Q[2][1]
-				);
-				vec3d m2 = vec3d(
-					emp->m_Q[0][2],
-					emp->m_Q[1][2],
-					emp->m_Q[2][2]
-				);
 
 				mat3d rm = fman->material->m_pangio->unifromRandomRotationMatrix();
-				fiber = rm*fiber;
-				m1 = rm*m1;
-				m2 = rm*m2;
-
+				fp->m_n0 = rm * fp->m_n0;
 #ifndef NDEBUG
 				double noq = fiber.norm();
 				double nom1 = m1.norm();
@@ -426,21 +302,6 @@ void RandomFiberInitializerNonMangling::InitializeFibers(FiberManager * fman)
 				assert(nom1 < (1 + tol) && nom1 >(1 - tol));
 				assert(nom2 < (1 + tol) && nom2 >(1 - tol));
 #endif
-
-				//fiber
-				emp->m_Q[0][0] = fiber.x;
-				emp->m_Q[1][0] = fiber.y;
-				emp->m_Q[2][0] = fiber.z;
-
-				//minor1
-				emp->m_Q[0][1] = m1.x;
-				emp->m_Q[1][1] = m1.y;
-				emp->m_Q[2][1] = m1.z;
-
-				//minor2
-				emp->m_Q[0][2] = m2.x;
-				emp->m_Q[1][2] = m2.y;
-				emp->m_Q[2][2] = m2.z;
 			}
 
 		}
