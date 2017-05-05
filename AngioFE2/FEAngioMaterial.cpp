@@ -987,17 +987,11 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 		matrix_elastic.m_F = elastic_pt.m_F;
 		matrix_elastic.m_J = elastic_pt.m_J;
 
-		vec3d fiberdir = elastic_pt.m_F * elastic_pt.m_Q * vec3d(1, 0, 0);
-		fiberdir.unit();
-		//see FEFiberEFDNeoHookean.cpp:118 for similar calculation
 		mat3ds activeStress = AngioStress(*angioPt) ;
 		vessel_elastic.m_s = vessel_material->Stress(*angioPt->vessPt);
 		matrix_elastic.m_s = matrix_material->Stress(*angioPt->matPt);
 
-		
 		s = activeStress + angioPt->vessel_weight*vessel_elastic.m_s + angioPt->matrix_weight*matrix_elastic.m_s;
-		
-
 	}
 	return s;
 }

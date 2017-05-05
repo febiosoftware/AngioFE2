@@ -58,11 +58,11 @@ FEPluginFactory_T<FEPlotMatrixStress         , FEPLOTDATA_ID> plot_matrix_stress
 FEPluginFactory_T<FEPlotVesselWeight         , FEPLOTDATA_ID> plot_vessel_weight           ("vessel weight"         );
 FEPluginFactory_T<FEPlotMatrixWeight         , FEPLOTDATA_ID> plot_matrix_weight           ("matrix weight"         );
 FEPluginFactory_T<FEPlotMatrixTangent        , FEPLOTDATA_ID> plot_matrix_tangent          ("matrix tangent"        );
+FEPluginFactory_T<FEPlotVesselStressWeighted , FEPLOTDATA_ID> plot_vessel_stress_weighted  ("vessel stress weighted");
+FEPluginFactory_T<FEPlotMatrixStressWeighted , FEPLOTDATA_ID> plot_matrix_stress_weighted  ("matrix stress weighted");
 FEPluginFactory_T<FEPlotMatrixViscoStress    , FEPLOTDATA_ID> plot_matrix_visco_stress     ("matrix visco stress"   );
 FEPluginFactory_T<FEPlotMatrixElasticStress  , FEPLOTDATA_ID> plot_matrix_elastic_stress   ("matrix elastic stress" );
 FEPluginFactory_T<FEPlotAngioEffectiveStress , FEPLOTDATA_ID> plot_angio_eff_stress        ("angio effective stress");
-
-FEPluginFactory_T<FEPlotAngioCollagenFibersNodes  , FEPLOTDATA_ID> plot_angio_fibers            ("angio collagen fiber"  );
 
 FEPluginFactory_T<FEPlotAngioECMDensity      , FEPLOTDATA_ID> plot_angio_ecm               ("angio ECM density"     );
 FEPluginFactory_T<FEPlotAngioECMAlpha        , FEPLOTDATA_ID> plot_angio_alpha             ("angio ECM alpha"       );
@@ -73,13 +73,11 @@ FEPluginFactory_T<FEPlotAngioSegmentBadGrowth, FEPLOTDATA_ID> plot_angio_segment
 
 FEPluginFactory_T<FEPlotMatrixElastic_m_Q, FEPLOTDATA_ID> plot_matrix_elastic_m_Q("matrix elastic mQ");
 
-FEPluginFactory_T<FEPlotMatrixElastic_m_Q_fiber, FEPLOTDATA_ID> plot_matrix_elastic_m_Q_fiber("matrix elastic mQ fiber?");
-
 
 FEPluginFactory_T<NullFiberInitializer, FEMATERIAL_ID> null_fiber_initializer("null_fiber_initializer");
 FEPluginFactory_T<RandomFiberInitializer, FEMATERIAL_ID> random_fiber_initializer("random_fiber_initializer");
 FEPluginFactory_T<RandomFiberInitializerNonMangling, FEMATERIAL_ID> random_fiber_initializer_non_mangling("random_fiber_initializer_non_mangling");
-FEPluginFactory_T<RandomFiberInitializerNonMangling, FEMATERIAL_ID> random_fiber_initializer_pe("random_fiber_initializer_pe");
+FEPluginFactory_T<RandomFiberInitializerPE, FEMATERIAL_ID> random_fiber_initializer_pe("random_fiber_initializer_pe");
 
 //-----------------------------------------------------------------------------
 FECORE_EXPORT  unsigned int GetSDKVersion()
@@ -118,7 +116,7 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 	case 5:
 		return &plot_angio_eff_stress;
 	case 6:
-		return &plot_angio_fibers;
+		return &null_fiber_initializer;
 	case 7:
 		return &plot_angio_ecm;
 	case 8:
@@ -190,16 +188,15 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 	case 41:
 		return &plot_matrix_elastic_m_Q;
 	case 42:
-		return &plot_matrix_elastic_m_Q_fiber;
+		return &random_fiber_initializer;
 	case 43:
 		return &random_fiber_initializer_non_mangling;
 	case 44:
 		return &random_fiber_initializer_pe;
 	case 45:
-		return &null_fiber_initializer;
+		return &plot_vessel_stress_weighted;
 	case 46:
-		return &random_fiber_initializer;
-
+		return &plot_matrix_stress_weighted;
 	default:
 		return nullptr;
 	}

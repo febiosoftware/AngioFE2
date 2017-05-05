@@ -84,7 +84,6 @@ public:
 
 	//these freindships are for displaying/reading the data and are okay
 	friend class Fileout;
-	friend class FEPlotAngioCollagenFibersNodes;
 	friend class FEPlotAngioECMDensity;
 	friend class FEPlotAngioECMAlpha;
 	friend class FEPlotAngioGradient;

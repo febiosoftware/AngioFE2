@@ -125,7 +125,8 @@ void FiberManager::Update()
 		for (int j = 0; j<nint; ++j)
 		{
 			FEMaterialPoint * mp = el.GetMaterialPoint(j);
-			vec3d fd = material->GetFiberVector(*mp);
+			FEElasticMaterialPoint * emp = mp->ExtractData<FEElasticMaterialPoint>();
+			vec3d fd = emp->m_Q * vec3d(1,0,0);
 
 			//store the data
 			fiber_at_int_pts[0][i][j] = fd.x;
@@ -133,12 +134,12 @@ void FiberManager::Update()
 			fiber_at_int_pts[2][i][j] = fd.z;
 		}
 	}
+	
 	for (int n = 0; n<3; ++n)
 	{
 		// project to nodes
 		map.Project(*sd, fiber_at_int_pts[n], fibers_at_nodes[n]);
 	}
-
 }
 
 vec3d FiberManager::GetFiberAtNode(int node)
@@ -251,7 +252,7 @@ void FiberInitializer::nodeToInt(FiberManager * fman)
 				
 				FEMaterialPoint * mp = se->GetMaterialPoint(k);
 				FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(mp);
-				FEElasticMaterialPoint *  emp = angioPt->matPt->Next()->ExtractData<FEElasticMaterialPoint>();
+				FEElasticMaterialPoint *  emp = angioPt->matPt->ExtractData<FEElasticMaterialPoint>();
 				//fiber
 				emp->m_Q[0][0] = fiber.x;
 				emp->m_Q[1][0] = fiber.y;
@@ -283,25 +284,17 @@ void RandomFiberInitializerNonMangling::InitializeFibers(FiberManager * fman)
 			FESolidElement *se = dynamic_cast<FESolidElement*>(&dom->ElementRef(j));
 			for (int k = 0; k < se->GaussPoints(); k++)
 			{
-
-				
-
 				FEMaterialPoint * mp = se->GetMaterialPoint(k);
-				FEFiberMaterialPoint *  fp = mp->ExtractData<FEFiberMaterialPoint>();
-				//FEElasticMaterialPoint *  emp = angioPt->matPt->Next()->ExtractData<FEElasticMaterialPoint>();
+				FEAngioMaterialPoint * angiopt = mp->ExtractData<FEAngioMaterialPoint>();
+				FEElasticMaterialPoint *  emp = mp->ExtractData<FEElasticMaterialPoint>();
 
+				FEElasticMaterialPoint *  emp_matrix = angiopt->matPt->ExtractData<FEElasticMaterialPoint>();
+				FEElasticMaterialPoint *  emp_vessel = angiopt->vessPt->ExtractData<FEElasticMaterialPoint>();
 
 				mat3d rm = fman->material->m_pangio->unifromRandomRotationMatrix();
-				fp->m_n0 = rm * fp->m_n0;
-#ifndef NDEBUG
-				double noq = fiber.norm();
-				double nom1 = m1.norm();
-				double nom2 = m2.norm();
-				double tol = 1.0;
-				assert(noq < (1 + tol) && noq >(1 - tol));
-				assert(nom1 < (1 + tol) && nom1 >(1 - tol));
-				assert(nom2 < (1 + tol) && nom2 >(1 - tol));
-#endif
+				emp->m_Q = emp->m_Q * rm;
+				emp_matrix->m_Q = emp->m_Q;
+				emp_vessel->m_Q = emp->m_Q;
 			}
 
 		}

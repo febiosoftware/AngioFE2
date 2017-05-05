@@ -448,9 +448,9 @@ mat3d FEAngio::unifromRandomRotationMatrix()
 {
 	//collagen fibers are right handed so the following transformation is legal
 	//the following will only produce right handed bases for the collagen fibers which is molecularly accurate
-	double alpha = zto2pi(rengine) - pi;
-	double beta = zto2pi(rengine) -pi;
-	double gamma = zto2pi(rengine) -pi;
+	double alpha = zto2pi(rengine);
+	double beta = zto2pi(rengine);
+	double gamma = zto2pi(rengine);
 
 
 	double c_alpha = cos(alpha);

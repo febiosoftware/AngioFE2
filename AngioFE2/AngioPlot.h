@@ -18,6 +18,14 @@ public:
 };
 
 //-----------------------------------------------------------------------------
+class FEPlotMatrixStressWeighted : public FEDomainData
+{
+public:
+	FEPlotMatrixStressWeighted(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM) {}
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+
+//-----------------------------------------------------------------------------
 class FEPlotMatrixViscoStress : public FEDomainData
 {
 public:
@@ -42,35 +50,20 @@ public:
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
-//-----------------------------------------------------------------------------
-class FEPlotMatrixElastic_m_Q_fiber : public FEDomainData
-{
-public:
-	FEPlotMatrixElastic_m_Q_fiber(FEModel* pfem) : FEDomainData(PLT_VEC3F, FMT_ITEM){}
-	bool Save(FEDomain& d, FEDataStream& str) override;
-};
-
-//-----------------------------------------------------------------------------
-class FEPlotMatrixElastic_m_Q_minoraxis1 : public FEDomainData
-{
-public:
-	FEPlotMatrixElastic_m_Q_minoraxis1(FEModel* pfem) : FEDomainData(PLT_VEC3F, FMT_ITEM){}
-	bool Save(FEDomain& d, FEDataStream& str) override;
-};
-
-//-----------------------------------------------------------------------------
-class FEPlotMatrixElastic_m_Q_minoraxis2 : public FEDomainData
-{
-public:
-	FEPlotMatrixElastic_m_Q_minoraxis2(FEModel* pfem) : FEDomainData(PLT_VEC3F, FMT_ITEM){}
-	bool Save(FEDomain& d, FEDataStream& str) override;
-};
 
 //-----------------------------------------------------------------------------
 class FEPlotVesselStress : public FEDomainData
 {
 public:
 	FEPlotVesselStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+
+//-----------------------------------------------------------------------------
+class FEPlotVesselStressWeighted : public FEDomainData
+{
+public:
+	FEPlotVesselStressWeighted(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM) {}
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
@@ -128,14 +121,6 @@ public:
 	bool Save(FEDomain& d, FEDataStream& str)  override;
 };
 
-//-----------------------------------------------------------------------------
-class FEPlotAngioCollagenFibersNodes : public FENodeData
-{
-public:
-	FEPlotAngioCollagenFibersNodes(FEModel* pfem) : FENodeData(PLT_VEC3F, FMT_ITEM){}
-	bool Save(FEMesh& m, FEDataStream& a)  override;
-};
-
 class FEPlotAngioGradient : public FENodeData
 {
 public:
@@ -158,3 +143,12 @@ public:
 	FEPlotAngioECMAlpha(FEModel* pfem) : FENodeData(PLT_FLOAT, FMT_ITEM){}
 	bool Save(FEMesh& m, FEDataStream& a)  override;
 };
+/*
+//-----------------------------------------------------------------------------
+class FEPlotAngioNodeMQ : public FENodeData
+{
+public:
+	FEPlotAngioNodeMQ(FEModel* pfem) : FENodeData(PLT_FLOAT, FMT_ITEM) {}
+	bool Save(FEMesh& m, FEDataStream& a)  override;
+};
+*/

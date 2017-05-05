@@ -96,9 +96,6 @@ public:
 	friend class FEPlotMatrixStress;
 	friend class FEPlotVesselStress;
 	friend class FEPlotMatrixTangent;
-	friend class FEPlotAngioCollagenFibersNodes;
-	friend class FEPlotAngioCollagenFibersMinorAxis1Node;
-	friend class FEPlotAngioCollagenFibersMinorAxis2Node;
 
 	// material initialization
 	bool Init() override;

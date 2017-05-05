@@ -131,8 +131,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\mp4\Documents\AngioFE2\VS2010\packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\include;C:\Users\mp4\Documents\FEBio2;$(FEBIO2Dir);$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\mp4\Documents\AngioFE2\VS2010\packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\lib\native\v120\windesktop\msvcstl\dyn\rt-dyn\x64\Debug;C:\Users\mp4\Documents\FEBio2\VS2013\Debug;$(FEBIO2Dir)\VS2013\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>E:\Documents\AngioFE2\VS2010\packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\include;$(FEBIODir);$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\mp4\Documents\AngioFE2\VS2010\packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\lib\native\v120\windesktop\msvcstl\dyn\rt-dyn\x64\Debug;C:\Users\mp4\Documents\FEBio2\VS2013\Debug;$(FEBIODir)\VS2015\x64\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug OMP|Win32'">
     <LinkIncremental>true</LinkIncremental>
