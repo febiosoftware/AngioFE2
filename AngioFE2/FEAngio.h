@@ -61,7 +61,7 @@ public:
 	std::vector<double> createVectorOfMaterialParameters(FEElement * elem,
 		double FEAngioNodeData::*materialparam);
 	// gets the value of a parameter at a given point interpolated from the shape function
-	double genericProjectToPoint(FEElement * elem,
+	double genericProjectToPoint(FESolidElement * elem,
 		double FEAngioNodeData::*materialparam,const vec3d & pos);
 	
 	//some funtions to replace the loops everywhere in the code

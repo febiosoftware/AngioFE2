@@ -20,6 +20,7 @@ class FESproutBodyForce : public FEBodyForce
 public:
 	struct SPROUT
 	{
+		SPROUT(vec3d r,vec3d sp):rc(r), sprout(sp){}
 		vec3d	rc;			// center of sprout force
 		vec3d	sprout;		// sprout direction
 	};
@@ -40,10 +41,7 @@ public:
 
 	void AddSprout(vec3d r, vec3d s)
 	{
-		SPROUT sp;
-		sp.rc = r;
-		sp.sprout = s;
-		m_sp.emplace_back(sp);
+		m_sp.emplace_back(r,s);
 	}
 
 	void ClearSprouts() { m_sp.clear(); }

@@ -124,7 +124,7 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	
 END_PARAMETER_LIST();
 
-FEAngioMaterial::SPROUT::SPROUT(vec3d dir, FEElement * el, double * local, FEAngioMaterial * m) : sprout(dir), pel(el), mat(m)
+FEAngioMaterial::SPROUT::SPROUT(vec3d dir, FESolidElement * el, double * local, FEAngioMaterial * m) : sprout(dir), pel(el), mat(m)
 {
 	r[0] = local[0];
 	r[1] = local[1];
@@ -136,8 +136,8 @@ std::vector<double> units3d(3, 1.0);
 std::vector<double> access_sprout(std::pair<size_t, std::vector<FEAngioMaterial::SPROUT> *> p)
 {
 	std::vector<double> rv;
-	FEAngioMaterial::SPROUT spr = (*p.second)[p.first];
-	vec3d cpos = spr.mat->CurrentPosition(spr.pel, spr.r[0], spr.r[1], spr.r[2]);
+	FEAngioMaterial::SPROUT * spr = &((*p.second)[p.first]);
+	vec3d cpos = spr->mat->CurrentPosition(spr->pel, spr->r[0], spr->r[1], spr->r[2]);
 	rv.emplace_back(cpos.x);
 	rv.emplace_back(cpos.y);
 	rv.emplace_back(cpos.z);
@@ -567,7 +567,6 @@ void FEAngioMaterial::SetLocalCoordinateSystem(FEElement& el, int n, FEMaterialP
 	// get the material's coordinate system (if defined)
 	FECoordSysMap* pmap = GetCoordinateSystemMap();
 	//this allows the local coordinates to work correctly
-	assert(pmap);
 	if (pmap)
 	{
 		FEElasticMaterial::SetLocalCoordinateSystem(el, n, mp);
@@ -610,12 +609,11 @@ void FEAngioMaterial::ClearSprouts()
 }
 
 //-----------------------------------------------------------------------------
-void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t, FEDomain * domain, int elemindex)
+void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t, FESolidDomain * domain, int elemindex)
 {
 	assert(domain != nullptr);
 	assert(elemindex != -1);
 	FEMesh& mesh = GetFEModel()->GetMesh();
-	FESolidDomain* dom = dynamic_cast<FESolidDomain*>(domain);
 
 	vec3d dir = r;
 	double pos[3];
@@ -623,10 +621,7 @@ void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t, FEDomain * domai
 	pos[1] = r.y;
 	pos[2] = r.z;
 
-	SPROUT s(dir, &dom->Element(elemindex), pos, this);
-	assert(s.pel);
-
-	m_spr.emplace_back(s);
+	m_spr.emplace_back(dir, &domain->Element(elemindex), pos, this);
 	sprouts.insert(std::pair<size_t, std::vector<SPROUT> *>(m_spr.size() - 1, &m_spr));
 }
 //-----------------------------------------------------------------------------
@@ -636,17 +631,14 @@ void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t, FEDomain * domai
 	FEMesh& mesh = GetFEModel()->GetMesh();
 	FESolidDomain * dom = dynamic_cast<FESolidDomain *>(domain);
 	double local[3];
-	FEElement * el = dom->FindElement(r,local);
+	FESolidElement * el = dom->FindElement(r,local);
 	vec3d dir = r;
 	double pos[3];
 	pos[0] = r.x;
 	pos[1] = r.y;
 	pos[2] = r.z;
 
-	SPROUT s(dir, el, pos, this);
-	assert(s.pel);
-
-	m_spr.emplace_back(s);
+	m_spr.emplace_back(dir, el, pos, this);
 	sprouts.insert(std::pair<size_t, std::vector<SPROUT> *>(m_spr.size() - 1, &m_spr));
 }
 
@@ -657,26 +649,22 @@ void FEAngioMaterial::AddSprout(const Segment::TIP & tip)
 	pos[1] = tip.pt.q.y;
 	pos[2] = tip.pt.q.z;
 
-	SPROUT s(tip.u, &tip.pt.ndomain->ElementRef(tip.pt.elemindex), pos, this);
-
-	assert(s.pel);
-	m_spr.emplace_back(s);
+	m_spr.emplace_back(tip.u, &tip.pt.ndomain->Element(tip.pt.elemindex), pos, this);
 	sprouts.insert(std::pair<size_t, std::vector<SPROUT> *>(m_spr.size() - 1, &m_spr));
 }
 
 //-----------------------------------------------------------------------------
-vec3d FEAngioMaterial::CurrentPosition(FEElement* pe, double r, double s, double t) const
+vec3d FEAngioMaterial::CurrentPosition(FESolidElement * pe, double r, double s, double t) const
 {
 	double arr[FEElement::MAX_NODES];
-	FESolidElement * se = dynamic_cast<FESolidElement*>(pe);
 	FEMesh * mesh = m_pangio->GetMesh();
 	vec3d rc(0,0,0);
 
-	assert(se);
-	se->shape_fnc(arr, r, s, t);
-	for (int j = 0; j < se->Nodes(); j++)
+	assert(pe);
+	pe->shape_fnc(arr, r, s, t);
+	for (int j = 0; j < pe->Nodes(); j++)
 	{
-		rc += mesh->Node(se->m_node[j]).m_rt* arr[j];
+		rc += mesh->Node(pe->m_node[j]).m_rt* arr[j];
 	}
 	return rc;
 }
@@ -695,11 +683,11 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 	//TODO: fix the stress analysis
 	
 	// current position of integration point
-	FEDomain * d = angioPt.m_pt.ndomain;
+	FESolidDomain * d = angioPt.m_pt.ndomain;
 
 	vec3d y;
 	assert(angioPt.m_pt.elemindex >= 0);
-	y = CurrentPosition(&d->ElementRef(angioPt.m_pt.elemindex), angioPt.m_pt.q.x, angioPt.m_pt.q.x, angioPt.m_pt.q.x);
+	y = CurrentPosition(&d->Element(angioPt.m_pt.elemindex), angioPt.m_pt.q.x, angioPt.m_pt.q.x, angioPt.m_pt.q.x);
 		
 	if (sym_on)
 	{
@@ -768,10 +756,10 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 			local[0] = angioPt.m_pt.q.x;
 			local[1] = angioPt.m_pt.q.y;
 			local[2] = angioPt.m_pt.q.z;
-			SPROUT stemp(vec3d(), &angioPt.m_pt.ndomain->Element(angioPt.m_pt.elemindex), local, this);
-			temp.emplace_back(stemp);
+			temp.emplace_back(vec3d(), &angioPt.m_pt.ndomain->Element(angioPt.m_pt.elemindex), local, this);
 			std::pair<size_t, std::vector<SPROUT> *> dim = std::pair<size_t, std::vector<SPROUT> * >(0, &temp);
-			std::vector<std::pair<size_t, std::vector<SPROUT> *>> nst = sprouts.within(dim, m_cultureParams.stress_radius * m_cultureParams.stress_radius);
+			std::vector<std::pair<size_t, std::vector<SPROUT> *>> nst;
+			sprouts.within(dim, m_cultureParams.stress_radius * m_cultureParams.stress_radius, nst);
 			for (size_t i = 0; i<nst.size(); ++i)
 			{
 				SPROUT& sp = m_spr[nst[i].first];

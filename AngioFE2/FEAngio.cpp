@@ -324,7 +324,7 @@ int FEAngio::FindGrowTimes(std::vector<std::pair<double, double>> & time_pairs, 
 			{
 				double dt = lp.time - start_time;
 				assert(dt > 0.0);
-				time_pairs.emplace_back(std::pair<double, double>(start_time, dt));
+				time_pairs.emplace_back(start_time, dt);
 				start_time = lp.time;
 			}
 			else
@@ -338,7 +338,7 @@ int FEAngio::FindGrowTimes(std::vector<std::pair<double, double>> & time_pairs, 
 	else
 	{
 		SimulationTime st = CurrentSimTime();
-		time_pairs.emplace_back(std::pair<double, double>(st.t-st.dt, st.dt));
+		time_pairs.emplace_back(st.t-st.dt, st.dt);
 	}
 	return 0;
 }
@@ -953,7 +953,7 @@ GridPoint FEAngio::FindGridPoint(FESolidDomain * domain, int nelem, vec3d& q) co
 	FEMesh & mesh = m_fem.GetMesh();
 	FESolidElement * se;
 	//TODO: refactor if problems with multiple domains
-	if ((se = dynamic_cast<FESolidElement*>(&domain->ElementRef(nelem))))
+	if (se = &domain->Element(nelem))
 	{
 		pt.ndomain = domain;//set the domain of the gridpoint
 		pt.elemindex = nelem;
@@ -972,9 +972,9 @@ vec3d FEAngio::Position(const GridPoint& pt) const
 	//Point has already been positioned
 	FEMesh & mesh = m_fem.GetMesh();
 	vec3d r(0, 0, 0);
-	FEDomain * d = pt.ndomain;
+	FESolidDomain * d = pt.ndomain;
 	FESolidElement * se;
-	if ((se = dynamic_cast<FESolidElement*>(&d->ElementRef(pt.elemindex))))
+	if (se = &d->Element(pt.elemindex))
 	{
 		double arr[FEElement::MAX_NODES];
 		se->shape_fnc(arr, pt.q.x, pt.q.y, pt.q.z);
@@ -997,24 +997,20 @@ std::vector<double> FEAngio::createVectorOfMaterialParameters(FEElement * elem,
 	}
 	return gx;
 }
-double FEAngio::genericProjectToPoint(FEElement * elem,
+double FEAngio::genericProjectToPoint(FESolidElement * elem,
 	double FEAngioNodeData::*materialparam,const vec3d & pos)
 {
+	assert(elem);
 	std::vector<double> gx = createVectorOfMaterialParameters( elem, materialparam);
 	//same as project to point that function is not used eleswhere so it has been eliminated
 	double H[FEElement::MAX_NODES];
 	double val = 0.0;
 	//should be zero to proprly accumulate the values
 
-	//check that 0 if not solid element is okay
-	FESolidElement * se = dynamic_cast<FESolidElement*>(elem);
-	if (se)
+	elem->shape_fnc(H, pos.x, pos.y, pos.z);
+	for (size_t i = 0; i < elem->m_node.size(); i++)
 	{
-		se->shape_fnc(H, pos.x, pos.y, pos.z);
-		for (size_t i = 0; i < elem->m_node.size(); i++)
-		{
-			val += gx[i] * H[i];
-		}
+		val += gx[i] * H[i];
 	}
 	return val;
 }

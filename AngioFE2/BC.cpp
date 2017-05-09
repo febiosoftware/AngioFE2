@@ -42,7 +42,7 @@ void BC::CheckBC(Segment &seg)
 	vec3d pq = culture->m_pmat->m_pangio->Position(seg.tip(0).pt);
 	assert((culture->m_pmat->m_pangio->Position(seg.tip(0).pt) - seg.tip(0).pt.r).norm() < 1.0);
 	//if the second segment is unititialized make sure it is not in the same element as tip(0)
-	FESolidElement * tse = dynamic_cast<FESolidElement*>(&seg.tip(0).pt.ndomain->ElementRef(seg.tip(0).pt.elemindex));
+	FESolidElement * tse = &seg.tip(0).pt.ndomain->Element(seg.tip(0).pt.elemindex);
 
 	if (seg.tip(1).pt.nelem == -1)
 	{
@@ -124,7 +124,7 @@ void BC::CheckBC(Segment &seg)
 	dir.unit();
 
 	FESolidDomain & sd = reinterpret_cast<FESolidDomain&>(*seg.tip(0).pt.ndomain);
-	FESolidElement * se = dynamic_cast<FESolidElement*>(&sd.ElementRef(seg.tip(0).pt.elemindex));
+	FESolidElement * se = &sd.Element(seg.tip(0).pt.elemindex);
 	assert(se);//make sure we have an element
 
 	FEMaterial * mat = sd.GetMaterial();
@@ -211,7 +211,7 @@ bool BC::ChangeOfMaterial(Segment & seg) const
 	dir.unit();
 
 	FESolidDomain & sd = reinterpret_cast<FESolidDomain&>(*seg.tip(0).pt.ndomain);
-	FESolidElement * se = dynamic_cast<FESolidElement*>(&sd.ElementRef(seg.tip(0).pt.elemindex));
+	FESolidElement * se = &sd.Element(seg.tip(0).pt.elemindex);
 	assert(se);//make sure we have an element
 
 	return false;
@@ -436,7 +436,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 	vec3d dir = seg.tip(1).pt.r - seg.tip(0).pt.r;
 	FESurface * surf = mat0->exterior_surface;
 	double tdist = seg.length();
-	FEElement & se = seg.tip(0).pt.ndomain->ElementRef(seg.tip(0).pt.elemindex);
+	FESolidElement & se = seg.tip(0).pt.ndomain->Element(seg.tip(0).pt.elemindex);
 	std::vector<int> & edinices = mat0->m_pangio->m_fe_element_data[se.GetID()].surfacesIndices;
 	mat0->normal_proj->SetSearchRadius(seg.length() * 2);
 	double rs[3];
@@ -450,7 +450,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 		{
 			//set last_goodpt
 			seg.tip(1).pt.r = surf->Local2Global(surfe, rs[0], rs[1]);
-			seg.tip(1).pt.q = mat0->m_pangio->FindRST(seg.tip(1).pt.r, vec2d(rs[0], rs[1]), dynamic_cast<FESolidElement*>(&se));
+			seg.tip(1).pt.q = mat0->m_pangio->FindRST(seg.tip(1).pt.r, vec2d(rs[0], rs[1]), &se);
 			seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
 			seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
 			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
@@ -484,7 +484,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 
 			FESolidElement & se = reinterpret_cast<FESolidElement&>(seg.tip(1).pt.ndomain->ElementRef(seg.tip(1).pt.elemindex));
 			seg.tip(1).pt.r = surf->Local2Global(*surfe, rs[0], rs[1]);
-			seg.tip(1).pt.q = mat0->m_pangio->FindRST(seg.tip(1).pt.r, vec2d(rs[0], rs[1]), dynamic_cast<FESolidElement*>(&se));
+			seg.tip(1).pt.q = mat0->m_pangio->FindRST(seg.tip(1).pt.r, vec2d(rs[0], rs[1]), &se);
 
 			seg.Update();
 			
@@ -513,7 +513,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 	
 	surf = mat1->exterior_surface;
 	
-	FEElement & se1 = oldtip.ndomain->ElementRef(oldtip.elemindex);
+	FESolidElement & se1 = oldtip.ndomain->Element(oldtip.elemindex);
 	
 	std::vector<int> & edinices1 = mat1->m_pangio->m_fe_element_data[se1.GetID()].surfacesIndices;
 	s2.Update();
@@ -528,7 +528,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 			s2.tip(0).pt.elemindex = oldtip.elemindex;
 			s2.tip(0).pt.nelem = oldtip.nelem;
 			s2.tip(0).pt.ndomain = oldtip.ndomain;
-			s2.tip(0).pt.q = mat1->m_pangio->FindRST(s2.tip(0).pt.r, vec2d(rs[0], rs[1]), dynamic_cast<FESolidElement*>(&se1));
+			s2.tip(0).pt.q = mat1->m_pangio->FindRST(s2.tip(0).pt.r, vec2d(rs[0], rs[1]), &se1);
 			
 			s2.tip(0).bactive = false;
 			
@@ -560,7 +560,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * ma
 
 			FESolidElement & se = reinterpret_cast<FESolidElement&>(s2.tip(1).pt.ndomain->ElementRef(s2.tip(0).pt.elemindex));
 			s2.tip(0).pt.r = surf->Local2Global(*surfe, rs[0], rs[1]);
-			s2.tip(0).pt.q = mat1->m_pangio->FindRST(s2.tip(0).pt.r, vec2d(rs[0], rs[1]), dynamic_cast<FESolidElement*>(&se));
+			s2.tip(0).pt.q = mat1->m_pangio->FindRST(s2.tip(0).pt.r, vec2d(rs[0], rs[1]), &se);
 
 			s2.Update();
 			if ((s2.length() > mat1->m_cultureParams.min_segment_length) && (s2.length() < tdist))

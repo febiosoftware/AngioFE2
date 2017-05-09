@@ -82,9 +82,9 @@ class FEAngioMaterial : public FEElasticFiberMaterial
 public:
 	struct SPROUT
 	{
-		explicit SPROUT(vec3d dir, FEElement * el, double * local, FEAngioMaterial * m);
+		explicit SPROUT(vec3d dir, FESolidElement * el, double * local, FEAngioMaterial * m);
 		vec3d		sprout;	// sprout direction
-		FEElement*	pel;	// element in which this sprout lies
+		FESolidElement*	pel;	// element in which this sprout lies
 		double		r[3];	// iso-parameteric elements
 		FEAngioMaterial * mat;
 	};
@@ -147,7 +147,7 @@ public:
 
 	// add a sprout force
 	// at position r with directional vector n
-	void AddSprout(const vec3d& r, const vec3d& n, FEDomain * domain, int elemindex);
+	void AddSprout(const vec3d& r, const vec3d& n, FESolidDomain * domain, int elemindex);
 	void AddSprout(const vec3d& r, const vec3d& n, FEDomain * domain);
 	void AddSprout(const Segment::TIP & tip);
 
@@ -158,7 +158,7 @@ public:
 	SPROUT& GetSprout(int i) { return m_spr[i]; }
 
 	// calculate the current spatial position, given an element and local coordinates
-	vec3d CurrentPosition(FEElement* pe, double r, double s, double t) const;
+	vec3d CurrentPosition(FESolidElement * pe, double r, double s, double t) const;
 
 	// we use this to define a sprout in the material section of the input file
 	void SetParameter(FEParam& p) override;
