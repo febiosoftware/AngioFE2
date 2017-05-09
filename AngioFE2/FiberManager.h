@@ -69,6 +69,8 @@ public:
 private:
 	FEAngioMaterial * material;
 	std::vector<std::vector<double>> fiber_at_int_pts[3];
+	std::vector<std::vector<double>> m1_at_int_pts[3];
+	std::vector<std::vector<double>> m2_at_int_pts[3];
 	std::vector<double> fibers_at_nodes[3];
 	std::vector<double> minoraxis1_at_nodes[3];
 	std::vector<double> minoraxis2_at_nodes[3];

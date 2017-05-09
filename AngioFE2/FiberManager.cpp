@@ -103,11 +103,18 @@ void FiberManager::Update()
 	{
 		fiber_at_int_pts[n].clear();
 		fiber_at_int_pts[n].resize(NE);
+		m1_at_int_pts[n].clear();
+		m1_at_int_pts[n].resize(NE);
+		m2_at_int_pts[n].clear();
+		m2_at_int_pts[n].resize(NE);
+
 		for (int i = 0; i<NE; ++i)
 		{
 			FESolidElement& e = sd->Element(i);
 			int nint = e.GaussPoints();
 			fiber_at_int_pts[n][i].assign(nint, 0.0);
+			m1_at_int_pts[n][i].assign(nint, 0.0);
+			m2_at_int_pts[n][i].assign(nint, 0.0);
 		}
 	}
 	
@@ -132,6 +139,17 @@ void FiberManager::Update()
 			fiber_at_int_pts[0][i][j] = fd.x;
 			fiber_at_int_pts[1][i][j] = fd.y;
 			fiber_at_int_pts[2][i][j] = fd.z;
+
+			//store the data
+			fd = emp->m_Q * vec3d(0, 1, 0);
+			m1_at_int_pts[0][i][j] = fd.x;
+			m1_at_int_pts[1][i][j] = fd.y;
+			m1_at_int_pts[2][i][j] = fd.z;
+
+			fd = emp->m_Q * vec3d(0, 0, 1);
+			m2_at_int_pts[0][i][j] = fd.x;
+			m2_at_int_pts[1][i][j] = fd.y;
+			m2_at_int_pts[2][i][j] = fd.z;
 		}
 	}
 	
@@ -139,6 +157,8 @@ void FiberManager::Update()
 	{
 		// project to nodes
 		map.Project(*sd, fiber_at_int_pts[n], fibers_at_nodes[n]);
+		map.Project(*sd, m1_at_int_pts[n], minoraxis1_at_nodes[n]);
+		map.Project(*sd, m2_at_int_pts[n], minoraxis2_at_nodes[n]);
 	}
 }
 
@@ -296,7 +316,6 @@ void RandomFiberInitializerNonMangling::InitializeFibers(FiberManager * fman)
 				emp_matrix->m_Q = emp->m_Q;
 				emp_vessel->m_Q = emp->m_Q;
 			}
-
 		}
 	}
 }
@@ -313,50 +332,17 @@ void RandomFiberInitializerPE::InitializeFibers(FiberManager * fman)
 			FESolidElement *se = dynamic_cast<FESolidElement*>(&dom->ElementRef(j));
 			for (int k = 0; k < se->GaussPoints(); k++)
 			{
-
-
-
 				FEMaterialPoint * mp = se->GetMaterialPoint(k);
-				FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(mp);
-				FEElasticMaterialPoint *  emp = angioPt->matPt->Next()->ExtractData<FEElasticMaterialPoint>();
+				FEAngioMaterialPoint * angiopt = mp->ExtractData<FEAngioMaterialPoint>();
+				FEElasticMaterialPoint *  emp = mp->ExtractData<FEElasticMaterialPoint>();
 
-				vec3d fiber = vec3d(
-					emp->m_Q[0][0],
-					emp->m_Q[1][0],
-					emp->m_Q[2][0]
-				);
-				vec3d m1 = vec3d(
-					emp->m_Q[0][1],
-					emp->m_Q[1][1],
-					emp->m_Q[2][1]
-				);
-				vec3d m2 = vec3d(
-					emp->m_Q[0][2],
-					emp->m_Q[1][2],
-					emp->m_Q[2][2]
-				);
+				FEElasticMaterialPoint *  emp_matrix = angiopt->matPt->ExtractData<FEElasticMaterialPoint>();
+				FEElasticMaterialPoint *  emp_vessel = angiopt->vessPt->ExtractData<FEElasticMaterialPoint>();
 
-				
-				fiber = rm*fiber;
-				m1 = rm*m1;
-				m2 = rm*m2;
-
-				//fiber
-				emp->m_Q[0][0] = fiber.x;
-				emp->m_Q[1][0] = fiber.y;
-				emp->m_Q[2][0] = fiber.z;
-
-				//minor1
-				emp->m_Q[0][1] = m1.x;
-				emp->m_Q[1][1] = m1.y;
-				emp->m_Q[2][1] = m1.z;
-
-				//minor2
-				emp->m_Q[0][2] = m2.x;
-				emp->m_Q[1][2] = m2.y;
-				emp->m_Q[2][2] = m2.z;
+				emp->m_Q = emp->m_Q * rm;
+				emp_matrix->m_Q = emp->m_Q;
+				emp_vessel->m_Q = emp->m_Q;
 			}
-
 		}
 	}
 }
