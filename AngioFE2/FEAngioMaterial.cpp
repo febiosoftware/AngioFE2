@@ -349,7 +349,8 @@ void FEAngioMaterial::AdjustMeshStiffness()
 	double volume_fraction = 0.;										// Volume fraction
 
 	//Zero the element items needed
-	m_pangio->ForEachElement([this](FESolidElement & se, FESolidDomain & d)
+	//break even on core in field model
+	m_pangio->ForEachElementPar([&](FESolidElement & se, FESolidDomain & d)
 	{
 		int elemnum = se.GetID();
 		m_pangio->m_fe_element_data[elemnum].alpha = 0.0;
@@ -425,8 +426,8 @@ void FEAngioMaterial::AdjustMeshStiffness()
 
 
 
-
-	m_pangio->ForEachElement([this, &mesh](FESolidElement & e, FESolidDomain & d)
+	//verified good on core in field model
+	m_pangio->ForEachElementPar([&](FESolidElement & e, FESolidDomain & d)
 	{
 		assert(std::find(domainptrs.begin(), domainptrs.end(), &d) != domainptrs.end());
 		vec3d e1; vec3d e2; vec3d e3;						// Basis for the material coordinate system (e1 is the material direction, e2 and e3 are isotropic)
@@ -450,10 +451,6 @@ void FEAngioMaterial::AdjustMeshStiffness()
 			pt->vessel_weight = alpha;
 			pt->matrix_weight = 1.0 - alpha;
 		}
-
-		num_elem++;
-
-
 	}, matls);
 
 	return;
@@ -691,7 +688,7 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 		
 	if (sym_on)
 	{
-		//#pragma omp parallel for shared(s)
+//#pragma omp parallel for shared(s)
 		for (int i = 0; i<NS; ++i)
 		{
 			SPROUT& sp = m_spr[i];
@@ -715,7 +712,7 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 														// If symmetry is turned on, apply symmetry
 			MirrorSym(y, si, sp, den_scale);
 
-			//#pragma omp critical
+//#pragma omp critical
 			s += si;
 		}
 	}
@@ -723,7 +720,7 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 	{
 		if (NS <= m_cultureParams.active_tip_threshold)
 		{
-			//#pragma omp parallel for shared(s)
+//#pragma omp parallel for schedule(dynamic, 24)
 			for (int i = 0; i<NS; ++i)
 			{
 				SPROUT& sp = m_spr[i];
@@ -745,7 +742,7 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 
 				mat3ds si = dyad(r)*p;
 
-				//#pragma omp critical
+//#pragma omp critical
 				s += si;
 			}
 		}
@@ -760,7 +757,8 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 			std::pair<size_t, std::vector<SPROUT> *> dim = std::pair<size_t, std::vector<SPROUT> * >(0, &temp);
 			std::vector<std::pair<size_t, std::vector<SPROUT> *>> nst;
 			sprouts.within(dim, m_cultureParams.stress_radius * m_cultureParams.stress_radius, nst);
-			for (size_t i = 0; i<nst.size(); ++i)
+//#pragma omp parallel for schedule(dynamic, 24)
+			for (int i = 0; i<nst.size(); ++i)
 			{
 				SPROUT& sp = m_spr[nst[i].first];
 
@@ -781,7 +779,7 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 
 				mat3ds si = dyad(r)*p;
 
-				//#pragma omp critical
+//#pragma omp critical
 				s += si;
 			}
 		}
@@ -818,7 +816,7 @@ void ECMInitializerConstant::seedECMDensity(FEAngioMaterial * mat)
 {
 	std::vector<int> matls;
 	matls.emplace_back(mat->GetID());
-	mat->m_pangio->ForEachNode([this, mat](FENode & node)
+	mat->m_pangio->ForEachNodePar([&](FENode & node)
 	{
 		mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den0 = mat->m_cultureParams.m_matrix_density;
 		mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den  = mat->m_cultureParams.m_matrix_density;
@@ -830,7 +828,8 @@ void ECMInitializer::updateECMdensity(FEAngioMaterial * mat)
 	std::vector<int> matls;
 	matls.emplace_back(mat->GetID());
 	FEMesh * mesh = mat->m_pangio->GetMesh();
-	mat->m_pangio->ForEachElement([mesh, mat](FESolidElement & elem, FESolidDomain & d)
+	//break even on core in field model
+	mat->m_pangio->ForEachElementPar([&](FESolidElement & elem, FESolidDomain & d)
 	{
 		//these will hold the natural coordinates once the project to nodes is complete 
 		double nr[FEElement::MAX_NODES];
@@ -889,12 +888,14 @@ void ECMInitializer::updateECMdensity(FEAngioMaterial * mat)
 			ecm_den = ecm_den / Jacob;
 
 			// accumulate fiber directions and densities
-			mat->m_pangio->m_fe_node_data[nnum].m_collfib += coll_fib;
-			mat->m_pangio->m_fe_node_data[nnum].m_ecm_den += ecm_den;
+#pragma omp critical
+			{
+				mat->m_pangio->m_fe_node_data[nnum].m_collfib += coll_fib;
+				mat->m_pangio->m_fe_node_data[nnum].m_ecm_den += ecm_den;
 
-
-			// increment counter
-			mat->m_pangio->m_fe_node_data[nnum].m_ntag++;
+				// increment counter
+				mat->m_pangio->m_fe_node_data[nnum].m_ntag++;
+			}
 		}
 	}, matls);
 }
@@ -933,7 +934,7 @@ void ECMInitializerNoOverwrite::seedECMDensity(FEAngioMaterial * mat)
 {
 	std::vector<int> matls;
 	matls.emplace_back(mat->GetID());
-	mat->m_pangio->ForEachNode([this, mat](FENode & node)
+	mat->m_pangio->ForEachNodePar([&](FENode & node)
 	{
 		if (mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den0 == 0.0)
 		{

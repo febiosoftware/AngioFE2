@@ -66,10 +66,15 @@ public:
 	
 	//some funtions to replace the loops everywhere in the code
 	//for each excludes non-angio materials
+	//Par are the parrallel version fo functions these lambdas must be openmp compatible
 	void ForEachNode(std::function<void(FENode &)> f);
+	void ForEachNodePar(std::function<void(FENode &)> f);
 	void ForEachNode(std::function<void(FENode &)> f, std::vector<int> & matls);
+	void ForEachNodePar(std::function<void(FENode &)> f, std::vector<int> & matls);
 	void ForEachElement(std::function<void(FESolidElement&, FESolidDomain&)> f);
+	void ForEachElementPar(std::function<void(FESolidElement&, FESolidDomain&)> f);
 	void ForEachElement(std::function<void(FESolidElement&, FESolidDomain&)> f, std::vector<int> & matls);
+	void ForEachElementPar(std::function<void(FESolidElement&, FESolidDomain&)> f, std::vector<int> & matls);
 	void ForEachDomain(std::function<void(FESolidDomain&)> f);
 	void ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<int> & matls);
 

@@ -226,12 +226,6 @@ void FEAngio::FinalizeFEM()
 
 		// save active tips
 		fileout->save_active_tips(*this);
-
-		// Output time information
-		fileout->save_time(*this);
-
-		// Output initial collagen fiber orientation
-		fileout->writeCollFib(*this, true);
 	}
 }
 
@@ -239,7 +233,7 @@ void FEAngio::FinalizeFEM()
 // Initialize the nodal ECM values
 bool FEAngio::InitECMDensity()
 {
-	ForEachNode([this](FENode & node)
+	ForEachNodePar([&](FENode & node)
 	{
 		m_fe_node_data[node.GetID()].m_collfib = vec3d(0, 0, 0);
 		m_fe_node_data[node.GetID()].m_ecm_den = 0.0;
@@ -255,7 +249,7 @@ bool FEAngio::InitECMDensity()
 	}
 
 	// normalize fiber vector and average ecm density
-	ForEachNode([this](FENode & node)
+	ForEachNodePar([&](FENode & node)
 	{
 		//nneds to be run only once per node
 		if (m_fe_node_data[node.GetID()].m_ntag)
@@ -275,7 +269,7 @@ void FEAngio::UpdateECM()
 	// reset nodal data
 	FEMesh & mesh = m_fem.GetMesh();
 
-	ForEachNode([this](FENode & node)
+	ForEachNodePar([&](FENode & node)
 	{
 		m_fe_node_data[node.GetID()].m_collfib = vec3d(0, 0, 0);
 		m_fe_node_data[node.GetID()].m_ecm_den = 0.0;
@@ -398,12 +392,39 @@ void FEAngio::ForEachNode(std::function<void(FENode &)> f, std::vector<int> & ma
 		for (int j = 0; j < d.Elements(); j++)
 		{
 			FEElement & e = d.ElementRef(j);
+//#pragma omp parallel for schedule(dynamic)
 			for (int k = 0; k < e.Nodes(); k++)
 			{
 				f(mesh.Node(e.m_node[k]));//this iterates over the local nodes
 			}
 		}
 	}
+}
+
+void FEAngio::ForEachNodePar(std::function<void(FENode &)> f, std::vector<int> & matls)
+{
+	//TODO: the last element to access a node wins on overwting the data associated with that node
+	//this behavior matches the previous behavior of the plugin but probably should be fixed sometime
+	FEMesh & mesh = m_fem.GetMesh();
+	std::vector<int> dl;
+	mesh.DomainListFromMaterial(matls, dl);
+	for (size_t i = 0; i < dl.size(); i++)
+	{
+		FEDomain & d = mesh.Domain(dl[i]);
+		for (int j = 0; j < d.Elements(); j++)
+		{
+			FEElement & e = d.ElementRef(j);
+#pragma omp parallel for schedule(dynamic)
+			for (int k = 0; k < e.Nodes(); k++)
+			{
+				f(mesh.Node(e.m_node[k]));//this iterates over the local nodes
+			}
+		}
+	}
+}
+void FEAngio::ForEachNodePar(std::function<void(FENode &)> f)
+{
+	ForEachNodePar(f, m_pmat_ids);
 }
 void FEAngio::ForEachNode(std::function<void(FENode &)> f)
 {
@@ -423,6 +444,26 @@ void FEAngio::ForEachElement(std::function<void(FESolidElement&, FESolidDomain&)
 			f(e, d);
 		}
 	}
+}
+void FEAngio::ForEachElementPar(std::function<void(FESolidElement&, FESolidDomain&)> f, std::vector<int> & matls)
+{
+	FEMesh & mesh = m_fem.GetMesh();
+	std::vector<int> dl;
+	mesh.DomainListFromMaterial(matls, dl);
+	for (size_t i = 0; i < dl.size(); i++)
+	{
+		FESolidDomain & d = reinterpret_cast<FESolidDomain&>(mesh.Domain(dl[i]));
+#pragma omp parallel for schedule(dynamic, 24)
+		for (int j = 0; j < d.Elements(); j++)
+		{
+			FESolidElement & e = reinterpret_cast<FESolidElement&>(d.ElementRef(j));
+			f(e, d);
+		}
+	}
+}
+void FEAngio::ForEachElementPar(std::function<void(FESolidElement&, FESolidDomain&)> f)
+{
+	ForEachElementPar(f, m_pmat_ids);
 }
 void FEAngio::ForEachElement(std::function<void(FESolidElement&, FESolidDomain&)> f)
 {
@@ -1117,9 +1158,6 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 			// save active tips
 			fileout->save_active_tips(*this);
 
-			// Output time information	
-			fileout->save_time(*this);
-
 			// Print the status of angio3d to the user    
 			fileout->printStatus(*this);
 		}
@@ -1143,19 +1181,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 // Note that some output is not written here. E.g. the vessel state is written
 // after each successful FE run.
 void FEAngio::Output()
-{
-	// Output parameters for simulation (sproutf, tip_range, phi_stiff_factor)
-	fileout->output_params(*this);
-	
-	// Output data file
-	fileout->dataout(*this);
-		
-	// Output final collagen fiber orientation
-	fileout->writeCollFib(*this, false);
-
-	// Output final matrix density
-	fileout->writeECMDen(*this);
-
+{	
 	//write out the timeline of branchpoints
 	fileout->save_timeline(*this);
 }

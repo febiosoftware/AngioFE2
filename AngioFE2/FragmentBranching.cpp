@@ -80,7 +80,8 @@ void FragmentBranching::Grow(double start_time, double grow_time)
 	branch_points.erase(start_branch_points, br_iter);
 	parentgen.erase(start_parentgen, pg_iter);
 	//update the active tip lists
-	for (size_t i = 0; i < fragment_branchers.size(); i++)
+#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; i < fragment_branchers.size(); i++)
 	{
 		fragment_branchers[i]->culture->FindActiveTips();
 	}
