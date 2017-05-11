@@ -326,11 +326,6 @@ void FEAngioMaterial::SetupSurface()
 	}
 }
 
-vec3d FEAngioMaterial::CollagenDirection(GridPoint& pt, double& lambda)
-{
-	return fiber_manager->GetFiberDirection(pt,lambda);
-}
-
 void FEAngioMaterial::AdjustMeshStiffness()
 {
 	FEMesh & mesh = m_pangio->m_fem.GetMesh();

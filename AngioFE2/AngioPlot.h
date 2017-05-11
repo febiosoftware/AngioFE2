@@ -17,13 +17,6 @@ public:
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
-//-----------------------------------------------------------------------------
-class FEPlotMatrixStressWeighted : public FEDomainData
-{
-public:
-	FEPlotMatrixStressWeighted(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM) {}
-	bool Save(FEDomain& d, FEDataStream& str) override;
-};
 
 //-----------------------------------------------------------------------------
 class FEPlotMatrixViscoStress : public FEDomainData
@@ -56,14 +49,6 @@ class FEPlotVesselStress : public FEDomainData
 {
 public:
 	FEPlotVesselStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
-	bool Save(FEDomain& d, FEDataStream& str) override;
-};
-
-//-----------------------------------------------------------------------------
-class FEPlotVesselStressWeighted : public FEDomainData
-{
-public:
-	FEPlotVesselStressWeighted(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM) {}
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 

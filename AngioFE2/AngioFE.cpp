@@ -37,6 +37,7 @@ FEPluginFactory_T<FEGammaDistribution      , FEMATERIAL_ID> gamma_distribution_f
 FEPluginFactory_T<GrowDirectionModifiers, FEMATERIAL_ID> grow_direction_modifiers_factory("grow_direction_modifiers");
 
 FEPluginFactory_T<DefaultGrowDirectionModifier    , FEMATERIAL_ID> default_grow_direction_modifier_factory    ("default_grow_direction"    );
+FEPluginFactory_T<BaseFiberAwareGrowDirectionModifier, FEMATERIAL_ID> base_fiber_grow_direction_modifier_factory("base_fiber_grow_direction");
 FEPluginFactory_T<BranchGrowDirectionModifier     , FEMATERIAL_ID> branch_grow_direction_modifier_factory     ("branch_grow_direction"     );
 FEPluginFactory_T<GradientGrowDirectionModifier   , FEMATERIAL_ID> gradient_grow_direction_modifier_factory   ("gradient_grow_direction"   );
 FEPluginFactory_T<AnastamosisGrowDirectionModifier, FEMATERIAL_ID> anastamosis_grow_direction_modifier_factory("anastamosis_grow_direction");
@@ -58,8 +59,6 @@ FEPluginFactory_T<FEPlotMatrixStress         , FEPLOTDATA_ID> plot_matrix_stress
 FEPluginFactory_T<FEPlotVesselWeight         , FEPLOTDATA_ID> plot_vessel_weight           ("vessel weight"         );
 FEPluginFactory_T<FEPlotMatrixWeight         , FEPLOTDATA_ID> plot_matrix_weight           ("matrix weight"         );
 FEPluginFactory_T<FEPlotMatrixTangent        , FEPLOTDATA_ID> plot_matrix_tangent          ("matrix tangent"        );
-FEPluginFactory_T<FEPlotVesselStressWeighted , FEPLOTDATA_ID> plot_vessel_stress_weighted  ("vessel stress weighted");
-FEPluginFactory_T<FEPlotMatrixStressWeighted , FEPLOTDATA_ID> plot_matrix_stress_weighted  ("matrix stress weighted");
 FEPluginFactory_T<FEPlotMatrixViscoStress    , FEPLOTDATA_ID> plot_matrix_visco_stress     ("matrix visco stress"   );
 FEPluginFactory_T<FEPlotMatrixElasticStress  , FEPLOTDATA_ID> plot_matrix_elastic_stress   ("matrix elastic stress" );
 FEPluginFactory_T<FEPlotAngioEffectiveStress , FEPLOTDATA_ID> plot_angio_eff_stress        ("angio effective stress");
@@ -93,7 +92,7 @@ FECORE_EXPORT  void PluginInitialize(FECoreKernel& febio)
 
 FECORE_EXPORT  void GetPluginVersion(int & major, int & minor, int & patch)
 {
-	major = 1;
+	major = 2;
 	minor = 0;
 	patch = SVNREVISION;
 }
@@ -194,9 +193,7 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 	case 44:
 		return &random_fiber_initializer_pe;
 	case 45:
-		return &plot_vessel_stress_weighted;
-	case 46:
-		return &plot_matrix_stress_weighted;
+		return &base_fiber_grow_direction_modifier_factory;
 	default:
 		return nullptr;
 	}

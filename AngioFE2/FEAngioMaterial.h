@@ -121,8 +121,6 @@ public:
 
 	bool Overwrite() const;
 
-	vec3d CollagenDirection(GridPoint& pt, double& lambda);
-
 	bool InitECMDensity(FEAngio * angio);
 
 	// Calculate Cauchy-stress
@@ -187,8 +185,6 @@ private:
 	std::vector<SPROUT>	m_spr;
 	KDTree<std::pair<size_t, std::vector<SPROUT> *>, std::vector<double>> sprouts;
 
-	FiberManager * fiber_manager;
-
 	DECLARE_PARAMETER_LIST();
 
 public:
@@ -210,6 +206,7 @@ public:
 	Culture * m_cult;
 	FEAngio * m_pangio;
 	CultureParameters m_cultureParams;
+	FiberManager * fiber_manager;
 private:
 	
 

@@ -51,6 +51,14 @@ public:
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 };
 
+//will ignore the previous direction and generate the direction a segmetn should grow based on collagen direction and current stretch
+class BaseFiberAwareGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	BaseFiberAwareGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+};
+
 //this class changes the grow direction if the segment is a branch
 class BranchGrowDirectionModifier : public GrowDirectionModifier
 {

@@ -67,34 +67,6 @@ bool FEPlotMatrixStress::Save(FEDomain& d, FEDataStream& str)
 	return true;
 }
 
-bool FEPlotMatrixStressWeighted::Save(FEDomain& d, FEDataStream& str)
-{
-	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
-	if (pmat == nullptr) return false;
-
-	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
-	int NE = dom.Elements();
-	for (int i = 0; i<NE; ++i)
-	{
-		FESolidElement& el = dom.Element(i);
-		int nint = el.GaussPoints();
-		mat3ds s;
-		s.zero();
-		for (int j = 0; j<nint; ++j)
-		{
-			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
-			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
-			FEElasticMaterialPoint& matrix_elastic = *angioPt->matPt->ExtractData<FEElasticMaterialPoint>();
-			mat3ds sj = matrix_elastic.m_s * angioPt->matrix_weight;
-			s += sj;
-		}
-		s /= static_cast<double>(nint);
-
-		str << s;
-	}
-	return true;
-}
-
 //-----------------------------------------------------------------------------
 bool FEPlotVesselStress::Save(FEDomain& d, FEDataStream& str)
 {
@@ -143,35 +115,6 @@ bool FEPlotVesselWeight::Save(FEDomain& d, FEDataStream& str)
 			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
 			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
 			s += angioPt->vessel_weight;
-		}
-		s /= static_cast<double>(nint);
-
-		str << s;
-	}
-	return true;
-}
-//-----------------------------------------------------------------------------
-bool FEPlotVesselStressWeighted::Save(FEDomain& d, FEDataStream& str)
-{
-	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
-	if (pmat == nullptr) return false;
-
-	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
-	int NE = dom.Elements();
-	for (int i = 0; i<NE; ++i)
-	{
-		FESolidElement& el = dom.Element(i);
-		int nint = el.GaussPoints();
-		mat3ds s;
-		s.zero();
-		for (int j = 0; j<nint; ++j)
-		{
-			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
-			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
-			FEElasticMaterialPoint& vessel_elastic = *angioPt->vessPt->ExtractData<FEElasticMaterialPoint>();
-			mat3ds sj = vessel_elastic.m_s * angioPt->vessel_weight;
-
-			s += sj;
 		}
 		s /= static_cast<double>(nint);
 

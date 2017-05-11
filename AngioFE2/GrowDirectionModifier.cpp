@@ -136,7 +136,7 @@ vec3d BranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, S
 		//      then  the new branch will overlap the old segment.
 		vec3d seg_vec = -previous_dir;
 		double lambda;
-		vec3d coll_fib = culture->m_pmat->CollagenDirection(tip.pt,lambda);
+		vec3d coll_fib = culture->m_pmat->fiber_manager->GetFiberDirection(tip.pt, lambda);
 
 		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
 		seg_vec.unit();
@@ -154,12 +154,46 @@ vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, 
 {
 	// Find the component of the new vessel direction determined by collagen fiber orientation    
 	double lambda;
-	vec3d coll_dir = culture->m_pmat->CollagenDirection(tip.pt,lambda);
+	vec3d coll_dir = culture->m_pmat->fiber_manager->GetFiberDirection(tip.pt, lambda);
 
 	// Component of new vessel orientation resulting from previous vessel direction        
 	vec3d per_dir = tip.u;
 
 	vec3d new_dir = mix(per_dir, coll_dir, culture->m_pmat->m_cultureParams.GetWeightInterpolation(grow_time));
+	new_dir.unit();
+
+	return new_dir;
+}
+
+BaseFiberAwareGrowDirectionModifier::BaseFiberAwareGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
+{
+
+}
+
+vec3d BaseFiberAwareGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
+{
+	// Find the component of the new vessel direction determined by collagen fiber orientation    
+	double lambda;
+	vec3d coll_dir = culture->m_pmat->fiber_manager->GetFiberDirection(tip.pt, lambda);
+
+	double l_m1;
+	double l_m2;
+	vec3d m1 = culture->m_pmat->fiber_manager->GetMinorAxisDirection1(tip.pt, l_m1);
+	vec3d m2 = culture->m_pmat->fiber_manager->GetMinorAxisDirection2(tip.pt, l_m2);
+
+	// Component of new vessel orientation resulting from previous vessel direction        
+	vec3d per_dir = tip.u;
+	per_dir.unit();
+	coll_dir.unit();
+	double theta = per_dir * coll_dir;
+	double theta1 = per_dir * m1;
+	double theta2 = per_dir * m2;
+
+
+	double contrib = (theta * lambda + theta1*l_m1 + theta2*l_m2) / 3;
+	contrib = abs(contrib);
+	contrib = 1 / contrib;
+	vec3d new_dir = mix(per_dir, coll_dir, culture->m_pmat->m_cultureParams.GetWeightInterpolation(grow_time)* contrib);
 	new_dir.unit();
 
 	return new_dir;
