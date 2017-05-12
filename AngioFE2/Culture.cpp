@@ -94,11 +94,8 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double start_time, double grow_t
 	// Make sure the tip is active
 	assert(tip.bactive);
 
-	// calculate the length scale factor based on collagen density
-	double den_scale = FindDensityScale(tip.pt);
-
 	// this is the new segment length
-	double seg_length = den_scale*SegmentLength(start_time, grow_time);
+	double seg_length;
 	
 	// determine the growth direction
 	vec3d seg_vec = m_pmat->gdms->ApplyModifiers( vec3d(), tip, m_pmat, branch, start_time, grow_time, seg_length);

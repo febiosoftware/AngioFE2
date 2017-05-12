@@ -67,6 +67,29 @@ public:
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 };
 
+//this sets the segment length to 1
+class UnitLengthGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	UnitLengthGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+};
+
+//this class modifies the segment length by the density factor
+class DensityScaleGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	DensityScaleGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+};
+//this class changes the segment length based on the average segment length load curve, cannot be the inital segment_length modifier
+class SegmentLengthGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	SegmentLengthGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+};
+
 //the class modifies the grow dierction if the gradeint is above a given threshold
 class GradientGrowDirectionModifier : public GrowDirectionModifier
 {

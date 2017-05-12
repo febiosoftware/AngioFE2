@@ -42,6 +42,10 @@ FEPluginFactory_T<BranchGrowDirectionModifier     , FEMATERIAL_ID> branch_grow_d
 FEPluginFactory_T<GradientGrowDirectionModifier   , FEMATERIAL_ID> gradient_grow_direction_modifier_factory   ("gradient_grow_direction"   );
 FEPluginFactory_T<AnastamosisGrowDirectionModifier, FEMATERIAL_ID> anastamosis_grow_direction_modifier_factory("anastamosis_grow_direction");
 
+FEPluginFactory_T<UnitLengthGrowDirectionModifier, FEMATERIAL_ID> unit_length_grow_direction_modifier_factory("unit_length");
+FEPluginFactory_T<DensityScaleGrowDirectionModifier, FEMATERIAL_ID> density_scale_grow_direction_modifier_factory("density_length");
+FEPluginFactory_T<SegmentLengthGrowDirectionModifier, FEMATERIAL_ID> segment_length_grow_direction_modifier_factory("segment_length");
+
 FEPluginFactory_T<ClassicFragmentSeeder      , FEMATERIAL_ID> classic_fragment_seeder_factory("classic"   );
 FEPluginFactory_T<MDByVolumeFragmentSeeder   , FEMATERIAL_ID> mdbyvol_fragment_seeder_factory("MDbyVolume");
 FEPluginFactory_T<MultiDomainFragmentSeeder  , FEMATERIAL_ID> md_fragment_seeder_factory     ("MD"        );
@@ -194,6 +198,12 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		return &random_fiber_initializer_pe;
 	case 45:
 		return &base_fiber_grow_direction_modifier_factory;
+	case 46:
+		return &unit_length_grow_direction_modifier_factory;
+	case 47:
+		return &segment_length_grow_direction_modifier_factory;
+	case 48:
+		return &density_scale_grow_direction_modifier_factory;
 	default:
 		return nullptr;
 	}

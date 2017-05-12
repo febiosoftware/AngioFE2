@@ -198,3 +198,32 @@ vec3d BaseFiberAwareGrowDirectionModifier::GrowModifyGrowDirection(vec3d previou
 
 	return new_dir;
 }
+
+UnitLengthGrowDirectionModifier::UnitLengthGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
+{
+
+}
+vec3d UnitLengthGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
+{
+	seg_length = 1.0;
+	return previous_dir;
+}
+
+DensityScaleGrowDirectionModifier::DensityScaleGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
+{
+
+}
+vec3d DensityScaleGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
+{
+	seg_length *= culture->FindDensityScale(tip.pt);
+	return previous_dir;
+}
+SegmentLengthGrowDirectionModifier::SegmentLengthGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
+{
+
+}
+vec3d SegmentLengthGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
+{
+	seg_length *= culture->SegmentLength(start_time, grow_time);
+	return previous_dir;
+}
