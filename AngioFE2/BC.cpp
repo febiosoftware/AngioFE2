@@ -69,7 +69,7 @@ void BC::CheckBC(Segment &seg)
 		double r[3];
 		FESolidElement * se = mesh->FindSolidElement(seg.tip(1).pt.r, r);
 		FEAngioMaterial * angm;
-		if (se && (angm = dynamic_cast<FEAngioMaterial*>(culture->m_pmat->m_pangio->m_fem.GetMaterial(se->GetMatID()))))
+		if (se && (angm = dynamic_cast<FEAngioMaterial*>(culture->m_pmat->m_pangio->m_fem->GetMaterial(se->GetMatID()))))
 		{
 			GridPoint & cpt = seg.tip(1).pt;
 			cpt.q = vec3d(r[0], r[1], r[2]);

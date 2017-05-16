@@ -3,6 +3,7 @@
 #include "StdAfx.h"
 #include "Segment.h"
 #include "FECore/FEMaterial.h"
+#include <FECore/DataRecord.h>
 class FEAngioMaterial;
 class Culture;
 
@@ -111,5 +112,20 @@ public:
 private:
 	double search_radius = 100.0;
 	double search_multiplier = 1.0;
+	DECLARE_PARAMETER_LIST();
+};
+
+//this class changes the segment length based on the average segment length load curve, cannot be the inital segment_length modifier
+class DataStoreLengthDoubleGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	bool Init() override;
+	DataStoreLengthDoubleGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+
+private:
+	int record_index;
+	int field = 0;
+	char field_name[DataRecord::MAX_STRING];
 	DECLARE_PARAMETER_LIST();
 };

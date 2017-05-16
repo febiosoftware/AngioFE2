@@ -328,7 +328,7 @@ void FEAngioMaterial::SetupSurface()
 
 void FEAngioMaterial::AdjustMeshStiffness()
 {
-	FEMesh & mesh = m_pangio->m_fem.GetMesh();
+	FEMesh & mesh = m_pangio->m_fem->GetMesh();
 	if (m_cultureParams.m_composite_material == 0)													// If a composite consitutive model isn't being used, exit
 		return;
 

@@ -374,7 +374,7 @@ bool FEPlotAngioGradient::Save(FEMesh & m, FEDataStream & a)
 	std::unordered_map<int, vec3d> gradients;
 	if (pfeangio == nullptr) return false;
 	//
-	FEMesh & mesh = pfeangio->m_fem.GetMesh();
+	FEMesh & mesh = pfeangio->m_fem->GetMesh();
 	pfeangio->ForEachElement([&mesh, &gradients](FESolidElement & se, FESolidDomain & d)
 	{
 		//these will hold the natural coordinates once the project to nodes is complete 
@@ -435,11 +435,11 @@ bool FEPlotAngioECMDensity::Save(FEMesh& m, FEDataStream& a)
 {
 
 	//multiple materials average their ecm denisties so this reflects that
-	for (int i = 0; i < pfeangio->m_fem.GetMesh().Nodes(); i++)
+	for (int i = 0; i < pfeangio->m_fem->GetMesh().Nodes(); i++)
 	{
-		if (pfeangio->m_fe_node_data.count(pfeangio->m_fem.GetMesh().Node(i).GetID()))
+		if (pfeangio->m_fe_node_data.count(pfeangio->m_fem->GetMesh().Node(i).GetID()))
 		{
-			a << pfeangio->m_fe_node_data[pfeangio->m_fem.GetMesh().Node(i).GetID()].m_ecm_den;
+			a << pfeangio->m_fe_node_data[pfeangio->m_fem->GetMesh().Node(i).GetID()].m_ecm_den;
 		}
 		else
 		{
@@ -454,11 +454,11 @@ bool FEPlotAngioECMAlpha::Save(FEMesh& m, FEDataStream& a)
 {
 	if (pfeangio == 0) return false;
 	//multiple materials average their *
-	for (int i = 0; i < pfeangio->m_fem.GetMesh().Nodes(); i++)
+	for (int i = 0; i < pfeangio->m_fem->GetMesh().Nodes(); i++)
 	{
-		if (pfeangio->m_fe_node_data.count(pfeangio->m_fem.GetMesh().Node(i).GetID()))
+		if (pfeangio->m_fe_node_data.count(pfeangio->m_fem->GetMesh().Node(i).GetID()))
 		{
-			a << pfeangio->m_fe_node_data[pfeangio->m_fem.GetMesh().Node(i).GetID()].alpha;
+			a << pfeangio->m_fe_node_data[pfeangio->m_fem->GetMesh().Node(i).GetID()].alpha;
 		}
 		else
 		{

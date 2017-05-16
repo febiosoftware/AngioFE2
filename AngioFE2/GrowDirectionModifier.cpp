@@ -1,4 +1,5 @@
 #include "GrowDirectionModifier.h"
+#include "FECore/ElementDataRecord.h"
 #include "FEAngio.h"
 #include "Culture.h"
 #include "angio3d.h"
@@ -227,3 +228,41 @@ vec3d SegmentLengthGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous
 	seg_length *= culture->SegmentLength(start_time, grow_time);
 	return previous_dir;
 }
+
+bool DataStoreLengthDoubleGrowDirectionModifier::Init()
+{
+	if (FEMaterial::Init() == false) return false;
+	FEModel * model = GetFEModel();
+	FEBioModel * bm = dynamic_cast<FEBioModel*>(model);
+	assert(bm);
+	DataStore & ds = bm->GetDataStore();
+	for(int i =0; i < ds.Size();i++)
+	{
+		DataRecord * dr = ds.GetDataRecord(i);
+		ElementDataRecord *er = dynamic_cast<ElementDataRecord*>(dr);
+		if(er)
+		{
+			if(!strcmp(er->GetName(), field_name))
+			{
+				record_index = i;
+				return true;
+			}
+		}
+	}
+	//data record name not found
+	return false;
+}
+DataStoreLengthDoubleGrowDirectionModifier::DataStoreLengthDoubleGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
+{
+
+}
+vec3d DataStoreLengthDoubleGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
+{
+	DataStore & ds = culture->m_pmat->m_pangio->m_fem->GetDataStore();
+	seg_length *= ds.GetDataRecord(record_index)->Evaluate(tip.pt.nelem, field);
+	return previous_dir;
+}
+
+BEGIN_PARAMETER_LIST(DataStoreLengthDoubleGrowDirectionModifier, GrowDirectionModifier)
+ADD_PARAMETER(field_name, FE_PARAM_STRING, "field_name");
+END_PARAMETER_LIST();

@@ -12,6 +12,7 @@
 #include "FEBioMech/FEElasticMixture.h"
 #include "FEBioMix/FESolute.h"
 #include "FEBioMix/FEMultiphasic.h"
+#include "FEBioLib/FEBioModel.h"
 #include <FECore/log.h>
 #include <FECore/FEModel.h>
 #include <FECore/FEAnalysis.h>
@@ -35,7 +36,7 @@ bool CreateDensityMap(vector<double>& density, vector<double>& anisotropy, FEMat
 bool CreateConcentrationMap(vector<double>& concentration, FEMaterial* pmat, int vegfID);
 
 //-----------------------------------------------------------------------------
-FEAngio::FEAngio(FEModel& fem) : m_fem(fem)
+FEAngio::FEAngio(FEModel& fem) 
 {
 	// Body force counter
 	total_bdyf = 0;
@@ -49,6 +50,9 @@ FEAngio::FEAngio(FEModel& fem) : m_fem(fem)
 	ztopi = std::uniform_real_distribution<double>(0, pi);
 	zto2pi = std::uniform_real_distribution<double>(0, 2 * pi);
 	n1to1 = std::uniform_real_distribution<double>(-1, 1);
+
+	m_fem = dynamic_cast<FEBioModel *>(&fem);
+	assert(m_fem);
 }
 
 //-----------------------------------------------------------------------------
@@ -57,14 +61,14 @@ FEAngio::~FEAngio()
 }
 
 //-----------------------------------------------------------------------------
-FEModel& FEAngio::GetFEModel() const
+FEBioModel* FEAngio::GetFEModel() const
 {
 	return m_fem;
 }
 
 FEMesh * FEAngio::GetMesh() const
 {
-	return &m_fem.GetMesh();
+	return &m_fem->GetMesh();
 }
 
 //-----------------------------------------------------------------------------
@@ -102,7 +106,7 @@ bool FEAngio::Init()
 	if (InitFEM() == false) return false;
 
 	// Seed the random number generator based on the sum of the seeds of the materials ie set the seed only once in any material
-	unsigned int posseed = static_cast<unsigned int>(m_fem.GetGlobalConstant("seed"));
+	unsigned int posseed = static_cast<unsigned int>(m_fem->GetGlobalConstant("seed"));
 	if (!posseed)
 	{
 		posseed = static_cast<unsigned int>(time(0));
@@ -178,9 +182,9 @@ double FEAngio::RunTime() const
 // Initialize FE model.
 bool FEAngio::InitFEM()
 {
-	for (int i = 0; i < m_fem.Materials(); i++)
+	for (int i = 0; i < m_fem->Materials(); i++)
 	{
-		FEAngioMaterial * cmat = dynamic_cast<FEAngioMaterial*>(m_fem.GetMaterial(i));
+		FEAngioMaterial * cmat = dynamic_cast<FEAngioMaterial*>(m_fem->GetMaterial(i));
 		if (cmat)
 		{
 			m_pmat.emplace_back(cmat);
@@ -196,10 +200,10 @@ bool FEAngio::InitFEM()
 	felog.printf("%d Angio materials found. Stress approach will be used.", m_pmat.size());
 
 	// register the callback
-	m_fem.AddCallback(FEAngio::feangio_callback, CB_UPDATE_TIME | CB_MAJOR_ITERS | CB_SOLVED, this);
+	m_fem->AddCallback(FEAngio::feangio_callback, CB_UPDATE_TIME | CB_MAJOR_ITERS | CB_SOLVED, this);
 
 	// Do the model initialization
-	if (m_fem.Init() == false) return false;
+	if (m_fem->Init() == false) return false;
 
 	return true;
 }
@@ -219,7 +223,7 @@ void FEAngio::FinalizeFEM()
 	felog.SetMode(Logfile::LOG_FILE);
 
 	// --- Output initial state of model ---
-	if (!m_fem.GetGlobalConstant("no_io"))
+	if (!m_fem->GetGlobalConstant("no_io"))
 	{
 		// Output initial microvessel state
 		fileout->save_vessel_state(*this);
@@ -260,6 +264,13 @@ bool FEAngio::InitECMDensity()
 	});
 	return true;
 }
+
+double FEAngio::GetDoubleFromDataStore(int record, int elem_id, int item)
+{
+	DataStore & ds = m_fem->GetDataStore();
+	return ds.GetDataRecord(record)->Evaluate(elem_id, item);
+}
+
 //-----------------------------------------------------------------------------
 // update the extracellular matrix nodal values
 void FEAngio::UpdateECM()
@@ -267,7 +278,7 @@ void FEAngio::UpdateECM()
 	//straight translation of code from the grid probably should be optimized later
 
 	// reset nodal data
-	FEMesh & mesh = m_fem.GetMesh();
+	FEMesh & mesh = m_fem->GetMesh();
 
 	ForEachNodePar([&](FENode & node)
 	{
@@ -301,12 +312,12 @@ void FEAngio::UpdateECM()
 
 int FEAngio::FindGrowTimes(std::vector<std::pair<double, double>> & time_pairs, int start_index)
 {
-	double res = m_fem.GetGlobalConstant("angio_time_step_curve");
+	double res = m_fem->GetGlobalConstant("angio_time_step_curve");
 	//0 will be returned on failure
 	int curve_index = static_cast<int>(res);
 	if (curve_index)
 	{
-		FEDataLoadCurve * fecurve = dynamic_cast<FEDataLoadCurve*>(m_fem.GetLoadCurve(curve_index -1));
+		FEDataLoadCurve * fecurve = dynamic_cast<FEDataLoadCurve*>(m_fem->GetLoadCurve(curve_index -1));
 		SimulationTime st = CurrentSimTime();
 		assert(fecurve);
 		int index = start_index;
@@ -341,11 +352,11 @@ int FEAngio::FindGrowTimes(std::vector<std::pair<double, double>> & time_pairs, 
 // Find VEGF solute
 int FEAngio::FindVEGF()
 {
-	FEModel& fem = GetFEModel();
-	int N = fem.GlobalDataItems();
+	FEBioModel* fem = GetFEModel();
+	int N = fem->GlobalDataItems();
 	for (int i=0; i<N; ++i)
 	{
-		FESoluteData* psd = dynamic_cast<FESoluteData*>(fem.GetGlobalData(i));
+		FESoluteData* psd = dynamic_cast<FESoluteData*>(fem->GetGlobalData(i));
 		if (psd && (strcmp(psd->m_szname,"VEGF"))) return psd->m_nID;
 	}
 	return 0;
@@ -354,7 +365,7 @@ int FEAngio::FindVEGF()
 // Initialize the nodal concentration values
 bool FEAngio::InitSoluteConcentration()
 {
-	FEMesh & mesh = m_fem.GetMesh();
+	FEMesh & mesh = m_fem->GetMesh();
 	int vegfID = FindVEGF();
 
 	if(vegfID==0)
@@ -364,7 +375,7 @@ bool FEAngio::InitSoluteConcentration()
 	vector<double> concentration(NN, 0.0);
 
 	// get the material
-	FEMaterial* pm = m_fem.GetMaterial(0);
+	FEMaterial* pm = m_fem->GetMaterial(0);
 	if (CreateConcentrationMap(concentration, pm, vegfID) == false) return false;
 
 	// assign ECM density
@@ -383,7 +394,7 @@ void FEAngio::ForEachNode(std::function<void(FENode &)> f, std::vector<int> & ma
 {
 	//TODO: the last element to access a node wins on overwting the data associated with that node
 	//this behavior matches the previous behavior of the plugin but probably should be fixed sometime
-	FEMesh & mesh = m_fem.GetMesh();
+	FEMesh & mesh = m_fem->GetMesh();
 	std::vector<int> dl;
 	mesh.DomainListFromMaterial(matls, dl);
 	for (size_t i = 0; i < dl.size(); i++)
@@ -405,7 +416,7 @@ void FEAngio::ForEachNodePar(std::function<void(FENode &)> f, std::vector<int> &
 {
 	//TODO: the last element to access a node wins on overwting the data associated with that node
 	//this behavior matches the previous behavior of the plugin but probably should be fixed sometime
-	FEMesh & mesh = m_fem.GetMesh();
+	FEMesh & mesh = m_fem->GetMesh();
 	std::vector<int> dl;
 	mesh.DomainListFromMaterial(matls, dl);
 	for (size_t i = 0; i < dl.size(); i++)
@@ -432,7 +443,7 @@ void FEAngio::ForEachNode(std::function<void(FENode &)> f)
 }
 void FEAngio::ForEachElement(std::function<void(FESolidElement&, FESolidDomain&)> f, std::vector<int> & matls)
 {
-	FEMesh & mesh = m_fem.GetMesh();
+	FEMesh & mesh = m_fem->GetMesh();
 	std::vector<int> dl;
 	mesh.DomainListFromMaterial(matls, dl);
 	for (size_t i = 0; i < dl.size(); i++)
@@ -447,7 +458,7 @@ void FEAngio::ForEachElement(std::function<void(FESolidElement&, FESolidDomain&)
 }
 void FEAngio::ForEachElementPar(std::function<void(FESolidElement&, FESolidDomain&)> f, std::vector<int> & matls)
 {
-	FEMesh & mesh = m_fem.GetMesh();
+	FEMesh & mesh = m_fem->GetMesh();
 	std::vector<int> dl;
 	mesh.DomainListFromMaterial(matls, dl);
 	for (size_t i = 0; i < dl.size(); i++)
@@ -475,7 +486,7 @@ void FEAngio::ForEachDomain(std::function<void(FESolidDomain&)> f)
 }
 void FEAngio::ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<int> & matls)
 {
-	FEMesh & mesh = m_fem.GetMesh();
+	FEMesh & mesh = m_fem->GetMesh();
 	std::vector<int> dl;
 	mesh.DomainListFromMaterial(matls, dl);
 	for (size_t i = 0; i < dl.size(); i++)
@@ -991,7 +1002,7 @@ GridPoint FEAngio::FindGridPoint(FESolidDomain * domain, int nelem, vec3d& q) co
 	assert(domain != nullptr && nelem >= 0);
 	GridPoint pt;
 	pt.q = q;
-	FEMesh & mesh = m_fem.GetMesh();
+	FEMesh & mesh = m_fem->GetMesh();
 	FESolidElement * se;
 	//TODO: refactor if problems with multiple domains
 	if (se = &domain->Element(nelem))
@@ -1011,7 +1022,7 @@ GridPoint FEAngio::FindGridPoint(FESolidDomain * domain, int nelem, vec3d& q) co
 vec3d FEAngio::Position(const GridPoint& pt) const
 {
 	//Point has already been positioned
-	FEMesh & mesh = m_fem.GetMesh();
+	FEMesh & mesh = m_fem->GetMesh();
 	vec3d r(0, 0, 0);
 	FESolidDomain * d = pt.ndomain;
 	FESolidElement * se;
@@ -1059,7 +1070,7 @@ double FEAngio::genericProjectToPoint(FESolidElement * elem,
 double FEAngio::FindECMDensity(const GridPoint& pt)
 {
 	assert(pt.nelem != -1 && pt.nelem != 0);
-	FEMesh & mesh = m_fem.GetMesh();
+	FEMesh & mesh = m_fem->GetMesh();
 
 	//TODO: replace with a check if it is in the same element before doing a search
 	//the element may change between accesses
@@ -1150,7 +1161,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		}
 
 		++FE_state;
-		if (!m_fem.GetGlobalConstant("no_io"))
+		if (!m_fem->GetGlobalConstant("no_io"))
 		{
 			// Save the current vessel state
 			fileout->save_vessel_state(*this);
@@ -1165,7 +1176,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 	else if (nwhen == CB_SOLVED)
 	{
 		// do the final output
-		if (!m_fem.GetGlobalConstant("no_io"))
+		if (!m_fem->GetGlobalConstant("no_io"))
 		{
 			Output();
 		}

@@ -7,7 +7,7 @@
 #include "FEAngioMaterial.h"
 #include "Segment.h"
 #include "FECore/FESolidDomain.h" //isd this include correct or should i just forward declare the class
-
+#include <FEBioLib/FEBioModel.h>
 
 
 //-----------------------------------------------------------------------------
@@ -38,7 +38,7 @@ public:
 	bool Init();
 
 	// Get the FE model
-	FEModel& GetFEModel() const;
+	FEBioModel* GetFEModel() const;
 
 	//check the get FEModel above it may not be useful in any way
 	FEMesh * GetMesh() const;
@@ -82,8 +82,11 @@ public:
 	vec3d uniformRandomDirection();
 	vec3d uniformInUnitCube();
 
+	//accessors for the DataStore
+	double GetDoubleFromDataStore(int record, int elem_id, int item = 0);
+
 	//calcualtes the gradient at the given natural coordinates
-	static vec3d gradient(FESolidElement * se,std::vector<double> & fn, vec3d pt);
+	static vec3d gradient(FESolidElement * se, std::vector<double> & fn, vec3d pt);
 
 	static bool IsInsideHex8(FESolidElement * se, vec3d y, FEMesh * mesh, double r[3]);
 
@@ -148,7 +151,7 @@ public:	// parameters read directly from file
 
 	angiofe_random_engine rengine;
 
-	FEModel&		m_fem;		// the FE model
+	FEBioModel * m_fem;//just do the cast once
 private:
 	
 	//both nodes and elements id's go from 1 to n+1 for n items
