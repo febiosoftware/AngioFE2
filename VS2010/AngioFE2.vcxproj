@@ -233,7 +233,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>fecore.lib;febiomech.lib;zlibd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>fecore.lib;febiomech.lib;FEBioLib.lib;FEBioPlot.lib;FEBioXML.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
@@ -290,7 +290,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>fecore.lib;febiomech.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>fecore.lib;febiomech.lib;FEBioLib.lib;FEBioPlot.lib;FEBioXML.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
     </Link>
@@ -312,7 +312,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>fecore.lib;febiomech.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>fecore.lib;febiomech.lib;FEBioLib.lib;FEBioPlot.lib;FEBioXML.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
     </Link>
@@ -322,6 +322,7 @@
     <ClInclude Include="..\AngioFE2\AngioFETask.h" />
     <ClInclude Include="..\AngioFE2\AngioPlot.h" />
     <ClInclude Include="..\AngioFE2\BC.h" />
+    <ClInclude Include="..\AngioFE2\CompileTimeCounter.h" />
     <ClInclude Include="..\AngioFE2\Culture.h" />
     <ClInclude Include="..\AngioFE2\CultureParameters.h" />
     <ClInclude Include="..\AngioFE2\Elem.h" />

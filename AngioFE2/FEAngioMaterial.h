@@ -117,6 +117,8 @@ public:
 
 	void Update();
 
+	void UpdateGDMs();
+
 	void UpdateECM();
 
 	bool Overwrite() const;

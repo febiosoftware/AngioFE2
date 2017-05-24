@@ -1027,6 +1027,11 @@ double FEAngioMaterial::StrainEnergyDensity(FEMaterialPoint& mp)
 	}
 	return sed;
 }
+
+void FEAngioMaterial::UpdateGDMs()
+{
+	gdms->Update();
+}
 //=============================================================================
 BEGIN_PARAMETER_LIST(FEPressureMaterial, FEElasticMaterial)
 	ADD_PARAMETER(m_p, FE_PARAM_DOUBLE, "p");

@@ -153,10 +153,8 @@ public:	// parameters read directly from file
 
 	FEBioModel * m_fem;//just do the cast once
 private:
-	
 	//both nodes and elements id's go from 1 to n+1 for n items
 	//first element is padding so the id can be used to lookup the data for that node
-	
 
 	SimulationTime	m_time;		// simulation time
 

@@ -1129,6 +1129,11 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 	{
 		// grab the time information
 		
+		for (size_t i = 0; i < m_pmat.size(); i++)
+		{
+			m_pmat[i]->UpdateGDMs();
+		}
+
 		std::vector<std::pair<double,double>> times;
 		index = FindGrowTimes(times, index);
 		//new function to find the start time grow time and if this is the final iteration this timestep

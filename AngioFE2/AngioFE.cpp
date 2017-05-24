@@ -43,6 +43,7 @@ FEPluginFactory_T<GradientGrowDirectionModifier   , FEMATERIAL_ID> gradient_grow
 FEPluginFactory_T<AnastamosisGrowDirectionModifier, FEMATERIAL_ID> anastamosis_grow_direction_modifier_factory("anastamosis_grow_direction");
 
 FEPluginFactory_T<DataStoreLengthDoubleGrowDirectionModifier, FEMATERIAL_ID> data_store_length_double_modifier_factory("datastore_double_length");
+FEPluginFactory_T<PlotFile2DoubleGrowDirectionModifier, FEMATERIAL_ID> plotfile2_length_double_modifier_factory("plotfile2_double_length");
 
 
 FEPluginFactory_T<UnitLengthGrowDirectionModifier, FEMATERIAL_ID> unit_length_grow_direction_modifier_factory("unit_length");
@@ -209,6 +210,8 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		return &density_scale_grow_direction_modifier_factory;
 	case 49:
 		return &data_store_length_double_modifier_factory;
+	case 50:
+		return &plotfile2_length_double_modifier_factory;
 	default:
 		return nullptr;
 	}
