@@ -9,9 +9,6 @@
 class FEAngioMaterial;
 class Culture;
 
-
-
-
 //the interface for all operations that modify the growth direction
 //some examples of this include deflection due to gradient and change in direction for anastamosis
 //in the future this can be used to change the direction based on vegf concentrations, also consider a modifier for the weight of the previous direction
@@ -26,13 +23,14 @@ public:
 	//used to sort these by priority
 
 	//must be called before anything else is done but construction
-	void SetCulture(Culture * cp);
+	virtual void SetCulture(Culture * cp);
 
 protected:
 	Culture * culture;
 };
 
-//
+//an archive that can store a plot2 variable from the previous finite element iteration
+//this data is stored in ram. This class is used in GGPPlot2 classes
 class GDMArchive : public Archive
 {
 public:
@@ -68,77 +66,6 @@ public:
 private:
 	FEVecPropertyT<GrowDirectionModifier> grow_direction_modifiers;
 	Culture * culture;
-};
-
-//will ignore the previous direction and generate the direction a segmetn should grow based on collagen direction
-class DefaultGrowDirectionModifier : public GrowDirectionModifier
-{
-public:
-	DefaultGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
-};
-
-//will ignore the previous direction and generate the direction a segmetn should grow based on collagen direction and current stretch
-class BaseFiberAwareGrowDirectionModifier : public GrowDirectionModifier
-{
-public:
-	BaseFiberAwareGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
-};
-
-//this class changes the grow direction if the segment is a branch
-class BranchGrowDirectionModifier : public GrowDirectionModifier
-{
-public:
-	BranchGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
-};
-
-//this sets the segment length to 1
-class UnitLengthGrowDirectionModifier : public GrowDirectionModifier
-{
-public:
-	UnitLengthGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
-};
-
-//this class modifies the segment length by the density factor
-class DensityScaleGrowDirectionModifier : public GrowDirectionModifier
-{
-public:
-	DensityScaleGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
-};
-//this class changes the segment length based on the average segment length load curve, cannot be the inital segment_length modifier
-class SegmentLengthGrowDirectionModifier : public GrowDirectionModifier
-{
-public:
-	SegmentLengthGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
-};
-
-//the class modifies the grow dierction if the gradeint is above a given threshold
-class GradientGrowDirectionModifier : public GrowDirectionModifier
-{
-public:
-	GradientGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
-
-private:
-	double threshold = 0.01;//the threshold over which vessels will deflect on the gradient
-	DECLARE_PARAMETER_LIST();
-};
-//modifies the direction a segment grows based on its proximity to other segments if a tip is within the radius specified the vessels direction will be set to grow towards that segment
-class AnastamosisGrowDirectionModifier : public GrowDirectionModifier
-{
-public:
-	AnastamosisGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
-
-private:
-	double search_radius = 100.0;
-	double search_multiplier = 1.0;
-	DECLARE_PARAMETER_LIST();
 };
 
 //this class changes the segment length based on the average segment length load curve, cannot be the inital segment_length modifier
@@ -190,7 +117,14 @@ public:
 	virtual mat3d Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip) { if (child) { return child->Operation(in, mat, tip); } return in; };
 
 	//must be called before anything else is done but construction
-	void SetCulture(Culture * cp) { culture = cp; }
+	virtual void SetCulture(Culture * cp)
+	{
+		culture = cp;
+		if(child)
+		{
+			child->SetCulture(cp);
+		}
+	}
 
 protected:
 	Culture * culture = nullptr;
@@ -237,12 +171,19 @@ class ForkedGGP : public GGP
 {
 public:
 	//disallow empy forks
-	ForkedGGP(FEModel * model) : GGP(model) { AddProperty(&child, "nest");}
+	ForkedGGP(FEModel * model) : GGP(model) { AddProperty(&nest, "nest"); }
 	~ForkedGGP() {}
 	//will be called once before growth per FE timestep
-	void Update() override {};
 	mat3d Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip) override;
-
+	void Update() override { 
+		GGP::Update();
+		nest->Update();
+	}
+	void SetCulture(Culture * cp) override
+	{
+		nest->SetCulture(cp);
+		GGP::SetCulture(cp);
+	}
 
 protected:
 	Culture * culture = nullptr;
@@ -271,4 +212,91 @@ public:
 	virtual ~EigenVectorsGGP() {}
 
 	mat3d Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip) override;
+};
+
+//begin bind points
+//will ignore the previous direction and generate the direction a segmetn should grow based on collagen direction
+class DefaultGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	DefaultGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	void Update() override;
+	void SetCulture(Culture * cp) override;
+private:
+	FEPropertyT<GGP> collagen_direction;
+	FEPropertyT<GGP> previous_direction;
+	FEPropertyT<GGP> weight_interpolation;
+};
+
+//will ignore the previous direction and generate the direction a segmetn should grow based on collagen direction and current stretch
+class BaseFiberAwareGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	BaseFiberAwareGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+};
+
+//this class changes the grow direction if the segment is a branch
+class BranchGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	BranchGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	void Update() override;
+	void SetCulture(Culture * cp) override;
+private:
+	FEPropertyT<GGP> collagen_direction;
+	FEPropertyT<GGP> previous_direction;
+};
+
+//this sets the segment length to 1
+class UnitLengthGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	UnitLengthGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+};
+
+//this class modifies the segment length by the density factor
+class DensityScaleGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	DensityScaleGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	void Update() override;
+	void SetCulture(Culture * cp) override;
+private:
+	FEPropertyT<GGP> density_scale;
+};
+//this class changes the segment length based on the average segment length load curve, cannot be the inital segment_length modifier
+class SegmentLengthGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	SegmentLengthGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+};
+
+//the class modifies the grow dierction if the gradeint is above a given threshold
+class GradientGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	GradientGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+
+private:
+	double threshold = 0.01;//the threshold over which vessels will deflect on the gradient
+	DECLARE_PARAMETER_LIST();
+};
+//modifies the direction a segment grows based on its proximity to other segments if a tip is within the radius specified the vessels direction will be set to grow towards that segment
+class AnastamosisGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	AnastamosisGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+
+private:
+	double search_radius = 100.0;
+	double search_multiplier = 1.0;
+	DECLARE_PARAMETER_LIST();
 };

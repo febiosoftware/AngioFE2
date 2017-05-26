@@ -134,7 +134,11 @@ END_PARAMETER_LIST();
 
 BranchGrowDirectionModifier::BranchGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
 {
+	AddProperty(&collagen_direction, "collagen_direction");
+	collagen_direction.m_brequired = false;
 
+	AddProperty(&previous_direction, "previous_direction");
+	previous_direction.m_brequired = false;
 }
 vec3d BranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
 {
@@ -144,10 +148,25 @@ vec3d BranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, S
 		// TODO: what's the logic here? Why the 0.5 factor?
 		//      If the vessel is aligned with the collagen (and the initial fragments are)
 		//      then  the new branch will overlap the old segment.
+		if (previous_direction)
+		{
+			mat3d id(1.0, 0.0, 0.0,
+				0.0, 1.0, 0.0,
+				0.0, 0.0, 1.0);
+			mat3d ct = previous_direction->Operation(id, mat, tip);
+			previous_dir = ct * previous_dir;
+		}
 		vec3d seg_vec = -previous_dir;
 		double lambda;
 		vec3d coll_fib = culture->m_pmat->fiber_manager->GetFiberDirection(tip.pt, lambda);
-
+		if (collagen_direction)
+		{
+			mat3d id(1.0, 0.0, 0.0,
+				0.0, 1.0, 0.0,
+				0.0, 0.0, 1.0);
+			mat3d ct = collagen_direction->Operation(id, mat, tip);
+			coll_fib = ct * coll_fib;
+		}
 		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
 		seg_vec.unit();
 		return seg_vec;
@@ -155,9 +174,37 @@ vec3d BranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, S
 	return previous_dir;
 }
 
+void BranchGrowDirectionModifier::Update()
+{
+	if (collagen_direction)
+	{
+		collagen_direction->Update();
+	}
+	if (previous_direction)
+	{
+		previous_direction->Update();
+	}
+}
+void BranchGrowDirectionModifier::SetCulture(Culture * cp)
+{
+	if (collagen_direction)
+		collagen_direction->SetCulture(cp);
+	if (previous_direction)
+		previous_direction->SetCulture(cp);
+
+	GrowDirectionModifier::SetCulture(cp);
+}
+
 DefaultGrowDirectionModifier::DefaultGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
 {
-	
+	AddProperty(&collagen_direction, "collagen_direction"); 
+	collagen_direction.m_brequired = false;
+
+	AddProperty(&previous_direction, "previous_direction");
+	previous_direction.m_brequired = false;
+
+	AddProperty(&weight_interpolation, "weight_interpolation");
+	weight_interpolation.m_brequired = false;
 }
 
 vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
@@ -166,13 +213,65 @@ vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, 
 	double lambda;
 	vec3d coll_dir = culture->m_pmat->fiber_manager->GetFiberDirection(tip.pt, lambda);
 
+	if(collagen_direction)
+	{
+		mat3d id(1.0, 0.0, 0.0,
+			0.0, 1.0, 0.0,
+			0.0, 0.0, 1.0);
+		mat3d ct = collagen_direction->Operation(id, mat, tip);
+		coll_dir = ct * coll_dir;
+	}
+
 	// Component of new vessel orientation resulting from previous vessel direction        
 	vec3d per_dir = tip.u;
+	if(previous_direction)
+	{
+		mat3d id(1.0, 0.0, 0.0,
+			0.0, 1.0, 0.0,
+			0.0, 0.0, 1.0);
+		mat3d ct = previous_direction->Operation(id, mat, tip);
+		per_dir = ct * per_dir;
+	}
 
-	vec3d new_dir = mix(per_dir, coll_dir, culture->m_pmat->m_cultureParams.GetWeightInterpolation(grow_time));
+	double wi = culture->m_pmat->m_cultureParams.GetWeightInterpolation(grow_time);
+	if(weight_interpolation)
+	{
+		mat3d id(1.0, 0.0, 0.0,
+			0.0, 1.0, 0.0,
+			0.0, 0.0, 1.0);
+		mat3d ct = previous_direction->Operation(id, mat, tip);
+		wi *= ct[0][0];
+	}
+	vec3d new_dir = mix(per_dir, coll_dir, wi);
 	new_dir.unit();
 
 	return new_dir;
+}
+void DefaultGrowDirectionModifier::Update()
+{
+	if (collagen_direction)
+	{
+		collagen_direction->Update();
+	}
+	if(previous_direction)
+	{
+		previous_direction->Update();
+	}
+	if(weight_interpolation)
+	{
+		weight_interpolation->Update();
+	}
+}
+void DefaultGrowDirectionModifier::SetCulture(Culture * cp)
+{
+	if(collagen_direction)
+		collagen_direction->SetCulture(cp);
+	if(previous_direction)
+		previous_direction->SetCulture(cp);
+	if (weight_interpolation)
+		weight_interpolation->SetCulture(cp);
+
+	GrowDirectionModifier::SetCulture(cp);
 }
 
 BaseFiberAwareGrowDirectionModifier::BaseFiberAwareGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
@@ -221,13 +320,41 @@ vec3d UnitLengthGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_di
 
 DensityScaleGrowDirectionModifier::DensityScaleGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
 {
-
+	AddProperty(&density_scale, "density_scale");
+	density_scale.m_brequired = false;
 }
 vec3d DensityScaleGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
 {
 	seg_length *= culture->FindDensityScale(tip.pt);
+	vec3d x(1, 0, 0);
+	if (density_scale)
+	{
+		
+		mat3d id(1.0, 0.0, 0.0,
+			0.0, 1.0, 0.0,
+			0.0, 0.0, 1.0);
+		mat3d ct = density_scale->Operation(id, mat, tip);
+		x = ct * x;
+		seg_length *= x.x;
+	}
+	
 	return previous_dir;
 }
+void DensityScaleGrowDirectionModifier::Update()
+{
+	if (density_scale)
+	{
+		density_scale->Update();
+	}
+}
+void DensityScaleGrowDirectionModifier::SetCulture(Culture * cp)
+{
+	if (density_scale)
+		density_scale->SetCulture(cp);
+
+	GrowDirectionModifier::SetCulture(cp);
+}
+
 SegmentLengthGrowDirectionModifier::SegmentLengthGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
 {
 
@@ -444,6 +571,8 @@ mat3d Plot2GGP::Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip)
 			}
 		}
 		break;
+	case Storage_Fmt::FMT_NODE:
+	case Storage_Fmt::FMT_REGION:
 	default:
 		assert(false);
 	}

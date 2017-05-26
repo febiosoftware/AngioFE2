@@ -50,6 +50,12 @@ FEPluginFactory_T<UnitLengthGrowDirectionModifier, FEMATERIAL_ID> unit_length_gr
 FEPluginFactory_T<DensityScaleGrowDirectionModifier, FEMATERIAL_ID> density_scale_grow_direction_modifier_factory("density_length");
 FEPluginFactory_T<SegmentLengthGrowDirectionModifier, FEMATERIAL_ID> segment_length_grow_direction_modifier_factory("segment_length");
 
+FEPluginFactory_T<Plot2GGP, FEMATERIAL_ID> plot2_ggp_factory("plot2_ggp");
+FEPluginFactory_T<MatrixConverterGGP, FEMATERIAL_ID> matrix_converter_ggp_factory("matrix_converter_ggp");
+FEPluginFactory_T<ForkedGGP, FEMATERIAL_ID> forked_ggp_factory("forked_ggp");
+FEPluginFactory_T<EigenValuesGGP, FEMATERIAL_ID> eigen_values_ggp_factory("eigen_values_ggp");
+FEPluginFactory_T<EigenVectorsGGP, FEMATERIAL_ID> eigen_vectors_ggp_factory("eigen_vectors_ggp");
+
 FEPluginFactory_T<ClassicFragmentSeeder      , FEMATERIAL_ID> classic_fragment_seeder_factory("classic"   );
 FEPluginFactory_T<MDByVolumeFragmentSeeder   , FEMATERIAL_ID> mdbyvol_fragment_seeder_factory("MDbyVolume");
 FEPluginFactory_T<MultiDomainFragmentSeeder  , FEMATERIAL_ID> md_fragment_seeder_factory     ("MD"        );
@@ -212,6 +218,16 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		return &data_store_length_double_modifier_factory;
 	case 50:
 		return &plotfile2_length_double_modifier_factory;
+	case 51:
+		return &plot2_ggp_factory;
+	case 52:
+		return &matrix_converter_ggp_factory;
+	case 53:
+		return &forked_ggp_factory;
+	case 54:
+		return &eigen_values_ggp_factory;
+	case 55:
+		return &eigen_vectors_ggp_factory;
 	default:
 		return nullptr;
 	}

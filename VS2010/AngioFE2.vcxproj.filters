@@ -78,6 +78,9 @@
     <ClInclude Include="..\AngioFE2\FiberManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\AngioFE2\CompileTimeCounter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\AngioFE2\AngioFE.cpp">
