@@ -299,8 +299,11 @@ void Culture::AddSegment(Segment& seg)
 	m_nsegs++;
 	m_frag.emplace_front(seg);
 	assert(m_nsegs == (int)m_frag.size());
+	
 	//add the segment that was just created
 	recents.emplace_back(&m_frag.front());
+	segments_per_step.emplace_back(&m_frag.front());
+
 	tips.insert(&m_frag.front());
 	//add the sprouts to the material
 	if (seg.tip(0).bactive)

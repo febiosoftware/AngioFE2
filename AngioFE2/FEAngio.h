@@ -57,6 +57,8 @@ public:
 	vec3d FindRST(const vec3d & r, vec2d rs, FESolidElement * elem) const;
 	GridPoint FindGridPoint(FESolidDomain * domain, int nelem, vec3d& q) const;
 	vec3d Position(const GridPoint& pt)  const;
+	vec3d ReferenceCoords(const GridPoint& pt) const;
+
 	// Creates a vector of specified paramenter
 	std::vector<double> createVectorOfMaterialParameters(FEElement * elem,
 		double FEAngioNodeData::*materialparam);

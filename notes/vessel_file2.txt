@@ -1,0 +1,13 @@
+vessel file 2.0 format
+The file extension is .ang2
+all coordinates are relative to the reference configuration
+all floating point numbers are written in a little endian format
+all integers are unsigned and written in little endian format
+
+the file starts with magic number 0xfdb97531
+next is the version which is 4 bytes the current version is 0
+
+each section starts with the number of segments created in this timestep this number is a 4 byte integer
+next is 4 byte floating point number which is the start of the timestep
+
+each vessel segment will be stored as x_0 y_0 z_0 x_1 y_1 z_1

@@ -22,7 +22,12 @@ Fileout::Fileout()
 	//write the headers
 	logstream << "Time,Material,Segments,Total Length,Vessels,Branch Points,Anastamoses,Active Tips,Sprouts" << endl;
 
-	vessel_state_stream = gzopen("out_vess_state.ang.gz" , "wt");//check the parameters consider setting the compression level
+	vessel_state_stream = fopen("out_vess_state.ang2" , "wb");//check the parameters consider setting the compression level
+	unsigned int magic = 0xfdb97531;
+	unsigned int version = 0;
+	fwrite(&magic, sizeof(unsigned int), 1, vessel_state_stream);
+	fwrite(&version, sizeof(unsigned int), 1, vessel_state_stream);
+
 
 	m_stream4 = fopen("out_active_tips.csv", "wt");		// active tips
 	fprintf(m_stream4, "%-5s,%-12s,%-12s,%-12s\n", "State", "X", "Y", "Z");
@@ -32,7 +37,7 @@ Fileout::Fileout()
 Fileout::~Fileout()
 {
     logstream.close();
-	gzclose(vessel_state_stream);
+	fclose(vessel_state_stream);
 }
 
 //-----------------------------------------------------------------------------
@@ -68,19 +73,50 @@ void Fileout::printStatus(FEAngio& angio)
 // Save microvessel position at the current time point
 void Fileout::save_vessel_state(FEAngio& angio)
 {
-	gzprintf(vessel_state_stream, "%-5s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n", "State", "Time", "X1", "Y1", "Z1", "X2", "Y2", "Z2", "Length");  // Write column labels to out_vess_state.ang
+	unsigned long int segcount = 0;
+	for (size_t i = 0; i < angio.m_pmat.size(); i++)
+	{
+		Culture* cult = angio.m_pmat[i]->m_cult;
+		auto seg_list = cult->PerStepSegments();
+		segcount += seg_list.size();
+	}
+	//write segcount and time
+	fwrite(&segcount, sizeof(unsigned int), 1, vessel_state_stream);
+	SimulationTime st = angio.CurrentSimTime();
+	float rtime = static_cast<float>(st.t);
+	fwrite(&rtime, sizeof(float), 1, vessel_state_stream);
 
 	for (size_t i = 0; i < angio.m_pmat.size(); i++)
 	{
 		Culture* cult = angio.m_pmat[i]->m_cult;
-		const SegmentList& seg_list = cult->GetSegmentList();
-		for (ConstSegIter it = seg_list.begin(); it != seg_list.end(); ++it)	// Iterate through all segments in frag list container (it)
+		auto seg_list = cult->PerStepSegments();
+		for (auto it = seg_list.begin(); it != seg_list.end(); ++it)	// Iterate through all segments in frag list container (it)
 		{
-			const vec3d& r0 = it->tip(0).pos();
-			const vec3d& r1 = it->tip(1).pos();
-			gzprintf(vessel_state_stream,"%-5.2i %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f %-12.7f\n", angio.FE_state, it->GetTimeOfBirth(), r0.x, r0.y, r0.z, r1.x, r1.y, r1.z, it->length());
+			vec3d r0 = angio.ReferenceCoords((*it)->tip(0).pt);
+			vec3d r1 = angio.ReferenceCoords((*it)->tip(1).pt);
+			//consider checking fwrites return values
+			float cur = static_cast<float>(r0.x);
+			fwrite(&cur, sizeof(float), 1, vessel_state_stream);
+			cur = static_cast<float>(r0.y);
+			fwrite(&cur, sizeof(float), 1, vessel_state_stream);
+			cur = static_cast<float>(r0.z);
+			fwrite(&cur, sizeof(float), 1, vessel_state_stream);
+
+			cur = static_cast<float>(r1.x);
+			fwrite(&cur, sizeof(float), 1, vessel_state_stream);
+			cur = static_cast<float>(r1.y);
+			fwrite(&cur, sizeof(float), 1, vessel_state_stream);
+			cur = static_cast<float>(r1.z);
+			fwrite(&cur, sizeof(float), 1, vessel_state_stream);
 		}
 	}
+
+	for (size_t i = 0; i < angio.m_pmat.size(); i++)
+	{
+		Culture* cult = angio.m_pmat[i]->m_cult;
+		cult->ClearPerStepSegments();
+	}
+
 }
 
 //-----------------------------------------------------------------------------

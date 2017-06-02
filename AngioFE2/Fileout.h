@@ -28,5 +28,5 @@ public:
 private:
 	std::ofstream logstream;
 	FILE*	m_stream4;	// active tips
-	gzFile  vessel_state_stream;
+	FILE*  vessel_state_stream;
 };

@@ -68,6 +68,12 @@ public:
 	//returns the segments that were added since the last call to AddNewSegment
 	const std::vector<Segment *> & RecentSegments() const { return recents; }
 
+	//returns the segments that were added since the last step
+	const std::vector<Segment *> & PerStepSegments() const { return segments_per_step; }
+
+	//clears the per step segments
+	void ClearPerStepSegments() { segments_per_step.clear(); }
+
 	// return the number of segments
 	int Segments() const { return m_nsegs; }
 
@@ -114,6 +120,10 @@ private:
 	//should only be used by BC
 	void AddToRecents(Segment * seg){ recents.emplace_back(seg); }
 	
+	//should only be used by BC
+	void ClearPerStep() { segments_per_step.clear(); }
+	//should only be used by BC
+	void AddToPerStep(Segment * seg) { segments_per_step.emplace_back(seg); }
 
 	CultureParameters * m_cultParams;
 	FEAngio&	m_angio;
@@ -125,6 +135,7 @@ private:
 	SegmentTipList m_active_tips;			// list of active tips
 	KDTree<Segment *, std::vector<double>> tips;//tree of all side 1 tips
 	std::vector<Segment *> recents;//used to hold the segments added by the most recent call to AddNewSegment these segments will be ordered first to last
+	std::vector<Segment *> segments_per_step;//holds the segments added since the last step
 
 public:
 	FragmentBranching * fbrancher = nullptr;

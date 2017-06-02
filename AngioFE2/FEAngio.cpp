@@ -1037,6 +1037,25 @@ vec3d FEAngio::Position(const GridPoint& pt) const
 	}
 	return r;
 }
+
+vec3d FEAngio::ReferenceCoords(const GridPoint& pt) const
+{
+	vec3d r(0, 0, 0);
+	FEMesh & mesh = m_fem->GetMesh();
+	//Point has already been positioned
+	FESolidElement * se;
+	if (se = &pt.ndomain->Element(pt.elemindex))
+	{
+		double arr[FEElement::MAX_NODES];
+		se->shape_fnc(arr, pt.q.x, pt.q.y, pt.q.z);
+		for (int j = 0; j < se->Nodes(); j++)
+		{
+			r += mesh.Node(se->m_node[j]).m_r0* arr[j];
+		}
+	}
+	return r;
+}
+
 //TODO: consider having multiple projection methods
 std::vector<double> FEAngio::createVectorOfMaterialParameters(FEElement * elem,
 	double FEAngioNodeData::*materialparam)
