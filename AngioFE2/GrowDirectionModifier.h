@@ -68,40 +68,6 @@ private:
 	Culture * culture;
 };
 
-//this class changes the segment length based on the average segment length load curve, cannot be the inital segment_length modifier
-class DataStoreLengthDoubleGrowDirectionModifier : public GrowDirectionModifier
-{
-public:
-	bool Init() override;
-	DataStoreLengthDoubleGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
-
-private:
-	int record_index;
-	int field = 0;
-	char field_name[DataRecord::MAX_STRING];
-	DECLARE_PARAMETER_LIST();
-};
-
-//this class changes the segment length based on the average segment length load curve, cannot be the inital segment_length modifier
-class PlotFile2DoubleGrowDirectionModifier : public GrowDirectionModifier
-{
-public:
-	bool Init() override;
-	void Update() override;
-	PlotFile2DoubleGrowDirectionModifier(FEModel * model): GrowDirectionModifier(model){}
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
-
-private:
-	list<FEBioPlotFile2::DICTIONARY_ITEM>::const_iterator record_index;
-	int field = 0;
-	char field_name[DataRecord::MAX_STRING];
-	//! means not currenlty supported
-	int datatype = 0;//0 Float, 1 vec3d,2 Mat3ds, 3 Mat3dd!,4 tens4d!, 5 Mat3d
-	GDMArchive archive;
-	DECLARE_PARAMETER_LIST();
-};
-
 
 //pure virtual base class for Generic Growth Parameters
 //all matrix indices will be 1 indexed

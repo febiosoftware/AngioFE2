@@ -334,7 +334,6 @@
     <ClInclude Include="..\AngioFE2\AngioFETask.h" />
     <ClInclude Include="..\AngioFE2\AngioPlot.h" />
     <ClInclude Include="..\AngioFE2\BC.h" />
-    <ClInclude Include="..\AngioFE2\CompileTimeCounter.h" />
     <ClInclude Include="..\AngioFE2\Culture.h" />
     <ClInclude Include="..\AngioFE2\CultureParameters.h" />
     <ClInclude Include="..\AngioFE2\Elem.h" />

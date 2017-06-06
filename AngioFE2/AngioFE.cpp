@@ -42,9 +42,6 @@ FEPluginFactory_T<BranchGrowDirectionModifier     , FEMATERIAL_ID> branch_grow_d
 FEPluginFactory_T<GradientGrowDirectionModifier   , FEMATERIAL_ID> gradient_grow_direction_modifier_factory   ("gradient_grow_direction"   );
 FEPluginFactory_T<AnastamosisGrowDirectionModifier, FEMATERIAL_ID> anastamosis_grow_direction_modifier_factory("anastamosis_grow_direction");
 
-FEPluginFactory_T<DataStoreLengthDoubleGrowDirectionModifier, FEMATERIAL_ID> data_store_length_double_modifier_factory("datastore_double_length");
-FEPluginFactory_T<PlotFile2DoubleGrowDirectionModifier, FEMATERIAL_ID> plotfile2_length_double_modifier_factory("plotfile2_double_length");
-
 
 FEPluginFactory_T<UnitLengthGrowDirectionModifier, FEMATERIAL_ID> unit_length_grow_direction_modifier_factory("unit_length");
 FEPluginFactory_T<DensityScaleGrowDirectionModifier, FEMATERIAL_ID> density_scale_grow_direction_modifier_factory("density_length");
@@ -215,19 +212,15 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 	case 48:
 		return &density_scale_grow_direction_modifier_factory;
 	case 49:
-		return &data_store_length_double_modifier_factory;
+		return &eigen_vectors_ggp_factory;
 	case 50:
-		return &plotfile2_length_double_modifier_factory;
+		return &eigen_values_ggp_factory;
 	case 51:
 		return &plot2_ggp_factory;
 	case 52:
 		return &matrix_converter_ggp_factory;
 	case 53:
-		return &forked_ggp_factory;
-	case 54:
-		return &eigen_values_ggp_factory;
-	case 55:
-		return &eigen_vectors_ggp_factory;
+		return &forked_ggp_factory;		
 	default:
 		return nullptr;
 	}

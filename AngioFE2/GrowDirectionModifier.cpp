@@ -365,44 +365,6 @@ vec3d SegmentLengthGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous
 	return previous_dir;
 }
 
-bool DataStoreLengthDoubleGrowDirectionModifier::Init()
-{
-	if (FEMaterial::Init() == false) return false;
-	FEModel * model = GetFEModel();
-	FEBioModel * bm = dynamic_cast<FEBioModel*>(model);
-	assert(bm);
-	DataStore & ds = bm->GetDataStore();
-	for(int i =0; i < ds.Size();i++)
-	{
-		DataRecord * dr = ds.GetDataRecord(i);
-		ElementDataRecord *er = dynamic_cast<ElementDataRecord*>(dr);
-		if(er)
-		{
-			if(!strcmp(er->GetName(), field_name))
-			{
-				record_index = i;
-				return true;
-			}
-		}
-	}
-	//data record name not found
-	return false;
-}
-DataStoreLengthDoubleGrowDirectionModifier::DataStoreLengthDoubleGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
-{
-
-}
-vec3d DataStoreLengthDoubleGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
-{
-	DataStore & ds = culture->m_pmat->m_pangio->m_fem->GetDataStore();
-	seg_length *= ds.GetDataRecord(record_index)->Evaluate(tip.pt.nelem, field);
-	return previous_dir;
-}
-
-BEGIN_PARAMETER_LIST(DataStoreLengthDoubleGrowDirectionModifier, GrowDirectionModifier)
-ADD_PARAMETER(field_name, FE_PARAM_STRING, "field_name");
-END_PARAMETER_LIST();
-
 void GDMArchive::reset()
 {
 	fpdata.clear();
@@ -448,61 +410,6 @@ vec3d  GDMArchive::GetDataVec3d(int domain, int element_index)
 	const int index = 3 * element_index;
 	return vec3d(fpdata[domain][index], fpdata[domain][index + 1], fpdata[domain][index + 2]);
 }
-
-
-bool PlotFile2DoubleGrowDirectionModifier::Init()
-{
-	if (FEMaterial::Init() == false) return false;
-	FEModel * model = GetFEModel();
-	FEBioModel * bm = dynamic_cast<FEBioModel*>(model);
-	assert(bm);
-	FEBioPlotFile2 * pf2 = dynamic_cast<FEBioPlotFile2 *>(bm->GetPlotFile());
-	if (!pf2)
-		return false;
-	const list<FEBioPlotFile2::DICTIONARY_ITEM>& domain_var_list = pf2->GetDictionary().DomainVariableList();
-
-
-	for (auto i = domain_var_list.begin(); i != domain_var_list.end(); ++i)
-	{
-		if (!strcmp(i->m_szname, field_name))
-		{
-			record_index = i;
-			return true;
-		}
-	}
-	//data record name not found
-	return false;
-}
-
-vec3d PlotFile2DoubleGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
-{
-	switch(datatype)
-	{
-	case 0:
-		seg_length *= archive.GetDataFloat(mat->domains[0], tip.pt.elemindex);
-		break;
-	case 1:
-		seg_length *= archive.GetDataVec3d(mat->domains[0], tip.pt.elemindex).norm();
-		break;
-	case 2:
-		seg_length *= archive.GetDataMat3ds(mat->domains[0], tip.pt.elemindex).det();
-		break;
-	default:
-		assert(false);
-	}
-	
-	return previous_dir;
-}
-
-void PlotFile2DoubleGrowDirectionModifier::Update()
-{
-	record_index->m_psave->Save(*culture->m_pmat->m_pangio->m_fem, archive);
-}
-
-BEGIN_PARAMETER_LIST(PlotFile2DoubleGrowDirectionModifier, GrowDirectionModifier)
-ADD_PARAMETER(field_name, FE_PARAM_STRING, "field_name");
-ADD_PARAMETER(datatype, FE_PARAM_INT, "datatype");
-END_PARAMETER_LIST();
 
 bool Plot2GGP::Init()
 {
