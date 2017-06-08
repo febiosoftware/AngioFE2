@@ -71,8 +71,8 @@ private:
 
 //pure virtual base class for Generic Growth Parameters
 //all matrix indices will be 1 indexed
-//conventions vectors will be read into col1 of the matrix
-//doubles will be read into position 11 of the matrix
+//conventions vectors will be read into diagonal of the matrix all other values will be zeroed
+//conventions doubles will be read into element 11 of the matrix all other values will be zeroed
 class GGP : public FEMaterial
 {
 public:
@@ -80,7 +80,7 @@ public:
 	virtual ~GGP() {}
 	//will be called once before growth per FE timestep
 	virtual void Update() { if (child) { child->Update(); } };
-	virtual mat3d Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip) { if (child) { return child->Operation(in, mat, tip); } return in; };
+	virtual mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) { if (child) { return child->Operation(in, fin, mat, tip); } return in; };
 
 	//must be called before anything else is done but construction
 	virtual void SetCulture(Culture * cp)
@@ -107,7 +107,7 @@ public:
 	bool Init() override;
 
 	void Update() override;
-	mat3d Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
 
 private:
 	list<FEBioPlotFile2::DICTIONARY_ITEM>::const_iterator record_index;
@@ -126,12 +126,13 @@ public:
 	bool Init()override { return true; }
 
 	void Update() override { GGP::Update(); }
-	mat3d Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
 
 private:
 	double m[9][9];//the matrix that the unrolled matrix will be multiplied by
 	DECLARE_PARAMETER_LIST();
 };
+
 //the nested tree will be executed before the child tree
 class ForkedGGP : public GGP
 {
@@ -140,7 +141,7 @@ public:
 	ForkedGGP(FEModel * model) : GGP(model) { AddProperty(&nest, "nest"); }
 	~ForkedGGP() {}
 	//will be called once before growth per FE timestep
-	mat3d Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
 	void Update() override { 
 		GGP::Update();
 		nest->Update();
@@ -166,7 +167,7 @@ public:
 	EigenValuesGGP(FEModel * model) : GGP(model) {  }
 	virtual ~EigenValuesGGP() {}
 
-	mat3d Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
 };
 
 //computes the eigen vectors and stores them in the collums of the matrix
@@ -177,7 +178,122 @@ public:
 	EigenVectorsGGP(FEModel * model) : GGP(model) {  }
 	virtual ~EigenVectorsGGP() {}
 
-	mat3d Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+};
+
+//the computes the cross product and stores it in the diagonal of the returned matrix
+class CrossGGP : public GGP
+{
+public:
+	//disallow empy forks
+	CrossGGP(FEModel * model) : GGP(model) { AddProperty(&other, "other"); }
+	~CrossGGP() {}
+
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	void Update() override {
+		GGP::Update();
+		other->Update();
+	}
+	void SetCulture(Culture * cp) override
+	{
+		other->SetCulture(cp);
+		GGP::SetCulture(cp);
+	}
+
+protected:
+	Culture * culture = nullptr;
+	FEPropertyT<GGP> other;
+};
+
+//if (threshold * (1,0,0)).x > 0 then statement will be executed and modify the result of child
+class ThresholdGGP : public GGP
+{
+public:
+	//disallow empy forks
+	ThresholdGGP(FEModel * model) : GGP(model)
+	{
+		AddProperty(&statement, "statement");
+		AddProperty(&threshold, "threshold");
+	}
+	~ThresholdGGP() {}
+
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	void Update() override {
+		GGP::Update();
+		statement->Update();
+		threshold->Update();
+	}
+	void SetCulture(Culture * cp) override
+	{
+		statement->SetCulture(cp);
+		threshold->SetCulture(cp);
+		GGP::SetCulture(cp);
+	}
+
+protected:
+	Culture * culture = nullptr;
+	FEPropertyT<GGP> statement;
+	FEPropertyT<GGP> threshold;
+};
+
+//applies arccos to all elements of the matrix
+class ArcCosGGP : public GGP
+{
+public:
+	ArcCosGGP(FEModel * model) : GGP(model) {  }
+	virtual ~ArcCosGGP() {}
+
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+};
+
+//applies arccos to all elements of the matrix
+class ArcSinGGP : public GGP
+{
+public:
+	ArcSinGGP(FEModel * model) : GGP(model) {  }
+	virtual ~ArcSinGGP() {}
+
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+};
+
+//applies cos to all elements of the matrix
+class CosGGP : public GGP
+{
+public:
+	CosGGP(FEModel * model) : GGP(model) {  }
+	virtual ~CosGGP() {}
+
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+};
+
+//applies sin to all elements of the matrix
+class SinGGP : public GGP
+{
+public:
+	SinGGP(FEModel * model) : GGP(model) {  }
+	virtual ~SinGGP() {}
+
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+};
+
+//GGP classes used in testing
+
+class SetterGGP : public GGP
+{
+public:
+	//the user must do all initialization themselves
+	SetterGGP(FEModel * model): GGP(model){}
+	virtual ~SetterGGP() {}
+	//will be called once before growth per FE timestep
+	bool Init()override { return true; }
+
+	void Update() override { GGP::Update(); }
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+
+private:
+	mat3d m;//the matrix 
+	vec3d invec;
+	DECLARE_PARAMETER_LIST();
 };
 
 //begin bind points
@@ -249,9 +365,11 @@ class GradientGrowDirectionModifier : public GrowDirectionModifier
 public:
 	GradientGrowDirectionModifier(FEModel * model);
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
-
+	void Update() override;
+	void SetCulture(Culture * cp) override;
 private:
 	double threshold = 0.01;//the threshold over which vessels will deflect on the gradient
+	FEPropertyT<GGP> threshold_scale;
 	DECLARE_PARAMETER_LIST();
 };
 //modifies the direction a segment grows based on its proximity to other segments if a tip is within the radius specified the vessels direction will be set to grow towards that segment

@@ -48,11 +48,22 @@ void GrowDirectionModifiers::Update()
 
 GradientGrowDirectionModifier::GradientGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
 {
-
+	AddProperty(&threshold_scale, "threshold_scale");
+	threshold_scale.m_brequired = false;
 }
 //begin implementations of grow direction modifiers
 vec3d GradientGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
 {
+	if (threshold_scale)
+	{
+		mat3d id(1.0, 0.0, 0.0,
+			0.0, 1.0, 0.0,
+			0.0, 0.0, 1.0);
+		mat3d ct = threshold_scale->Operation(id, previous_dir, mat, tip);
+		vec3d x(1, 0, 0);
+		x = ct * x;
+		threshold *= x.x;
+	}
 	//calculate the density gradinet if above the threshold set the grow direction
 	std::vector<double> densities;
 	FESolidElement * se = dynamic_cast<FESolidElement*>(&tip.pt.ndomain->ElementRef(tip.pt.elemindex));
@@ -72,6 +83,22 @@ vec3d GradientGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir,
 	}
 	return previous_dir;
 }
+
+void GradientGrowDirectionModifier::Update()
+{
+	if (threshold_scale)
+	{
+		threshold_scale->Update();
+	}
+}
+void GradientGrowDirectionModifier::SetCulture(Culture * cp)
+{
+	if (threshold_scale)
+		threshold_scale->SetCulture(cp);
+
+	GrowDirectionModifier::SetCulture(cp);
+}
+
 BEGIN_PARAMETER_LIST(GradientGrowDirectionModifier, GrowDirectionModifier)
 ADD_PARAMETER(threshold, FE_PARAM_DOUBLE, "threshold");
 END_PARAMETER_LIST();
@@ -153,7 +180,7 @@ vec3d BranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, S
 			mat3d id(1.0, 0.0, 0.0,
 				0.0, 1.0, 0.0,
 				0.0, 0.0, 1.0);
-			mat3d ct = previous_direction->Operation(id, mat, tip);
+			mat3d ct = previous_direction->Operation(id, previous_dir , mat, tip);
 			previous_dir = ct * previous_dir;
 		}
 		vec3d seg_vec = -previous_dir;
@@ -164,7 +191,7 @@ vec3d BranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, S
 			mat3d id(1.0, 0.0, 0.0,
 				0.0, 1.0, 0.0,
 				0.0, 0.0, 1.0);
-			mat3d ct = collagen_direction->Operation(id, mat, tip);
+			mat3d ct = collagen_direction->Operation(id, coll_fib , mat, tip);
 			coll_fib = ct * coll_fib;
 		}
 		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
@@ -218,7 +245,7 @@ vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, 
 		mat3d id(1.0, 0.0, 0.0,
 			0.0, 1.0, 0.0,
 			0.0, 0.0, 1.0);
-		mat3d ct = collagen_direction->Operation(id, mat, tip);
+		mat3d ct = collagen_direction->Operation(id, coll_dir, mat, tip);
 		coll_dir = ct * coll_dir;
 	}
 
@@ -229,7 +256,7 @@ vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, 
 		mat3d id(1.0, 0.0, 0.0,
 			0.0, 1.0, 0.0,
 			0.0, 0.0, 1.0);
-		mat3d ct = previous_direction->Operation(id, mat, tip);
+		mat3d ct = previous_direction->Operation(id, per_dir , mat, tip);
 		per_dir = ct * per_dir;
 	}
 
@@ -239,8 +266,10 @@ vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, 
 		mat3d id(1.0, 0.0, 0.0,
 			0.0, 1.0, 0.0,
 			0.0, 0.0, 1.0);
-		mat3d ct = previous_direction->Operation(id, mat, tip);
-		wi *= ct[0][0];
+		vec3d in(1, 0, 0);
+		mat3d ct = previous_direction->Operation(id, in , mat, tip);
+		vec3d temp = ct * in;
+		wi *= temp.x;
 	}
 	vec3d new_dir = mix(per_dir, coll_dir, wi);
 	new_dir.unit();
@@ -333,7 +362,7 @@ vec3d DensityScaleGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_
 		mat3d id(1.0, 0.0, 0.0,
 			0.0, 1.0, 0.0,
 			0.0, 0.0, 1.0);
-		mat3d ct = density_scale->Operation(id, mat, tip);
+		mat3d ct = density_scale->Operation(id, x, mat, tip);
 		x = ct * x;
 		seg_length *= x.x;
 	}
@@ -435,7 +464,7 @@ bool Plot2GGP::Init()
 	return false;
 }
 
-mat3d Plot2GGP::Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip)
+mat3d Plot2GGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
 {
 	switch (record_index->m_nfmt)
 	{
@@ -484,7 +513,7 @@ mat3d Plot2GGP::Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip)
 		assert(false);
 	}
 
-	return GGP::Operation(in, mat, tip);
+	return GGP::Operation(in, fin, mat, tip);
 }
 
 void Plot2GGP::Update()
@@ -514,7 +543,7 @@ MatrixConverterGGP::MatrixConverterGGP(FEModel * model) : GGP(model)
 	}
 }
 
-mat3d MatrixConverterGGP::Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip)
+mat3d MatrixConverterGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
 {
 	double unroll[9];
 	double results[9];
@@ -548,7 +577,7 @@ mat3d MatrixConverterGGP::Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP
 			index++;
 		}
 	}
-	return GGP::Operation(in, mat, tip);
+	return GGP::Operation(in, fin, mat, tip);
 }
 
 BEGIN_PARAMETER_LIST(MatrixConverterGGP, GGP)
@@ -645,13 +674,13 @@ ADD_PARAMETER(m[8][8], FE_PARAM_DOUBLE, "m99");
 END_PARAMETER_LIST();
 
 
-mat3d ForkedGGP::Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip)
+mat3d ForkedGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
 {
-	mat3d temp = nest->Operation(in, mat, tip);
-	return GGP::Operation(temp, mat, tip);
+	mat3d temp = nest->Operation(in, fin, mat, tip);
+	return GGP::Operation(temp, fin, mat, tip);
 }
 
-mat3d EigenValuesGGP::Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip)
+mat3d EigenValuesGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
 {
 	mat3ds temp(in[0][0], in[1][1], in[2][2], in[0][1], in[1][2], in[0][2]);
 	double eig_val[3];
@@ -661,10 +690,10 @@ mat3d EigenValuesGGP::Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& ti
 	mat3d rv(eig_val[0], 0.0,0.0,
 		eig_val[1],0.0, 0.0,
 		eig_val[2], 0.0, 0.0);
-	return rv;
+	return GGP::Operation(rv, fin, mat, tip);
 }
 
-mat3d EigenVectorsGGP::Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& tip)
+mat3d EigenVectorsGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
 {
 	mat3ds temp(in[0][0], in[1][1], in[2][2], in[0][1], in[1][2], in[0][2]);
 	double eig_val[3];
@@ -674,5 +703,90 @@ mat3d EigenVectorsGGP::Operation(mat3d in, FEAngioMaterial* mat, Segment::TIP& t
 	mat3d rv(eig_vec[0].x, eig_vec[0].y, eig_vec[0].z,
 		eig_vec[1].x, eig_vec[1].y, eig_vec[1].z,
 		eig_vec[2].x, eig_vec[2].y, eig_vec[2].z);
-	return rv;
+	return GGP::Operation(rv, fin, mat, tip);
 }
+
+
+mat3d CrossGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
+{
+	
+	vec3d a(in[0][0], in[1][1], in[2][2]);
+	mat3d other_rez = other->Operation(in, fin, mat, tip);
+	vec3d b(other_rez[0][0], other_rez[1][1], other_rez[2][2]);
+	vec3d res = a ^ b;
+
+	mat3d rv(res.x, 0.0, 0.0,
+		0.0, res.y, 0.0,
+		0.0, 0.0, res.z);
+	return GGP::Operation(rv, fin, mat, tip);
+}
+
+mat3d ThresholdGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
+{
+	mat3d tr_rez = threshold->Operation(in, fin, mat, tip);
+	vec3d x(1, 0, 0);
+	x = tr_rez * x;
+
+	if(x.x > 0.0)
+	{
+		mat3d rv = statement->Operation(in, fin, mat, tip);
+		return GGP::Operation(rv, fin, mat, tip);
+	}
+	return GGP::Operation(in, fin, mat, tip);
+}
+
+mat3d ArcCosGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
+{
+	mat3d rv(acos(in[0][0]), acos(in[0][1]), acos(in[0][2]),
+		acos(in[1][0]), acos(in[1][1]), acos(in[1][2]),
+		acos(in[2][0]), acos(in[2][1]), acos(in[2][2]));
+	return GGP::Operation(rv, fin, mat, tip);
+}
+
+mat3d ArcSinGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
+{
+	mat3d rv(asin(in[0][0]), asin(in[0][1]), asin(in[0][2]),
+		asin(in[1][0]), asin(in[1][1]), asin(in[1][2]),
+		asin(in[2][0]), asin(in[2][1]), asin(in[2][2]));
+	return GGP::Operation(rv, fin, mat, tip);
+}
+
+mat3d CosGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
+{
+	mat3d rv(cos(in[0][0]), cos(in[0][1]), cos(in[0][2]),
+		cos(in[1][0]), cos(in[1][1]), cos(in[1][2]),
+		cos(in[2][0]), cos(in[2][1]), cos(in[2][2]));
+	return GGP::Operation(rv, fin, mat, tip);
+}
+
+mat3d SinGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
+{
+	mat3d rv(sin(in[0][0]), sin(in[0][1]), sin(in[0][2]),
+		sin(in[1][0]), sin(in[1][1]), sin(in[1][2]),
+		sin(in[2][0]), sin(in[2][1]), sin(in[2][2]));
+	return GGP::Operation(rv, fin, mat, tip);
+}
+
+mat3d SetterGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
+{
+	return GGP::Operation(m, invec, mat, tip);
+}
+
+BEGIN_PARAMETER_LIST(SetterGGP, GGP)
+ADD_PARAMETER(m[0][0], FE_PARAM_DOUBLE, "m11");
+ADD_PARAMETER(m[0][1], FE_PARAM_DOUBLE, "m12");
+ADD_PARAMETER(m[0][2], FE_PARAM_DOUBLE, "m13");
+
+ADD_PARAMETER(m[1][0], FE_PARAM_DOUBLE, "m21");
+ADD_PARAMETER(m[1][1], FE_PARAM_DOUBLE, "m22");
+ADD_PARAMETER(m[1][2], FE_PARAM_DOUBLE, "m23");
+
+ADD_PARAMETER(m[2][0], FE_PARAM_DOUBLE, "m31");
+ADD_PARAMETER(m[2][1], FE_PARAM_DOUBLE, "m32");
+ADD_PARAMETER(m[2][2], FE_PARAM_DOUBLE, "m33");
+
+
+ADD_PARAMETER(invec.x, FE_PARAM_DOUBLE, "in_x");
+ADD_PARAMETER(invec.y, FE_PARAM_DOUBLE, "in_y");
+ADD_PARAMETER(invec.z, FE_PARAM_DOUBLE, "in_z");
+END_PARAMETER_LIST();

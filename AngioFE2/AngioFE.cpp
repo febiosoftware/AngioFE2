@@ -52,6 +52,13 @@ FEPluginFactory_T<MatrixConverterGGP, FEMATERIAL_ID> matrix_converter_ggp_factor
 FEPluginFactory_T<ForkedGGP, FEMATERIAL_ID> forked_ggp_factory("forked_ggp");
 FEPluginFactory_T<EigenValuesGGP, FEMATERIAL_ID> eigen_values_ggp_factory("eigen_values_ggp");
 FEPluginFactory_T<EigenVectorsGGP, FEMATERIAL_ID> eigen_vectors_ggp_factory("eigen_vectors_ggp");
+FEPluginFactory_T<CrossGGP, FEMATERIAL_ID> cross_ggp_factory("cross_ggp");
+FEPluginFactory_T<ThresholdGGP, FEMATERIAL_ID> threshold_ggp_factory("threshold_ggp");
+FEPluginFactory_T<ArcCosGGP, FEMATERIAL_ID> arc_cos_ggp_factory("arccos_ggp");
+FEPluginFactory_T<ArcSinGGP, FEMATERIAL_ID> arc_sin_ggp_factory("arcsin_ggp");
+FEPluginFactory_T<CosGGP, FEMATERIAL_ID> cos_ggp_factory("cos_ggp");
+FEPluginFactory_T<SinGGP, FEMATERIAL_ID> sin_ggp_factory("sin_ggp");
+FEPluginFactory_T<SetterGGP, FEMATERIAL_ID> setter_ggp_factory("setter_ggp");
 
 FEPluginFactory_T<ClassicFragmentSeeder      , FEMATERIAL_ID> classic_fragment_seeder_factory("classic"   );
 FEPluginFactory_T<MDByVolumeFragmentSeeder   , FEMATERIAL_ID> mdbyvol_fragment_seeder_factory("MDbyVolume");
@@ -220,7 +227,21 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 	case 52:
 		return &matrix_converter_ggp_factory;
 	case 53:
-		return &forked_ggp_factory;		
+		return &forked_ggp_factory;
+	case 54:
+		return &cross_ggp_factory;
+	case 55:
+		return &threshold_ggp_factory;
+	case 56:
+		return &arc_cos_ggp_factory;
+	case 57:
+		return &arc_sin_ggp_factory;
+	case 58:
+		return &cos_ggp_factory;
+	case 59:
+		return &sin_ggp_factory;
+	case 60:
+		return &setter_ggp_factory;
 	default:
 		return nullptr;
 	}
