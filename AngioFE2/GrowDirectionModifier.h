@@ -73,6 +73,7 @@ private:
 //all matrix indices will be 1 indexed
 //conventions vectors will be read into diagonal of the matrix all other values will be zeroed
 //conventions doubles will be read into element 11 of the matrix all other values will be zeroed
+//child should not be required for any operation and should be the last operator applied by a GGP
 class GGP : public FEMaterial
 {
 public:
@@ -186,23 +187,30 @@ class CrossGGP : public GGP
 {
 public:
 	//disallow empy forks
-	CrossGGP(FEModel * model) : GGP(model) { AddProperty(&other, "other"); }
+	CrossGGP(FEModel * model) : GGP(model)
+	{
+		AddProperty(&v1, "v1");
+		AddProperty(&v2, "v2");
+	}
 	~CrossGGP() {}
 
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
 	void Update() override {
 		GGP::Update();
-		other->Update();
+		v1->Update();
+		v2->Update();
 	}
 	void SetCulture(Culture * cp) override
 	{
-		other->SetCulture(cp);
+		v1->SetCulture(cp);
+		v2->SetCulture(cp);
 		GGP::SetCulture(cp);
 	}
 
 protected:
 	Culture * culture = nullptr;
-	FEPropertyT<GGP> other;
+	FEPropertyT<GGP> v1;
+	FEPropertyT<GGP> v2;
 };
 
 //if (threshold * (1,0,0)).x > 0 then statement will be executed and modify the result of child

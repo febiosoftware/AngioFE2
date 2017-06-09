@@ -709,10 +709,10 @@ mat3d EigenVectorsGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segm
 
 mat3d CrossGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
 {
-	
-	vec3d a(in[0][0], in[1][1], in[2][2]);
-	mat3d other_rez = other->Operation(in, fin, mat, tip);
-	vec3d b(other_rez[0][0], other_rez[1][1], other_rez[2][2]);
+	mat3d v1_rez = v1->Operation(in, fin, mat, tip);
+	mat3d v2_rez = v2->Operation(in, fin, mat, tip);
+	vec3d a(v1_rez[0][0], v1_rez[1][1], v1_rez[2][2]);
+	vec3d b(v2_rez[0][0], v2_rez[1][1], v2_rez[2][2]);
 	vec3d res = a ^ b;
 
 	mat3d rv(res.x, 0.0, 0.0,
@@ -790,3 +790,9 @@ ADD_PARAMETER(invec.x, FE_PARAM_DOUBLE, "in_x");
 ADD_PARAMETER(invec.y, FE_PARAM_DOUBLE, "in_y");
 ADD_PARAMETER(invec.z, FE_PARAM_DOUBLE, "in_z");
 END_PARAMETER_LIST();
+
+
+mat3d MatrixInverseGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
+{
+	return GGP::Operation(in.inverse(), fin, mat, tip);
+}
