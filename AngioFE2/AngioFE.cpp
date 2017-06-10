@@ -59,6 +59,8 @@ FEPluginFactory_T<ArcSinGGP, FEMATERIAL_ID> arc_sin_ggp_factory("arcsin_ggp");
 FEPluginFactory_T<CosGGP, FEMATERIAL_ID> cos_ggp_factory("cos_ggp");
 FEPluginFactory_T<SinGGP, FEMATERIAL_ID> sin_ggp_factory("sin_ggp");
 FEPluginFactory_T<SetterGGP, FEMATERIAL_ID> setter_ggp_factory("setter_ggp");
+FEPluginFactory_T<MatrixInverseGGP, FEMATERIAL_ID> matrix_inverse_ggp_factory("matrix_inverse_ggp");
+
 
 FEPluginFactory_T<ClassicFragmentSeeder      , FEMATERIAL_ID> classic_fragment_seeder_factory("classic"   );
 FEPluginFactory_T<MDByVolumeFragmentSeeder   , FEMATERIAL_ID> mdbyvol_fragment_seeder_factory("MDbyVolume");
@@ -242,6 +244,8 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		return &sin_ggp_factory;
 	case 60:
 		return &setter_ggp_factory;
+	case 61:
+		return &matrix_inverse_ggp_factory;
 	default:
 		return nullptr;
 	}

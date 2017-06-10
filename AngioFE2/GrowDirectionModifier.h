@@ -284,6 +284,16 @@ public:
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
 };
 
+//calculates the inverse of in and passes this on
+class MatrixInverseGGP : public GGP
+{
+public:
+	MatrixInverseGGP(FEModel * model) : GGP(model) {  }
+	virtual ~MatrixInverseGGP() {}
+
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+};
+
 //GGP classes used in testing
 
 class SetterGGP : public GGP
