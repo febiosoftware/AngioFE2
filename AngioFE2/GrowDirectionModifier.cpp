@@ -796,3 +796,46 @@ mat3d MatrixInverseGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Seg
 {
 	return GGP::Operation(in.inverse(), fin, mat, tip);
 }
+
+mat3d AssertGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
+{
+	assert(in[0][0] <= (m[0][0] + tolerance));
+	assert(in[0][0] >= (m[0][0] - tolerance));
+	assert(in[0][1] <= (m[0][1] + tolerance));
+	assert(in[0][1] >= (m[0][1] - tolerance));
+	assert(in[0][2] <= (m[0][2] + tolerance));
+	assert(in[0][2] >= (m[0][2] - tolerance));
+
+	assert(in[1][0] <= (m[1][0] + tolerance));
+	assert(in[1][0] >= (m[1][0] - tolerance));
+	assert(in[1][1] <= (m[1][1] + tolerance));
+	assert(in[1][1] >= (m[1][1] - tolerance));
+	assert(in[1][2] <= (m[1][2] + tolerance));
+	assert(in[1][2] >= (m[1][2] - tolerance));
+
+	assert(in[2][0] <= (m[2][0] + tolerance));
+	assert(in[2][0] >= (m[2][0] - tolerance));
+	assert(in[2][1] <= (m[2][1] + tolerance));
+	assert(in[2][1] >= (m[2][1] - tolerance));
+	assert(in[2][2] <= (m[2][2] + tolerance));
+	assert(in[2][2] >= (m[2][2] - tolerance));
+
+	return GGP::Operation(in, fin, mat, tip);
+}
+
+BEGIN_PARAMETER_LIST(AssertGGP, GGP)
+ADD_PARAMETER(m[0][0], FE_PARAM_DOUBLE, "m11");
+ADD_PARAMETER(m[0][1], FE_PARAM_DOUBLE, "m12");
+ADD_PARAMETER(m[0][2], FE_PARAM_DOUBLE, "m13");
+
+ADD_PARAMETER(m[1][0], FE_PARAM_DOUBLE, "m21");
+ADD_PARAMETER(m[1][1], FE_PARAM_DOUBLE, "m22");
+ADD_PARAMETER(m[1][2], FE_PARAM_DOUBLE, "m23");
+
+ADD_PARAMETER(m[2][0], FE_PARAM_DOUBLE, "m31");
+ADD_PARAMETER(m[2][1], FE_PARAM_DOUBLE, "m32");
+ADD_PARAMETER(m[2][2], FE_PARAM_DOUBLE, "m33");
+
+
+ADD_PARAMETER(tolerance, FE_PARAM_DOUBLE, "tolerance");
+END_PARAMETER_LIST();

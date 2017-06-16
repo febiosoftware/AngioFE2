@@ -300,7 +300,13 @@ class SetterGGP : public GGP
 {
 public:
 	//the user must do all initialization themselves
-	SetterGGP(FEModel * model): GGP(model){}
+	SetterGGP(FEModel * model): GGP(model)
+	{
+		invec = vec3d(1, 0, 0);
+		m = mat3d(1,0,0,
+			0,1,0,
+			0,0,1);
+	}
 	virtual ~SetterGGP() {}
 	//will be called once before growth per FE timestep
 	bool Init()override { return true; }
@@ -311,6 +317,28 @@ public:
 private:
 	mat3d m;//the matrix 
 	vec3d invec;
+	DECLARE_PARAMETER_LIST();
+};
+
+class AssertGGP : public GGP
+{
+public:
+	//the user must do all initialization themselves
+	AssertGGP(FEModel * model) : GGP(model) {
+		m = mat3d(1, 0, 0,
+			0, 1, 0,
+			0, 0, 1);
+	}
+	virtual ~AssertGGP() {}
+	//will be called once before growth per FE timestep
+	bool Init()override { return true; }
+
+	void Update() override { GGP::Update(); }
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+
+private:
+	mat3d m;//the matrix
+	double tolerance= 0.01;
 	DECLARE_PARAMETER_LIST();
 };
 

@@ -73,7 +73,7 @@ void Fileout::printStatus(FEAngio& angio)
 // Save microvessel position at the current time point
 void Fileout::save_vessel_state(FEAngio& angio)
 {
-	unsigned long int segcount = 0;
+	unsigned int segcount = 0;
 	for (size_t i = 0; i < angio.m_pmat.size(); i++)
 	{
 		Culture* cult = angio.m_pmat[i]->m_cult;
