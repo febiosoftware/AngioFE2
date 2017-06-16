@@ -60,6 +60,7 @@ FEPluginFactory_T<CosGGP, FEMATERIAL_ID> cos_ggp_factory("cos_ggp");
 FEPluginFactory_T<SinGGP, FEMATERIAL_ID> sin_ggp_factory("sin_ggp");
 FEPluginFactory_T<SetterGGP, FEMATERIAL_ID> setter_ggp_factory("setter_ggp");
 FEPluginFactory_T<MatrixInverseGGP, FEMATERIAL_ID> matrix_inverse_ggp_factory("matrix_inverse_ggp");
+FEPluginFactory_T<AssertGGP, FEMATERIAL_ID> assert_ggp_factory("assert_ggp");
 
 
 FEPluginFactory_T<ClassicFragmentSeeder      , FEMATERIAL_ID> classic_fragment_seeder_factory("classic"   );
@@ -113,142 +114,56 @@ FECORE_EXPORT  void PluginInitialize(FECoreKernel& febio)
 FECORE_EXPORT  void GetPluginVersion(int & major, int & minor, int & patch)
 {
 	major = 2;
-	minor = 0;
+	minor = 1;
 	patch = SVNREVISION;
 }
 
 //-----------------------------------------------------------------------------
 FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 {
-	switch (i)
+	std::vector<FECoreFactory *> addon_classes{ 
+		&angiofe_task_factory, &angio_sprout_factory, &angio_mat_factory,
+		&angio_mat_factory, &pressure_mat_factory,
+		//plot classes
+		&plot_angio_stress, &plot_angio_stress, &plot_angio_eff_stress,
+		&plot_angio_ecm, &plot_angio_alpha, &plot_angio_gradient, &plot_angio_gradient_center,
+		&plot_angio_material_hop, &plot_angio_segment_bad_growth, &plot_vessel_stress, &plot_matrix_stress,
+		&plot_vessel_weight, &plot_matrix_weight, &plot_matrix_tangent, &plot_matrix_visco_stress,
+		&plot_matrix_elastic_m_Q, &plot_matrix_elastic_stress,
+		//fiber initializers
+		&null_fiber_initializer, &random_fiber_initializer,
+		&random_fiber_initializer_non_mangling, &random_fiber_initializer_pe,
+		//branching factories
+		&no_fragment_branching_factory, &psuedo_defered_fragment_branching_factory,
+		//grow direction modifiers
+		&grow_direction_modifiers_factory, &base_fiber_grow_direction_modifier_factory,
+		&unit_length_grow_direction_modifier_factory, &segment_length_grow_direction_modifier_factory,
+		&default_grow_direction_modifier_factory, &branch_grow_direction_modifier_factory, 
+		&gradient_grow_direction_modifier_factory, &anastamosis_grow_direction_modifier_factory,
+		&density_scale_grow_direction_modifier_factory,
+		//fragment seeders
+		&classic_fragment_seeder_factory,  &md_fragment_seeder_factory, &mdbyvol_fragment_seeder_factory,
+		&md_file_seeder_factory,
+		//boundary conditions
+		&stopbc_factory, &bouncybc_factory, &same_mbc_factory,
+		&passthrough_mbc_factory, 
+		//random distribution
+		&cauchy_distribution_factory, &chi_squared_distribution_factory, &weibull_distribution_factory,
+		&gamma_distribution_factory,&normal_distribution_factory, &exponential_distribution_factory,
+		//ggp's
+		&plot2_ggp_factory, &matrix_converter_ggp_factory, &forked_ggp_factory, &cross_ggp_factory,
+		&threshold_ggp_factory, 
+		&arc_cos_ggp_factory, &arc_sin_ggp_factory, &cos_ggp_factory, &sin_ggp_factory,
+		&matrix_inverse_ggp_factory, &eigen_vectors_ggp_factory, &eigen_values_ggp_factory,
+		&setter_ggp_factory,  &assert_ggp_factory
+	};
+
+	if(i < addon_classes.size())
 	{
-	case 0:
-		return &angiofe_task_factory;
-	case 1:
-		return &angio_sprout_factory;
-	case 2:
-		return &angio_mat_factory;
-	case 3:
-		return &pressure_mat_factory;
-	case 4:
-		return &plot_angio_stress;
-	case 5:
-		return &plot_angio_eff_stress;
-	case 6:
-		return &null_fiber_initializer;
-	case 7:
-		return &plot_angio_ecm;
-	case 8:
-		return &plot_angio_alpha;
-	case 9:
-		return &plot_angio_gradient;
-	case 10:
-		return &plot_angio_gradient_center;
-	case 11:
-		return &plot_angio_material_hop;
-	case 12:
-		return &plot_angio_segment_bad_growth;
-	case 13:
-		return &plot_vessel_stress;
-	case 14:
-		return &plot_matrix_stress;
-	case 15:
-		return &plot_vessel_weight;
-	case 16:
-		return &plot_matrix_weight;
-	case 17:
-		return &plot_matrix_tangent;
-	case 18:
-		return &plot_matrix_visco_stress;
-	case 19:
-		return &no_fragment_branching_factory;
-	case 20:
-		return &psuedo_defered_fragment_branching_factory;
-	case 21:
-		return &normal_distribution_factory;
-	case 22:
-		return &default_grow_direction_modifier_factory;
-	case 23:
-		return &branch_grow_direction_modifier_factory;
-	case 24:
-		return &gradient_grow_direction_modifier_factory;
-	case 25:
-		return &anastamosis_grow_direction_modifier_factory;
-	case 26:
-		return &classic_fragment_seeder_factory;
-	case 27:
-		return &md_fragment_seeder_factory;
-	case 28:
-		return &mdbyvol_fragment_seeder_factory;
-	case 29:
-		return &md_file_seeder_factory;
-	case 30:
-		return &plot_matrix_elastic_stress;
-	case 31:
-		return &stopbc_factory;
-	case 32:
-		return &bouncybc_factory;
-	case 33:
-		return &same_mbc_factory;
-	case 34:
-		return &passthrough_mbc_factory;
-	case 35:
-		return &grow_direction_modifiers_factory;
-	case 36:
-		return &exponential_distribution_factory;
-	case 37:
-		return &cauchy_distribution_factory;
-	case 38:
-		return &chi_squared_distribution_factory;
-	case 39:
-		return &weibull_distribution_factory;
-	case 40:
-		return &gamma_distribution_factory;
-	case 41:
-		return &plot_matrix_elastic_m_Q;
-	case 42:
-		return &random_fiber_initializer;
-	case 43:
-		return &random_fiber_initializer_non_mangling;
-	case 44:
-		return &random_fiber_initializer_pe;
-	case 45:
-		return &base_fiber_grow_direction_modifier_factory;
-	case 46:
-		return &unit_length_grow_direction_modifier_factory;
-	case 47:
-		return &segment_length_grow_direction_modifier_factory;
-	case 48:
-		return &density_scale_grow_direction_modifier_factory;
-	case 49:
-		return &eigen_vectors_ggp_factory;
-	case 50:
-		return &eigen_values_ggp_factory;
-	case 51:
-		return &plot2_ggp_factory;
-	case 52:
-		return &matrix_converter_ggp_factory;
-	case 53:
-		return &forked_ggp_factory;
-	case 54:
-		return &cross_ggp_factory;
-	case 55:
-		return &threshold_ggp_factory;
-	case 56:
-		return &arc_cos_ggp_factory;
-	case 57:
-		return &arc_sin_ggp_factory;
-	case 58:
-		return &cos_ggp_factory;
-	case 59:
-		return &sin_ggp_factory;
-	case 60:
-		return &setter_ggp_factory;
-	case 61:
-		return &matrix_inverse_ggp_factory;
-	default:
-		return nullptr;
+		return addon_classes[i];
 	}
+	return nullptr;
+
 }
 
 //-----------------------------------------------------------------------------
