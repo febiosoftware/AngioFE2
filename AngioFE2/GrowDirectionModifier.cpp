@@ -466,6 +466,9 @@ bool Plot2GGP::Init()
 
 mat3d Plot2GGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
 {
+	in = mat3d(0, 0, 0,
+		0, 0, 0,
+		0, 0, 0);
 	switch (record_index->m_nfmt)
 	{
 	case Storage_Fmt::FMT_ITEM:
