@@ -44,6 +44,12 @@ public:
 	mat3d  GetDataMat3d(int domain, int element_index);
 	float  GetDataFloat(int domain, int element_index);
 	vec3d  GetDataVec3d(int domain, int element_index);
+	//per node versions of the functions 
+	mat3ds GetDataMat3ds(int domain, int element_index, Segment::TIP& tip);
+	mat3dd GetDataMat3dd(int domain, int element_index, Segment::TIP& tip);
+	mat3d  GetDataMat3d(int domain, int element_index, Segment::TIP& tip);
+	float  GetDataFloat(int domain, int element_index, Segment::TIP& tip);
+	vec3d  GetDataVec3d(int domain, int element_index, Segment::TIP& tip);
 	//consider adding diagonal matrix and 4d tensor
 	
 private:

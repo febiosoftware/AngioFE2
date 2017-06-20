@@ -439,6 +439,95 @@ vec3d  GDMArchive::GetDataVec3d(int domain, int element_index)
 	const int index = 3 * element_index;
 	return vec3d(fpdata[domain][index], fpdata[domain][index + 1], fpdata[domain][index + 2]);
 }
+//node versions of fucntions
+mat3dd GDMArchive::GetDataMat3dd(int domain, int element_index, Segment::TIP& tip)
+{
+	mat3dd r(0,0,0);
+	FESolidDomain * d = tip.pt.ndomain;
+	FESolidElement * se;
+	if (se = &d->Element(tip.pt.elemindex))
+	{
+		double arr[FEElement::MAX_NODES];
+		se->shape_fnc(arr, tip.pt.q.x, tip.pt.q.y, tip.pt.q.z);
+		for (int j = 0; j < se->Nodes(); j++)
+		{
+			int  ni = 3 * se->m_node[j];
+			r +=  mat3dd(fpdata[domain][ni], fpdata[domain][ni+1], fpdata[domain][ni+2]) * arr[j];
+		}
+	}
+	return r;
+}
+mat3ds GDMArchive::GetDataMat3ds(int domain, int element_index, Segment::TIP& tip)
+{
+	mat3ds r(0, 0, 0, 0, 0, 0);
+	FESolidDomain * d = tip.pt.ndomain;
+	FESolidElement * se;
+	if (se = &d->Element(tip.pt.elemindex))
+	{
+		double arr[FEElement::MAX_NODES];
+		se->shape_fnc(arr, tip.pt.q.x, tip.pt.q.y, tip.pt.q.z);
+		for (int j = 0; j < se->Nodes(); j++)
+		{
+			int  ni = 6 * se->m_node[j];
+			r += mat3ds(fpdata[domain][ni], fpdata[domain][ni + 1], fpdata[domain][ni + 2],
+				fpdata[domain][ni + 3], fpdata[domain][ni + 4], fpdata[domain][ni + 5]) * arr[j];
+		}
+	}
+	return r;
+}
+mat3d  GDMArchive::GetDataMat3d(int domain, int element_index, Segment::TIP& tip)
+{
+	mat3d r(0, 0, 0, 0, 0, 0, 0, 0, 0);
+	FESolidDomain * d = tip.pt.ndomain;
+	FESolidElement * se;
+	if (se = &d->Element(tip.pt.elemindex))
+	{
+		double arr[FEElement::MAX_NODES];
+		se->shape_fnc(arr, tip.pt.q.x, tip.pt.q.y, tip.pt.q.z);
+		for (int j = 0; j < se->Nodes(); j++)
+		{
+			int  ni = 9 * se->m_node[j];
+			r += mat3d(fpdata[domain][ni], fpdata[domain][ni + 1], fpdata[domain][ni + 2],
+				fpdata[domain][ni + 3], fpdata[domain][ni + 4], fpdata[domain][ni + 5],
+				fpdata[domain][ni + 6], fpdata[domain][ni + 7], fpdata[domain][ni + 8]) * arr[j];
+		}
+	}
+	return r;
+}
+float  GDMArchive::GetDataFloat(int domain, int element_index, Segment::TIP& tip)
+{
+	float r = 0.0;
+	FESolidDomain * d = tip.pt.ndomain;
+	FESolidElement * se;
+	if (se = &d->Element(tip.pt.elemindex))
+	{
+		double arr[FEElement::MAX_NODES];
+		se->shape_fnc(arr, tip.pt.q.x, tip.pt.q.y, tip.pt.q.z);
+		for (int j = 0; j < se->Nodes(); j++)
+		{
+			int  ni = se->m_node[j];
+			r += fpdata[domain][ni] * arr[j];
+		}
+	}
+	return r;
+}
+vec3d  GDMArchive::GetDataVec3d(int domain, int element_index, Segment::TIP& tip)
+{
+	vec3d r = vec3d(0,0,0);
+	FESolidDomain * d = tip.pt.ndomain;
+	FESolidElement * se;
+	if (se = &d->Element(tip.pt.elemindex))
+	{
+		double arr[FEElement::MAX_NODES];
+		se->shape_fnc(arr, tip.pt.q.x, tip.pt.q.y, tip.pt.q.z);
+		for (int j = 0; j < se->Nodes(); j++)
+		{
+			int  ni = 3 * se->m_node[j];
+			r += vec3d(fpdata[domain][ni], fpdata[domain][ni+1], fpdata[domain][ni+2]) * arr[j];
+		}
+	}
+	return r;
+}
 
 bool Plot2GGP::Init()
 {
@@ -466,9 +555,6 @@ bool Plot2GGP::Init()
 
 mat3d Plot2GGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
 {
-	in = mat3d(0, 0, 0,
-		0, 0, 0,
-		0, 0, 0);
 	switch (record_index->m_nfmt)
 	{
 	case Storage_Fmt::FMT_ITEM:
@@ -511,6 +597,44 @@ mat3d Plot2GGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TI
 		}
 		break;
 	case Storage_Fmt::FMT_NODE:
+		{
+			switch (record_index->m_ntype)
+			{
+			case Var_Type::PLT_FLOAT:
+				in(0, 0) = archive.GetDataFloat(mat->domains[0], tip.pt.elemindex, tip);
+				break;
+			case Var_Type::PLT_MAT3F:
+			{
+				//make sure this order is correct
+				mat3d temp = archive.GetDataMat3d(mat->domains[0], tip.pt.elemindex, tip);
+				in = in * temp;
+			}
+			break;
+			case Var_Type::PLT_MAT3FD:
+			{
+				mat3dd temp = archive.GetDataMat3dd(mat->domains[0], tip.pt.elemindex, tip);
+				in = in *temp;
+			}
+			break;
+			case Var_Type::PLT_MAT3FS:
+			{
+				mat3ds temp = archive.GetDataMat3ds(mat->domains[0], tip.pt.elemindex, tip);
+				in = in *temp;
+			}
+			break;
+			case Var_Type::PLT_VEC3F:
+			{
+				vec3d col = archive.GetDataVec3d(mat->domains[0], tip.pt.elemindex, tip);
+				in(0, 0) = col.x;
+				in(1, 0) = col.y;
+				in(2, 0) = col.z;
+			}
+			break;
+			default:
+				assert(false);
+			}
+		}
+		break;
 	case Storage_Fmt::FMT_REGION:
 	default:
 		assert(false);
