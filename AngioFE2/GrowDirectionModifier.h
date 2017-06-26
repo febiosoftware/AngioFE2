@@ -26,7 +26,7 @@ public:
 	virtual void SetCulture(Culture * cp);
 
 protected:
-	Culture * culture;
+	Culture * culture = nullptr;
 };
 
 //an archive that can store a plot2 variable from the previous finite element iteration
@@ -121,6 +121,23 @@ private:
 	char field_name[DataRecord::MAX_STRING];
 	//datatype is autmatically deteced 
 	GDMArchive archive;
+	DECLARE_PARAMETER_LIST();
+};
+
+class NodalDataGGP : public GGP
+{
+public:
+	NodalDataGGP(FEModel * model) : GGP(model) { field_name[0] = 0; }
+	virtual ~NodalDataGGP() {}
+
+	void Update() override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+
+	void SetCulture(Culture * cp) override;
+private:
+	char field_name[DataRecord::MAX_STRING];
+	int offset = 0;
+	vector<double> data;
 	DECLARE_PARAMETER_LIST();
 };
 
@@ -435,4 +452,16 @@ private:
 	double search_radius = 100.0;
 	double search_multiplier = 1.0;
 	DECLARE_PARAMETER_LIST();
+};
+
+class EdgeDeflectorGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	EdgeDeflectorGrowDirectionModifier(FEModel * model);
+
+	void SetCulture(Culture * cp) override;
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	//used to sort these by priority
+private:
+	std::unordered_map<int,bool> edge_element;
 };

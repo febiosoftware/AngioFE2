@@ -394,6 +394,69 @@ vec3d SegmentLengthGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous
 	return previous_dir;
 }
 
+EdgeDeflectorGrowDirectionModifier::EdgeDeflectorGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
+{}
+
+vec3d EdgeDeflectorGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
+{
+	return previous_dir;
+}
+
+void EdgeDeflectorGrowDirectionModifier::SetCulture(Culture * cp)
+{
+	GrowDirectionModifier::SetCulture(cp);
+	//set all of the edge node in the map
+	std::vector<int> matls;
+	matls.push_back(cp->m_pmat->GetID());
+	std::unordered_map<int, int> edge_count;
+	cp->m_pmat->m_pangio->ForEachNode(
+		[&edge_count](FENode & node)
+	{
+		if(edge_count.count(node.GetID()))
+		{
+			edge_count[node.GetID()]++;
+		}
+		else
+		{
+			edge_count[node.GetID()] = 1;
+		}
+
+	}, matls);
+
+	FESolidDomain * sd = dynamic_cast<FESolidDomain*>(cp->m_pmat->domainptrs[0]);
+	int nn = 0;//number of nodes
+	int dtype = 0;
+	switch (sd->GetElementShape())
+	{
+	case ET_HEX8: nn = 8; break;
+	case ET_PENTA6: nn = 6; break;
+	case ET_TET4: nn = 4; break;
+	case ET_TET10: nn = 10; break;
+	case ET_TET15: nn = 15; break;
+	case ET_HEX20: nn = 20; break;
+	case ET_HEX27: nn = 27; break;
+	case ET_TET20: nn = 20; break;
+	case ET_PENTA15: nn = 15; break;
+	case ET_PYRA5: nn = 5; break;
+	default:
+		assert(false);
+	}
+	for(auto iter = edge_count.begin(); iter != edge_count.end();++iter)
+	{
+		
+		if(iter->second == nn)
+		{
+			edge_element[iter->first] = false;
+		}
+		else
+		{
+			edge_element[iter->first] = true;
+		}
+	}
+
+	matls.push_back(cp->m_pmat->GetID());
+}
+
 void GDMArchive::reset()
 {
 	fpdata.clear();
@@ -966,3 +1029,44 @@ ADD_PARAMETER(m[2][2], FE_PARAM_DOUBLE, "m33");
 
 ADD_PARAMETER(tolerance, FE_PARAM_DOUBLE, "tolerance");
 END_PARAMETER_LIST();
+
+
+
+BEGIN_PARAMETER_LIST(NodalDataGGP, GGP)
+ADD_PARAMETER(offset, FE_PARAM_INT, "offset");
+ADD_PARAMETER(field_name, FE_PARAM_STRING, "field_name");
+
+END_PARAMETER_LIST();
+
+
+void NodalDataGGP::Update()
+{
+	int dofc = culture->m_pmat->m_pangio->m_fem->GetDOFIndex(field_name, offset);
+	culture->m_pmat->m_pangio->m_fem->GetNodeData(dofc, data);
+}
+mat3d NodalDataGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
+{
+	double val = 0.0; 
+	FESolidDomain * d = tip.pt.ndomain;
+	FESolidElement * se;
+	if (se = &d->Element(tip.pt.elemindex))
+	{
+		double arr[FEElement::MAX_NODES];
+		se->shape_fnc(arr, tip.pt.q.x, tip.pt.q.y, tip.pt.q.z);
+		for (int j = 0; j < se->Nodes(); j++)
+		{
+			int  ni = se->m_node[j];
+			val += data[ni] * arr[j];
+		}
+	}
+	in[0][0] = val;
+	return GGP::Operation(in, fin, mat, tip);
+}
+
+void NodalDataGGP::SetCulture(Culture * cp)
+{
+	int dofc = cp->m_pmat->m_pangio->m_fem->GetDOFIndex(field_name, offset);
+	cp->m_pmat->m_pangio->m_fem->GetNodeData(dofc, data);
+
+	GGP::SetCulture(cp);
+}

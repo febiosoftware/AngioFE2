@@ -41,6 +41,7 @@ FEPluginFactory_T<BaseFiberAwareGrowDirectionModifier, FEMATERIAL_ID> base_fiber
 FEPluginFactory_T<BranchGrowDirectionModifier     , FEMATERIAL_ID> branch_grow_direction_modifier_factory     ("branch_grow_direction"     );
 FEPluginFactory_T<GradientGrowDirectionModifier   , FEMATERIAL_ID> gradient_grow_direction_modifier_factory   ("gradient_grow_direction"   );
 FEPluginFactory_T<AnastamosisGrowDirectionModifier, FEMATERIAL_ID> anastamosis_grow_direction_modifier_factory("anastamosis_grow_direction");
+FEPluginFactory_T<EdgeDeflectorGrowDirectionModifier, FEMATERIAL_ID> edge_deflector_grow_direction_modifier_factory("edge_deflector_grow_direction");
 
 
 FEPluginFactory_T<UnitLengthGrowDirectionModifier, FEMATERIAL_ID> unit_length_grow_direction_modifier_factory("unit_length");
@@ -61,6 +62,7 @@ FEPluginFactory_T<SinGGP, FEMATERIAL_ID> sin_ggp_factory("sin_ggp");
 FEPluginFactory_T<SetterGGP, FEMATERIAL_ID> setter_ggp_factory("setter_ggp");
 FEPluginFactory_T<MatrixInverseGGP, FEMATERIAL_ID> matrix_inverse_ggp_factory("matrix_inverse_ggp");
 FEPluginFactory_T<AssertGGP, FEMATERIAL_ID> assert_ggp_factory("assert_ggp");
+FEPluginFactory_T<NodalDataGGP, FEMATERIAL_ID> nodal_data_ggp_factory("nodal_data_ggp");
 
 
 FEPluginFactory_T<ClassicFragmentSeeder      , FEMATERIAL_ID> classic_fragment_seeder_factory("classic"   );
@@ -140,7 +142,8 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		&unit_length_grow_direction_modifier_factory, &segment_length_grow_direction_modifier_factory,
 		&default_grow_direction_modifier_factory, &branch_grow_direction_modifier_factory, 
 		&gradient_grow_direction_modifier_factory, &anastamosis_grow_direction_modifier_factory,
-		&density_scale_grow_direction_modifier_factory,
+		&density_scale_grow_direction_modifier_factory, &edge_deflector_grow_direction_modifier_factory,
+
 		//fragment seeders
 		&classic_fragment_seeder_factory,  &md_fragment_seeder_factory, &mdbyvol_fragment_seeder_factory,
 		&md_file_seeder_factory,
@@ -152,7 +155,7 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		&gamma_distribution_factory,&normal_distribution_factory, &exponential_distribution_factory,
 		//ggp's
 		&plot2_ggp_factory, &matrix_converter_ggp_factory, &forked_ggp_factory, &cross_ggp_factory,
-		&threshold_ggp_factory, 
+		&threshold_ggp_factory, &nodal_data_ggp_factory,
 		&arc_cos_ggp_factory, &arc_sin_ggp_factory, &cos_ggp_factory, &sin_ggp_factory,
 		&matrix_inverse_ggp_factory, &eigen_vectors_ggp_factory, &eigen_values_ggp_factory,
 		&setter_ggp_factory,  &assert_ggp_factory
