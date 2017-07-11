@@ -88,7 +88,7 @@ public:
 	double GetDoubleFromDataStore(int record, int elem_id, int item = 0);
 
 	//calcualtes the gradient at the given natural coordinates
-	static vec3d gradient(FESolidElement * se, std::vector<double> & fn, vec3d pt);
+	static vec3d gradient(FESolidElement * se, std::vector<double> & fn, vec3d pt, int size =1,int offset=0);
 
 	static bool IsInsideHex8(FESolidElement * se, vec3d y, FEMesh * mesh, double r[3]);
 

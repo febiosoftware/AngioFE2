@@ -973,7 +973,7 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 
 		mat3ds activeStress = AngioStress(*angioPt) ;
 		vessel_elastic.m_s = vessel_material->Stress(*angioPt->vessPt);
-		matrix_elastic.m_s = matrix_material->Stress(*angioPt->matPt);
+		matrix_elastic.m_s = matrix_material->GetElasticMaterial()->Stress(*angioPt->matPt);
 
 		s = activeStress + angioPt->vessel_weight*vessel_elastic.m_s + angioPt->matrix_weight*matrix_elastic.m_s;
 	}
@@ -998,7 +998,7 @@ tens4ds FEAngioMaterial::Tangent(FEMaterialPoint& mp)
 		matrix_elastic.m_r0 = elastic_pt.m_r0;
 		matrix_elastic.m_F = elastic_pt.m_F;
 		matrix_elastic.m_J = elastic_pt.m_J;
-		s = angioPt->vessel_weight*vessel_material->Tangent(*angioPt->vessPt) + angioPt->matrix_weight*matrix_material->Tangent(*angioPt->matPt);
+		s = angioPt->vessel_weight*vessel_material->Tangent(*angioPt->vessPt) + angioPt->matrix_weight*matrix_material->GetElasticMaterial()->Tangent(*angioPt->matPt);
 	}
 	return s;
 }

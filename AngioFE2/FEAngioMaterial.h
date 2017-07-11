@@ -10,6 +10,7 @@
 #include "FEProbabilityDistribution.h"
 #include "KDTree/kdtree.h"
 #include "FiberManager.h"
+#include <FEBioMix/FEBiphasic.h>
 
 //-----------------------------------------------------------------------------
 // A new material point class is defined to store the elastic parameters for 
@@ -77,7 +78,7 @@ class ECMInitializerNoOverwrite : public ECMInitializer
 
 //-----------------------------------------------------------------------------
 // Class implementing a stress induced by a non-local point force
-class FEAngioMaterial : public FEElasticFiberMaterial
+class FEAngioMaterial : public FEElasticFiberMaterial//, public FEBiphasic
 {
 public:
 	struct SPROUT
@@ -222,9 +223,10 @@ public:
 	FEPropertyT<FragmentSeeder> fseeder;
 	FEPropertyT<BC> bc;
 	FEPropertyT<FragmentBranching> fbrancher;
-private:
 	FEPropertyT<FESolidMaterial> vessel_material;
-	FEPropertyT<FESolidMaterial> matrix_material;
+	FEPropertyT<FEMaterial> matrix_material;
+private:
+	
 	FEPropertyT<FEProbabilityDistribution> length_to_branch;
 	FEPropertyT<FiberInitializer> fiber_initializer;
 	

@@ -472,6 +472,17 @@ void GDMArchive::WriteData(int nid, std::vector<float>& data)
 		
 	fpdata[nid-1].resize(data.size());
 	std::copy(data.begin(), data.end(), fpdata[nid-1].begin());
+	//consider preallocating unrolled data
+	if(gradient_defined)
+	{
+		for (int i = 0; i < fpdata.size(); i++)
+		{
+			for (int k = 0; k < fpdata[i].size(); k++)
+			{
+				unrolled_data.push_back(fpdata[i][k]);
+			}
+		}
+	}
 }
 mat3dd GDMArchive::GetDataMat3dd(int domain, int element_index)
 {
@@ -502,6 +513,16 @@ vec3d  GDMArchive::GetDataVec3d(int domain, int element_index)
 	const int index = 3 * element_index;
 	return vec3d(fpdata[domain][index], fpdata[domain][index + 1], fpdata[domain][index + 2]);
 }
+//gradient version of element functions
+vec3d  GDMArchive::GetDataGradientFloat(int domain, int element_index, Segment::TIP& tip,int size,int offset)
+{
+	const int index = element_index;
+	FESolidElement * tse = &tip.pt.ndomain->Element(element_index);
+	vec3d d1 = FEAngio::gradient(tse, unrolled_data, tip.pt.r, size, offset);
+	return d1;
+}
+
+
 //node versions of fucntions
 mat3dd GDMArchive::GetDataMat3dd(int domain, int element_index, Segment::TIP& tip)
 {
@@ -705,6 +726,49 @@ mat3d Plot2GGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TI
 
 	return GGP::Operation(in, fin, mat, tip);
 }
+
+mat3d GradientPlot2GGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
+{
+	switch (record_index->m_nfmt)
+	{
+	case Storage_Fmt::FMT_ITEM:
+	{
+		switch (record_index->m_ntype)
+		{
+		case Var_Type::PLT_FLOAT:
+		{
+			vec3d grad = archive.GetDataGradientFloat(mat->domains[0], tip.pt.elemindex, tip, size, offset);
+			in[0][0] = grad.x;
+			in[1][1] = grad.y;
+			in[2][2] = grad.z;
+		}
+			break;
+		default:
+			assert(false);
+		}
+	}
+	break;
+	case Storage_Fmt::FMT_NODE:
+	{
+		switch (record_index->m_ntype)
+		{
+		default:
+			assert(false);
+		}
+	}
+	break;
+	case Storage_Fmt::FMT_REGION:
+	default:
+		assert(false);
+	}
+
+	return GGP::Operation(in, fin, mat, tip);
+}
+
+BEGIN_PARAMETER_LIST(GradientPlot2GGP, Plot2GGP)
+ADD_PARAMETER(size, FE_PARAM_INT, "size");
+ADD_PARAMETER(offset, FE_PARAM_INT, "offset");
+END_PARAMETER_LIST();
 
 void Plot2GGP::Update()
 {

@@ -128,6 +128,7 @@ public:
 	FEPlotAngioECMAlpha(FEModel* pfem) : FENodeData(PLT_FLOAT, FMT_ITEM){}
 	bool Save(FEMesh& m, FEDataStream& a)  override;
 };
+
 /*
 //-----------------------------------------------------------------------------
 class FEPlotAngioNodeMQ : public FENodeData
@@ -137,3 +138,20 @@ public:
 	bool Save(FEMesh& m, FEDataStream& a)  override;
 };
 */
+
+//stopgap plot variables 
+class FEPlotMatrixConectrationGradient : public FEDomainData
+{
+public:
+	FEPlotMatrixConectrationGradient(FEModel * pfem) : FEDomainData(PLT_VEC3F, FMT_ITEM) {}
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+
+class FEPlotMatrixSBMConectration : public FEDomainData
+{
+public:
+	FEPlotMatrixSBMConectration(FEModel * pfem) : FEDomainData(PLT_VEC3F, FMT_ITEM) {}
+	bool Save(FEDomain& d, FEDataStream& str) override;
+};
+
+	

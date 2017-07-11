@@ -8,6 +8,11 @@
 #include <unordered_map>
 #include <algorithm>
 #include <FEBioMech/FEViscoElasticMaterial.h>
+#include <FEBioMix/FEMultiphasic.h>
+#include "FEBioMix/FEBiphasicSolute.h"
+#include "FEBioMix/FETriphasic.h"
+#include "FEBioMix/FEMultiphasicSolidDomain.h"
+#include "FEBioMix/FEMultiphasicShellDomain.h"
 
 extern FEAngio* pfeangio;
 
@@ -167,7 +172,7 @@ bool FEPlotMatrixTangent::Save(FEDomain& d, FEDataStream& str)
 		{
 			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
 			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
-			tens4ds ten = pmat->matrix_material->Tangent(mp);
+			tens4ds ten = pmat->matrix_material->GetElasticMaterial()->Tangent(mp);
 			tens4ds sj = ten;
 			s += sj;
 		}
@@ -467,4 +472,142 @@ bool FEPlotAngioECMAlpha::Save(FEMesh& m, FEDataStream& a)
 	}
 
 	return true;
+}
+
+//stopgap plot implementation
+
+//-----------------------------------------------------------------------------
+// find the local solute ID, given a global ID. If the material is not a 
+// biphasic-solute, triphasic, or multiphasic material, this returns -1.
+int GetLocalSoluteID(FEMaterial* pm, int nsol)
+{
+	// figure out the solute ID to export. This depends on the material type.
+	int nsid = -1;
+	FEBiphasicSolute* psm = dynamic_cast<FEBiphasicSolute*> (pm);
+	if (psm)
+	{
+		// Check if this solute is present in this specific biphasic-solute mixture
+		bool present = (psm->GetSolute()->GetSoluteID() == nsol);
+		if (!present) return false;
+		nsid = 0;
+	}
+
+	FETriphasic* ptm = dynamic_cast<FETriphasic*> (pm);
+	if (ptm)
+	{
+		// Check if this solute is present in this specific triphasic mixture
+		if (ptm->m_pSolute[0]->GetSoluteID() == nsol) nsid = 0;
+		else if (ptm->m_pSolute[1]->GetSoluteID() == nsol) nsid = 1;
+	}
+
+	FEMultiphasic* pmm = dynamic_cast<FEMultiphasic*> (pm);
+	if (pmm)
+	{
+		// Check if this solute is present in this specific multiphasic mixture
+		for (int i = 0; i<pmm->Solutes(); ++i)
+			if (pmm->GetSolute(i)->GetSoluteID() == nsol) { nsid = i; break; }
+	}
+	return nsid;
+}
+bool FEPlotMatrixConectrationGradient::Save(FEDomain& d, FEDataStream& str)
+{
+	FEAngioMaterial * angio_mat = dynamic_cast<FEAngioMaterial*>(d.GetMaterial());
+	int nsid = GetLocalSoluteID(angio_mat->matrix_material, 1);
+
+	// make sure we have a valid index
+	if (nsid == -1) return false;
+
+	int N = d.Elements();
+	for (int i = 0; i<N; ++i)
+	{
+		FEElement& el = d.ElementRef(i);
+
+		// calculate average concentration
+		double ew = 0;
+		for (int j = 0; j<el.GaussPoints(); ++j)
+		{
+			FEMaterialPoint& mp = *el.GetMaterialPoint(j);
+			FESolutesMaterialPoint* pt = (mp.ExtractData<FESolutesMaterialPoint>());
+
+			if (pt) ew += pt->m_ca[nsid];
+		}
+
+		ew /= el.GaussPoints();
+
+		str << ew;
+	}
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+bool FEPlotMatrixSBMConectration::Save(FEDomain &d, FEDataStream& str)
+{
+	int i, j;
+	double ew;
+	const int sbm_id = 1;
+	FEMultiphasicSolidDomain* pmd = dynamic_cast<FEMultiphasicSolidDomain*>(&d);
+	FEMultiphasicShellDomain* psd = dynamic_cast<FEMultiphasicShellDomain*>(&d);
+	FEAngioMaterial * angio_mat = dynamic_cast<FEAngioMaterial*>(d.GetMaterial());
+	FEMaterial * matrix_mat = angio_mat->matrix_material;
+	assert(angio_mat);
+	if (pmd)
+	{
+		FEMultiphasic* pm = dynamic_cast<FEMultiphasic*>(matrix_mat);
+		assert(pm);
+		// Check if this solid-bound molecule is present in this specific multiphasic mixture
+		int sid = -1;
+		for (i = 0; i<pm->SBMs(); ++i)
+			if (pm->GetSBM(i)->GetSBMID() == sbm_id) { sid = i; break; }
+		if (sid == -1) return false;
+
+		for (i = 0; i<pmd->Elements(); ++i)
+		{
+			FESolidElement& el = pmd->Element(i);
+
+			// calculate average concentration
+			ew = 0;
+			for (j = 0; j<el.GaussPoints(); ++j)
+			{
+				FEMaterialPoint& mp = *el.GetMaterialPoint(j);
+				FESolutesMaterialPoint* st = (mp.ExtractData<FESolutesMaterialPoint>());
+
+				if (st) ew += pm->SBMConcentration(mp, sid);
+			}
+
+			ew /= el.GaussPoints();
+
+			str << ew;
+		}
+		return true;
+	}
+	else if (psd)
+	{
+		FEMultiphasic* pm = dynamic_cast<FEMultiphasic*> (d.GetMaterial());
+		// Check if this solid-bound molecule is present in this specific multiphasic mixture
+		int sid = -1;
+		for (i = 0; i<pm->SBMs(); ++i)
+			if (pm->GetSBM(i)->GetSBMID() == sbm_id) { sid = i; break; }
+		if (sid == -1) return false;
+
+		for (i = 0; i<psd->Elements(); ++i)
+		{
+			FEShellElement& el = psd->Element(i);
+
+			// calculate average concentration
+			ew = 0;
+			for (j = 0; j<el.GaussPoints(); ++j)
+			{
+				FEMaterialPoint& mp = *el.GetMaterialPoint(j);
+				FESolutesMaterialPoint* st = (mp.ExtractData<FESolutesMaterialPoint>());
+
+				if (st) ew += pm->SBMConcentration(mp, sid);
+			}
+
+			ew /= el.GaussPoints();
+
+			str << ew;
+		}
+		return true;
+	}
+	return false;
 }

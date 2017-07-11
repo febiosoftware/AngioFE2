@@ -222,6 +222,7 @@ void FEAngio::FinalizeFEM()
 	// only output to the logfile (not to the screen)
 	felog.SetMode(Logfile::LOG_FILE);
 
+
 	// --- Output initial state of model ---
 	if (!m_fem->GetGlobalConstant("no_io"))
 	{
@@ -561,7 +562,7 @@ vec3d FEAngio::uniformInUnitCube()
 	return vec3d(x,y,z);
 }
 
-vec3d FEAngio::gradient(FESolidElement * se, std::vector<double> & fn, vec3d pt)
+vec3d FEAngio::gradient(FESolidElement * se, std::vector<double> & fn, vec3d pt, int size, int offset)
 {
 	assert(se);
 	FESolidDomain* domain = dynamic_cast<FESolidDomain*>(se->GetDomain());
@@ -574,7 +575,7 @@ vec3d FEAngio::gradient(FESolidElement * se, std::vector<double> & fn, vec3d pt)
 
 	vec3d gradf;
 	size_t N = se->Nodes();
-	assert(N == fn.size());
+	assert(N == size*fn.size());
 	for (size_t i = 0; i<N; ++i)
 	{
 		// calculate global gradient of shape functions
@@ -584,9 +585,9 @@ vec3d FEAngio::gradient(FESolidElement * se, std::vector<double> & fn, vec3d pt)
 		Gz = Ji[0][2] * Gr[i] + Ji[1][2] * Gs[i] + Ji[2][2] * Gt[i];
 
 		// calculate pressure gradient
-		gradf.x += Gx*fn[i];
-		gradf.y += Gy*fn[i];
-		gradf.z += Gz*fn[i];
+		gradf.x += Gx*fn[i*size + offset];
+		gradf.y += Gy*fn[i*size + offset];
+		gradf.z += Gz*fn[i*size + offset];
 	}
 
 	return gradf;

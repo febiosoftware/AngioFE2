@@ -49,6 +49,7 @@ FEPluginFactory_T<DensityScaleGrowDirectionModifier, FEMATERIAL_ID> density_scal
 FEPluginFactory_T<SegmentLengthGrowDirectionModifier, FEMATERIAL_ID> segment_length_grow_direction_modifier_factory("segment_length");
 
 FEPluginFactory_T<Plot2GGP, FEMATERIAL_ID> plot2_ggp_factory("plot2_ggp");
+FEPluginFactory_T<GradientPlot2GGP, FEMATERIAL_ID> gradient_plot2_ggp_factory("gradient_plot2_ggp");
 FEPluginFactory_T<MatrixConverterGGP, FEMATERIAL_ID> matrix_converter_ggp_factory("matrix_converter_ggp");
 FEPluginFactory_T<ForkedGGP, FEMATERIAL_ID> forked_ggp_factory("forked_ggp");
 FEPluginFactory_T<EigenValuesGGP, FEMATERIAL_ID> eigen_values_ggp_factory("eigen_values_ggp");
@@ -92,6 +93,8 @@ FEPluginFactory_T<FEPlotAngioGradient        , FEPLOTDATA_ID> plot_angio_gradien
 FEPluginFactory_T<FEPlotAngioGradientCenter  , FEPLOTDATA_ID> plot_angio_gradient_center   ("angio gradient center" );
 FEPluginFactory_T<FEPlotAngioMaterialHop     , FEPLOTDATA_ID> plot_angio_material_hop      ("angio material hop"    );
 FEPluginFactory_T<FEPlotAngioSegmentBadGrowth, FEPLOTDATA_ID> plot_angio_segment_bad_growth("angio bad growth"      );
+FEPluginFactory_T<FEPlotMatrixConectrationGradient, FEPLOTDATA_ID> plot_matrix_concentration_gradient("matrix concecntration gradient");
+FEPluginFactory_T<FEPlotMatrixSBMConectration, FEPLOTDATA_ID> plot_matrix_sbm_concentration("matrix sbm concecntration");
 
 FEPluginFactory_T<FEPlotMatrixElastic_m_Q, FEPLOTDATA_ID> plot_matrix_elastic_m_Q("matrix elastic mQ");
 
@@ -132,6 +135,10 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		&plot_angio_material_hop, &plot_angio_segment_bad_growth, &plot_vessel_stress, &plot_matrix_stress,
 		&plot_vessel_weight, &plot_matrix_weight, &plot_matrix_tangent, &plot_matrix_visco_stress,
 		&plot_matrix_elastic_m_Q, &plot_matrix_elastic_stress,
+
+		//stopgap plot classes
+		&plot_matrix_concentration_gradient, &plot_matrix_sbm_concentration,
+
 		//fiber initializers
 		&null_fiber_initializer, &random_fiber_initializer,
 		&random_fiber_initializer_non_mangling, &random_fiber_initializer_pe,
@@ -154,7 +161,8 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		&cauchy_distribution_factory, &chi_squared_distribution_factory, &weibull_distribution_factory,
 		&gamma_distribution_factory,&normal_distribution_factory, &exponential_distribution_factory,
 		//ggp's
-		&plot2_ggp_factory, &matrix_converter_ggp_factory, &forked_ggp_factory, &cross_ggp_factory,
+		&plot2_ggp_factory, &gradient_plot2_ggp_factory,
+		&matrix_converter_ggp_factory, &forked_ggp_factory, &cross_ggp_factory,
 		&threshold_ggp_factory, &nodal_data_ggp_factory,
 		&arc_cos_ggp_factory, &arc_sin_ggp_factory, &cos_ggp_factory, &sin_ggp_factory,
 		&matrix_inverse_ggp_factory, &eigen_vectors_ggp_factory, &eigen_values_ggp_factory,

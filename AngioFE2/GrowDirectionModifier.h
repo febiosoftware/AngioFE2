@@ -52,8 +52,13 @@ public:
 	vec3d  GetDataVec3d(int domain, int element_index, Segment::TIP& tip);
 	//consider adding diagonal matrix and 4d tensor
 	
+	//gradient version of elemnet functions
+	vec3d  GetDataGradientFloat(int domain, int element_index, Segment::TIP& tip, int size, int offset);
+	void GradientEnabled(bool st) { gradient_defined = st; }
 private:
 	std::vector<std::vector<float>> fpdata;
+	std::vector<double> unrolled_data;
+	bool gradient_defined = false;
 };
 
 //a material which has a collection of grow direction modifiers
@@ -116,11 +121,25 @@ public:
 	void Update() override;
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
 
-private:
+protected:
 	list<FEBioPlotFile2::DICTIONARY_ITEM>::const_iterator record_index;
 	char field_name[DataRecord::MAX_STRING];
 	//datatype is autmatically deteced 
 	GDMArchive archive;
+	DECLARE_PARAMETER_LIST();
+};
+
+class GradientPlot2GGP : public Plot2GGP
+{
+public:
+	GradientPlot2GGP(FEModel * model) : Plot2GGP(model) { archive.GradientEnabled(true); }
+	virtual ~GradientPlot2GGP() {}
+	//will be called once before growth per FE timestep
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+
+private:
+	int size=1;
+	int offset = 0;
 	DECLARE_PARAMETER_LIST();
 };
 
