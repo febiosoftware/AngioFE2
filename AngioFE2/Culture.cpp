@@ -169,9 +169,16 @@ void Culture::BranchSegment(Segment::TIP& tip, double starttime, double grow_tim
 	//will not scale with multiple threads
 	double prev_min_seg_length = m_cultParams->min_segment_length;
 	m_cultParams->min_segment_length = 0.0;
-
-	// Add it to the culture
-	AddNewSegment(seg);
+	if(seg.length() != 0.0)
+	{
+		// Add it to the culture
+		AddNewSegment(seg);
+	}
+	else
+	{
+		ClearRecents();
+	}
+	
 
 	//restore old min seg length
 	m_cultParams->min_segment_length = prev_min_seg_length;

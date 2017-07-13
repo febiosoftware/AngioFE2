@@ -94,6 +94,12 @@ public:
 	virtual void Update() { if (child) { child->Update(); } };
 	virtual mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) { if (child) { return child->Operation(in, fin, mat, tip); } return in; };
 
+	bool Init() override
+	{
+		if (child)
+			return child->Init();
+		return true;
+	}
 	//must be called before anything else is done but construction
 	virtual void SetCulture(Culture * cp)
 	{
@@ -166,7 +172,6 @@ public:
 	MatrixConverterGGP(FEModel * model);
 	virtual ~MatrixConverterGGP() {}
 	//will be called once before growth per FE timestep
-	bool Init()override { return true; }
 
 	void Update() override { GGP::Update(); }
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
@@ -193,6 +198,12 @@ public:
 	{
 		nest->SetCulture(cp);
 		GGP::SetCulture(cp);
+	}
+	bool Init() override
+	{
+		if (nest->Init())
+			return GGP::Init();
+		return false;
 	}
 
 protected:
@@ -248,6 +259,12 @@ public:
 		v2->SetCulture(cp);
 		GGP::SetCulture(cp);
 	}
+	bool Init() override
+	{
+		if (v1.Init() && v2.Init())
+			return GGP::Init();
+		return false;
+	}
 
 protected:
 	Culture * culture = nullptr;
@@ -278,6 +295,12 @@ public:
 		statement->SetCulture(cp);
 		threshold->SetCulture(cp);
 		GGP::SetCulture(cp);
+	}
+	bool Init() override
+	{
+		if (statement.Init() && threshold.Init())
+			return GGP::Init();
+		return false;
 	}
 
 protected:
@@ -351,7 +374,6 @@ public:
 	}
 	virtual ~SetterGGP() {}
 	//will be called once before growth per FE timestep
-	bool Init()override { return true; }
 
 	void Update() override { GGP::Update(); }
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
@@ -373,7 +395,6 @@ public:
 	}
 	virtual ~AssertGGP() {}
 	//will be called once before growth per FE timestep
-	bool Init()override { return true; }
 
 	void Update() override { GGP::Update(); }
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
@@ -433,6 +454,12 @@ class DensityScaleGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
 	DensityScaleGrowDirectionModifier(FEModel * model);
+	bool Init() override
+	{
+		if(density_scale)
+			return density_scale->Init();
+		return true;
+	}
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 	void Update() override;
 	void SetCulture(Culture * cp) override;

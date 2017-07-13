@@ -615,7 +615,6 @@ vec3d  GDMArchive::GetDataVec3d(int domain, int element_index, Segment::TIP& tip
 
 bool Plot2GGP::Init()
 {
-	if (FEMaterial::Init() == false) return false;
 	FEModel * model = GetFEModel();
 	FEBioModel * bm = dynamic_cast<FEBioModel*>(model);
 	assert(bm);
@@ -630,7 +629,7 @@ bool Plot2GGP::Init()
 		if (!strcmp(i->m_szname, field_name))
 		{
 			record_index = i;
-			return true;
+			return GGP::Init();
 		}
 	}
 	//data record name not found
