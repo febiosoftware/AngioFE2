@@ -670,8 +670,8 @@ mat3d Plot2GGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TI
 				{
 					vec3d col = archive.GetDataVec3d(mat->domains[0], tip.pt.elemindex);
 					in(0, 0) = col.x;
-					in(1, 0) = col.y;
-					in(2, 0) = col.z;
+					in(1, 1) = col.y;
+					in(2, 2) = col.z;
 				}
 				break;
 			default:
@@ -941,8 +941,8 @@ mat3d EigenValuesGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segme
 	temp.eigen(eig_val, eig_vec);
 
 	mat3d rv(eig_val[0], 0.0,0.0,
-		eig_val[1],0.0, 0.0,
-		eig_val[2], 0.0, 0.0);
+		0.0, eig_val[1], 0.0,
+		0.0, 0.0, eig_val[2]);
 	return GGP::Operation(rv, fin, mat, tip);
 }
 
@@ -977,16 +977,23 @@ mat3d CrossGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TI
 mat3d ThresholdGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
 {
 	mat3d tr_rez = threshold->Operation(in, fin, mat, tip);
-	vec3d x(1, 0, 0);
+	vec3d x = vec;
 	x = tr_rez * x;
 
-	if(x.x > 0.0)
+	if(x.x > condition)
 	{
 		mat3d rv = statement->Operation(in, fin, mat, tip);
 		return GGP::Operation(rv, fin, mat, tip);
 	}
 	return GGP::Operation(in, fin, mat, tip);
 }
+
+BEGIN_PARAMETER_LIST(ThresholdGGP, GGP)
+ADD_PARAMETER(vec.x, FE_PARAM_DOUBLE, "vec_x");
+ADD_PARAMETER(vec.y, FE_PARAM_DOUBLE, "vec_y");
+ADD_PARAMETER(vec.z, FE_PARAM_DOUBLE, "vec_z");
+ADD_PARAMETER(condition, FE_PARAM_DOUBLE, "condition");
+END_PARAMETER_LIST();
 
 mat3d ArcCosGGP::Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip)
 {

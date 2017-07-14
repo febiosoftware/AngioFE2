@@ -306,7 +306,7 @@ void FEAngio::UpdateECM()
 			m_fe_node_data[node.GetID()].m_collfib.unit();
 			m_fe_node_data[node.GetID()].m_ntag = 0;
 			//maybe worry about density creep
-			m_fe_node_data[node.GetID()].m_ecm_den0 = m_fe_node_data[node.GetID()].m_ecm_den;
+			//m_fe_node_data[node.GetID()].m_ecm_den0 = m_fe_node_data[node.GetID()].m_ecm_den;
 		}
 	});
 }

@@ -307,6 +307,9 @@ protected:
 	Culture * culture = nullptr;
 	FEPropertyT<GGP> statement;
 	FEPropertyT<GGP> threshold;
+	vec3d vec = vec3d(1, 0, 0);
+	double condition = 0.0;
+	DECLARE_PARAMETER_LIST();
 };
 
 //applies arccos to all elements of the matrix

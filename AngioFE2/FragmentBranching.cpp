@@ -173,7 +173,11 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 	static int nseg_add = 0;
 	Segment seg = culture->GrowSegment(*tip, start_time, grow_time);
 	if (seg.length() < culture->m_pmat->m_cultureParams.min_segment_length)
+	{
+		printf("segment ended due to length\n");
 		return;
+	}
+		
 	//now calculate the length to branch from the new tip
 	seg.tip(1).length_to_branch = tip->length_to_branch;
 	seg.tip(0).length_to_branch = tip->length_to_branch;
@@ -207,6 +211,7 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 		//reactivate the tip
 		tip->bactive = true;
 		nseg_add++;
+		printf("segment reactivated\n");
 	}
 	else
 	{
