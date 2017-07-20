@@ -115,7 +115,8 @@ public:
 	int vessel() const { return m_nvessel; }
 
 	int m_nid;			// segment id (unique zero-based ID)
-	int m_nvessel;		// Label that indicates which vessel the segment belongs to 
+	int m_nvessel;		// Label that indicates which vessel the segment belongs to
+	double expected_length = 0.0;//the total growth this segment is supposed to take in the current timestep
 private:
 	TIP				m_tip[2];		// the two end tips
     double			m_length;       // Length of the segment.

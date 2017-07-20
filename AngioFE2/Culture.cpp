@@ -104,6 +104,8 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double start_time, double grow_t
 	// Create a new segment
 	Segment seg;
 
+	seg.expected_length = seg_length;
+
 	// transer seed label
 	seg.seed(tip.nseed);
 
@@ -291,6 +293,8 @@ void Culture::AddSegment(Segment& seg)
 	assert(seg.vessel() >= 0);
 
 	assert(seg.length() > 0.0);
+
+	assert(seg.length() < seg.expected_length*1.01);
 
 	vec3d rpo = m_angio.Position(seg.tip(0).pt);
 	vec3d rp = seg.tip(0).pt.r;

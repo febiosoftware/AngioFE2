@@ -105,17 +105,10 @@ void FragmentBranching::GrowSegments(double start_time, double grow_time)
 
 }
 //calculates the time a segment took to grow during the current timestep, this assumes the growthrate is constant within a step
-double FragmentBranching::TimeOfGrowth(Segment * seg, double start_time, double time_of_growth)
+double FragmentBranching::TimeOfGrowth(Segment * seg, double time_of_growth)
 {
-	
-	double avg_den = culture->m_pmat->m_pangio->FindECMDensity(seg->tip(0).pt);//mix(culture->m_pmat->m_pangio->FindECMDensity(seg->tip(0).pt), culture->m_pmat->m_pangio->FindECMDensity(seg->tip(1).pt), 0.5);
-	double den_scale = culture->m_pmat->m_cultureParams.m_density_scale_factor.x + culture->m_pmat->m_cultureParams.m_density_scale_factor.y
-		*exp(-culture->m_pmat->m_cultureParams.m_density_scale_factor.z*avg_den);
-	double base_length = culture->SegmentLength(start_time, time_of_growth);
-	double rv = time_of_growth *( seg->length() / (den_scale *base_length));
-	assert(rv > 0.0);
-	assert(rv <= (1.01*time_of_growth));
-	return rv;
+	assert(time_of_growth != 0.0);
+	return time_of_growth * (seg->length()/seg->expected_length);
 }
 
 FragmentBranching * FragmentBranching::GetBrancherForSegment(Segment * seg)
@@ -198,7 +191,7 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 		{
 			double bf = (rseg[0]->length() + rseg[0]->tip(1).length_to_branch) / rseg[0]->length();
 			assert(bf >= 0.0 && bf <= 1.0);
-			double bt = mix(start_time, start_time + TimeOfGrowth(rseg[0],start_time, grow_time), bf);
+			double bt = mix(start_time, start_time + TimeOfGrowth(rseg[0], grow_time), bf);
 			//add the points
 			//change this if tips can grow across materials
 			BranchPoint bp(bt + tip->wait_time_to_branch, bt, rseg[0], bf, rseg[0]->m_nid, GetBrancherForSegment(rseg[0]));
@@ -243,7 +236,7 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 			{
 				double bf = (rseg[i]->length() + rseg[i]->tip(1).length_to_branch) / rseg[i]->length();
 				assert(bf >= 0.0 && bf <= 1.0);
-				double bt = mix(ct, ct + TimeOfGrowth(rseg[i],start_time, grow_time), bf);
+				double bt = mix(ct, ct + TimeOfGrowth(rseg[i], grow_time), bf);
 				FragmentBranching * fb = nullptr;
 				//add the points
 				assert(tip->wait_time_to_branch >= 0.0);
@@ -277,7 +270,7 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 				break;//only insert a single branch point
 			}
 
-			ct += TimeOfGrowth(rseg[i],start_time, grow_time);
+			ct += TimeOfGrowth(rseg[i], grow_time);
 		}
 	}
 }
@@ -361,7 +354,7 @@ void PsuedoDeferedFragmentBranching::ProcessNewSegments(double start_time, doubl
 		for (size_t i = 0; i < rseg.size(); i++)
 		{
 			rseg[i]->SetTimeOfBirth(ct);
-			ct += TimeOfGrowth(rseg[i],start_time, grow_time);
+			ct += TimeOfGrowth(rseg[i],grow_time);
 			if (i)
 			{
 				//set the connections
@@ -383,7 +376,7 @@ void PsuedoDeferedFragmentBranching::ProcessNewSegments(double start_time, doubl
 				lr += length_to_branch_point->NextValue(culture->m_pmat->m_pangio->rengine);
 				rseg[i]->tip(1).length_to_branch = lr;
 				//add it back to the queue
-				double bt = mix(rseg[i]->GetTimeOfBirth(), rseg[i]->GetTimeOfBirth() + TimeOfGrowth(rseg[i],start_time,grow_time), bpct);
+				double bt = mix(rseg[i]->GetTimeOfBirth(), rseg[i]->GetTimeOfBirth() + TimeOfGrowth(rseg[i],grow_time), bpct);
 				//consider doing more to determine which material the tip is in
 				BranchPoint bpt(bt + rseg[0]->tip(1).wait_time_to_branch, bt, rseg[i], bpct, rseg[i]->m_nid, GetBrancherForSegment(rseg[i]));
 				parentgen.insert(bpt);
@@ -430,7 +423,7 @@ void PsuedoDeferedFragmentBranching::UpdateSegmentBranchDistance(std::set<Branch
 			dr += length_to_branch_point->NextValue(culture->m_pmat->m_pangio->rengine);
 			cur->tip(1).length_to_branch = dr;
 			//add it back to the queue
-			double bt = mix(bp->epoch_time, bp->epoch_time + TimeOfGrowth(cur,start_time, grow_time), bpct);
+			double bt = mix(bp->epoch_time, bp->epoch_time + TimeOfGrowth(cur,grow_time), bpct);
 			
 			BranchPoint bpt(bt + bp->parent->tip(1).wait_time_to_branch, bt, bp->parent, bpct, bp->priority, GetBrancherForSegment(bp->parent));
 			parentgen.insert(bpt);

@@ -354,6 +354,7 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 		reflSeg.tip(1).nvessel = seg.m_nvessel;
 		reflSeg.tip(0).connected = &seg;
 		reflSeg.Update();
+		reflSeg.expected_length = seg.expected_length;
 
 		if (reflSeg.length() >= culture->m_cultParams->min_segment_length)
 		{
@@ -395,6 +396,7 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 			reflSeg.tip(1).nvessel = seg.m_nvessel;
 			reflSeg.tip(0).connected = &seg;
 			reflSeg.Update();
+			reflSeg.expected_length = seg.expected_length;
 
 			if (reflSeg.length() >= culture->m_cultParams->min_segment_length)
 			{

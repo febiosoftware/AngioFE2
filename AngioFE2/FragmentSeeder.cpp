@@ -43,6 +43,8 @@ bool ClassicFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cultur
 		// Set the segment vessel as the segment label
 		seg.vessel(seg.seed());
 
+		seg.expected_length = seg.length();
+
 		// add it to the list
 		culture->AddSegment(seg);
 	}
@@ -115,6 +117,8 @@ bool ClassicFragmentSeeder::createInitFrag(Segment& seg)
 	// Mark segment as an initial fragment
 	seg.SetFlagOn(Segment::INIT_SPROUT);
 
+	seg.expected_length = seg.length();
+
 	// all good
 	return true;
 }
@@ -153,6 +157,8 @@ bool MultiDomainFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cu
 
 		// Set the segment vessel as the segment label
 		seg.vessel(seg.seed());
+
+		seg.expected_length = seg.length();
 
 		// add it to the list
 		culture->AddSegment(seg);
@@ -231,6 +237,8 @@ bool FragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, Culture * c
 	// Mark segment as an initial fragment
 	seg.SetFlagOn(Segment::INIT_SPROUT);
 
+	seg.expected_length = seg.length();
+
 	// all good
 	return true;
 }
@@ -308,6 +316,8 @@ bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cul
 		// Set the segment vessel as the segment label
 		seg.vessel(seg.seed());
 
+		seg.expected_length = seg.length();
+
 		// add it to the list
 		culture->AddSegment(seg);
 	}
@@ -380,6 +390,7 @@ bool MDAngVessFileFragmentSeeder::SeedFragments(SimulationTime& time, Culture * 
 		seg.Update();
 		seg.tip(0).bactive = true;
 		seg.tip(1).bactive = true;
+		seg.expected_length = seg.length();
 		// add it to the list
 		culture->AddSegment(seg);
 		i++;

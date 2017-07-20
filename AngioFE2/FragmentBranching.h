@@ -110,7 +110,7 @@ public:
 
 	virtual void UpdateToTime(double starttime)=0;
 
-	double TimeOfGrowth(Segment * seg, double start_time, double time_of_growth);
+	double TimeOfGrowth(Segment * seg, double time_of_growth);
 
 	FragmentBranching * GetBrancherForSegment(Segment * seg);
 
