@@ -339,11 +339,21 @@ vec3d BaseFiberAwareGrowDirectionModifier::GrowModifyGrowDirection(vec3d previou
 
 UnitLengthGrowDirectionModifier::UnitLengthGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
 {
-
+	AddProperty(&length_modifier, "length_modifier");
+	length_modifier.m_brequired = false;
 }
 vec3d UnitLengthGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length)
 {
 	seg_length = 1.0;
+	if(length_modifier)
+	{
+		mat3d id(1, 0, 0,
+			0, 1, 0,
+			0, 0, 1);
+		vec3d x(1, 0, 0);
+		x =  length_modifier->Operation(id, previous_dir, mat, tip) * x;
+		seg_length = x.x;
+	}
 	return previous_dir;
 }
 

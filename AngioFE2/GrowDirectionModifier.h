@@ -450,6 +450,30 @@ class UnitLengthGrowDirectionModifier : public GrowDirectionModifier
 public:
 	UnitLengthGrowDirectionModifier(FEModel * model);
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	bool Init() override
+	{
+		if (length_modifier)
+			return length_modifier->Init();
+		return true;
+	}
+
+	void Update() override
+	{
+		if(length_modifier)
+		{
+			length_modifier->Update();
+		}
+	}
+	void SetCulture(Culture * cp) override
+	{
+		if(length_modifier)
+		{
+			length_modifier->SetCulture(cp);
+		}
+	}
+
+private:
+	FEPropertyT<GGP> length_modifier;
 };
 
 //this class modifies the segment length by the density factor

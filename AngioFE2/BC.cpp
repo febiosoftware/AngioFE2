@@ -41,7 +41,7 @@ void BC::CheckBC(Segment &seg)
 	//make sure that the defining tip has not drifted too far
 	vec3d pq = culture->m_pmat->m_pangio->Position(seg.tip(0).pt);
 	assert((culture->m_pmat->m_pangio->Position(seg.tip(0).pt) - seg.tip(0).pt.r).norm() < 1.0);
-	//if the second segment is unititialized make sure it is not in the same element as tip(0)
+	//if the second tip is unititialized make sure it is not in the same element as tip(0)
 	FESolidElement * tse = &seg.tip(0).pt.ndomain->Element(seg.tip(0).pt.elemindex);
 
 	if (seg.tip(1).pt.nelem == -1)
@@ -143,15 +143,24 @@ void BC::CheckBC(Segment &seg)
 		if (surf->Elements() > culture->m_pmat->m_pangio->m_fe_element_data[se->GetID()].surfacesIndices[i])
 		{
 			FESurfaceElement & surfe = reinterpret_cast<FESurfaceElement&>(surf->ElementRef(culture->m_pmat->m_pangio->m_fe_element_data[se->GetID()].surfacesIndices[i]));
-			if (culture->m_pmat->exterior_surface->Intersect(surfe, seg.tip(0).pt.r, -dir, rs, g, 0.0001))//see the epsilon in FIndSolidElement
+			if (culture->m_pmat->exterior_surface->Intersect(surfe, seg.tip(0).pt.r, dir, rs, g, 0.0001))//see the epsilon in FIndSolidElement
 			{
-				//set last_goodpt
 				lastgood_pt = surf->Local2Global(surfe, rs[0], rs[1]);
+				double rdist = (lastgood_pt - seg.tip(1).pt.r).norm();
+				if((abs(g) <= seg.expected_length) && (rdist < 1.01*(seg.expected_length)))
+				{
+					//set last_goodpt
+					
+					vec3d projected_pt = (seg.tip(1).pt.r - seg.tip(0).pt.r);
+					projected_pt.unit();
+					projected_pt = seg.tip(0).pt.r + projected_pt*g;
 
-				seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
-				seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
-				seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
-				return HandleBoundary(seg, lastgood_pt, rs, se);
+					seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
+					seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
+					seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
+					return HandleBoundary(seg, lastgood_pt, rs, se);
+				}
+				
 			}
 		}
 		
@@ -189,6 +198,7 @@ void BC::CheckBC(Segment &seg)
 		seg.tip(1).pt.nelem = eindex + 1;
 		
 		FESolidElement & se = reinterpret_cast<FESolidElement&>(seg.tip(1).pt.ndomain->ElementRef(seg.tip(1).pt.elemindex));
+		
 		return HandleBoundary(seg,  pos, rs, &se);
 	}
 } 
@@ -283,6 +293,7 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 	//fill in the pt's data and add the segment
 	//remaining distance is ignored
 	double rdist = (lastGoodPt - seg.tip(1).pt.r).norm();
+	assert(rdist < 1.01*(seg.expected_length));
 	bool found0 = false;
 	bool found1 = false;
 	FEMesh * mesh = culture->m_pmat->m_pangio->GetMesh();
