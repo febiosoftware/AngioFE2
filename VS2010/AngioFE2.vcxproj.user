@@ -22,7 +22,7 @@
     <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Debug OMP\FEBio2.exe</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febio.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\chi_squared_mat_axis_random_nm\t3</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\actual\extra_compress</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LocalDebuggerCommand>C:\Users\mp4\Documents\FEBio2\VS2013\Release\FEBio2.exe</LocalDebuggerCommand>
