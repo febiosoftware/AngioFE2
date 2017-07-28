@@ -35,9 +35,12 @@ export ANGDIR
 export FLG = -O3 -fPIC -std=c++11
 
 # Can be removed if not using the Intel compiler.
-export LNKFLG = -lz
+export LNKFLG = -lz export LNKFLG = -static-intel -no-intel-extensions -lz
 export INC = -I$(FEBINC) -I$(ANGDIR)AngioLib
 export DBGFLG = 
+
+gcc: export CC = g++
+sky: export CC = g++
 
 lnx64 lnx32 gcc sky:
 	( export DBGFLG=-DNDEBUG; cd $(PLAT)/AngioFE2; $(MAKE) -f ../../angiofe2.mk SFX="so" )
