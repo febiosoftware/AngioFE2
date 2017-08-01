@@ -193,10 +193,13 @@ void BC::CheckBC(Segment &seg)
 		int eindex = surfe->m_elem[0];
 			
 		vec3d pos = surf->Local2Global(*surfe, rs[0], rs[1]);
+		vec3d dir = pos - seg.tip(0).pos();
+		dir.unit();
+
 		seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
 		seg.tip(1).pt.elemindex = eindex - culture->m_pmat->meshOffsets.at(seg.tip(1).pt.ndomain);
 		seg.tip(1).pt.nelem = eindex + 1;
-		
+		seg.tip(1).pt.r = seg.tip(0).pt.r + dir*seg.length();
 		FESolidElement & se = reinterpret_cast<FESolidElement&>(seg.tip(1).pt.ndomain->ElementRef(seg.tip(1).pt.elemindex));
 		
 		return HandleBoundary(seg,  pos, rs, &se);
