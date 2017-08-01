@@ -124,7 +124,7 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	
 END_PARAMETER_LIST();
 
-FEAngioMaterial::SPROUT::SPROUT(vec3d dir, FESolidElement * el, double * local, FEAngioMaterial * m) : sprout(dir), pel(el), mat(m)
+FEAngioMaterial::SPROUT::SPROUT(const vec3d & dir, FESolidElement * el, double * local, FEAngioMaterial * m) : sprout(dir), pel(el), mat(m)
 {
 	r[0] = local[0];
 	r[1] = local[1];
@@ -254,7 +254,7 @@ void FEAngioMaterial::FinalizeInit()
 	{
 		FESolidDomain& dom = reinterpret_cast<FESolidDomain&>(mesh->Domain(n));
 		FEMaterial* pm = dom.GetMaterial();
-		FEAngioMaterial* pam;
+		FEAngioMaterial* pam = nullptr;
 		if (strcmp(pm->GetTypeStr(), "angio") == 0)
 		{
 			pam = dynamic_cast<FEAngioMaterial*>(pm);
@@ -362,7 +362,7 @@ void FEAngioMaterial::AdjustMeshStiffness()
 		{
 			assert(seg.length() > 0.);
 			if (k == 1){													// If this is the first subdivision, find the origin of the segment
-				subunit.tip(0).pt = seg.tip(0).pt;
+				subunit.tip(0).pt = seg.tip_c(0).pt;
 			}
 
 			// Calculate the subdivision
@@ -426,12 +426,11 @@ void FEAngioMaterial::AdjustMeshStiffness()
 	{
 		assert(std::find(domainptrs.begin(), domainptrs.end(), &d) != domainptrs.end());
 		vec3d e1; vec3d e2; vec3d e3;						// Basis for the material coordinate system (e1 is the material direction, e2 and e3 are isotropic)
-		double alpha = 0.;									// Obtain the element from the domain
 		int nint = e.GaussPoints();										// Obtain the number of gauss points
 		int num_elem = e.GetID();
 
-		FEAngioElementData& eg = m_pangio->m_fe_element_data[num_elem];
-		alpha = eg.alpha;											// Obtain alpha from the grid element
+		FEAngioElementData& eg = m_pangio->m_fe_element_data[num_elem]; // Obtain the element from the domain	
+		double alpha = eg.alpha;										// Obtain alpha from the grid element
 		for (int n = 0; n< e.Nodes(); n++)
 		{
 			int id = e.m_node[n];
@@ -605,7 +604,6 @@ void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t, FESolidDomain * 
 {
 	assert(domain != nullptr);
 	assert(elemindex != -1);
-	FEMesh& mesh = GetFEModel()->GetMesh();
 
 	vec3d dir = r;
 	double pos[3];
@@ -620,7 +618,6 @@ void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t, FESolidDomain * 
 void FEAngioMaterial::AddSprout(const vec3d& r, const vec3d& t, FEDomain * domain)
 {
 	assert(domain != nullptr);
-	FEMesh& mesh = GetFEModel()->GetMesh();
 	FESolidDomain * dom = dynamic_cast<FESolidDomain *>(domain);
 	double local[3];
 	FESolidElement * el = dom->FindElement(r,local);

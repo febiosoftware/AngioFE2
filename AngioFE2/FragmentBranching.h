@@ -28,8 +28,8 @@ public:
 			assert(percent_of_parent >= -0.1);
 			assert(percent_of_parent <= 1.1);
 			//check that the parent has the l2b set
-			assert(parent->tip(1).length_to_branch != 0.0);
-			assert(parent->tip(0).length_to_branch != 0.0);
+			assert(parent->tip_c(1).length_to_branch != 0.0);
+			assert(parent->tip_c(0).length_to_branch != 0.0);
 		}
 
 		~BranchPoint(){}
@@ -81,7 +81,7 @@ public:
 	};
 
 
-	FragmentBranching(FEModel * model):FEMaterial(model)
+	explicit FragmentBranching(FEModel * model):FEMaterial(model)
 	{
 		fragment_branchers.emplace_back(this);
 	}
@@ -137,7 +137,7 @@ protected:
 class PsuedoDeferedFragmentBranching :public FragmentBranching
 {
 public:
-	PsuedoDeferedFragmentBranching(FEModel * model);
+	explicit PsuedoDeferedFragmentBranching(FEModel * model);
 	void GrowSegment(std::set<BranchPoint>::iterator bp, double starttime, double grow_time) override;
 	void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) override;
 	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp, double starttime, double grow_time) override;
@@ -153,7 +153,7 @@ private:
 class NoFragmentBranching : public FragmentBranching
 {
 public:
-	NoFragmentBranching(FEModel * model) : FragmentBranching(model){}
+	explicit NoFragmentBranching(FEModel * model) : FragmentBranching(model){}
 	void GrowSegment(std::set<BranchPoint>::iterator bp, double starttime, double grow_time) override{}
 	void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) override;
 	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp, double starttime, double grow_time) override{}

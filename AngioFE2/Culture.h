@@ -139,7 +139,6 @@ private:
 
 public:
 	FragmentBranching * fbrancher = nullptr;
-	double	m_vess_length;	// new segment length
 	int		m_num_vessel;   // Counter that indicates the next vessel ID number of new Segments
 	int		m_num_branches;		// Counter indicating the number of branches formed during the simulation
 	FEAngioMaterial * m_pmat = nullptr;

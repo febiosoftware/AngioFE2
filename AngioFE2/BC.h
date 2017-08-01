@@ -19,7 +19,7 @@ class MBC : public FEMaterial
 {
 public:
 	virtual ~MBC(){}
-	MBC(FEModel * model);
+	explicit MBC(FEModel * model);
 	//returns whether or not this class is going to hanel the boundary between the two angio materials
 	virtual bool acceptBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1);
 	virtual void handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1, Segment & seg) = 0;
@@ -27,12 +27,12 @@ public:
 	//must be called before anything else is done but construction
 	void SetCulture(Culture * cp);
 protected:
-	Culture * culture;
+	Culture * culture = nullptr;
 };
 class SameMBC : public MBC
 {
 public:
-	SameMBC(FEModel * model);
+	explicit SameMBC(FEModel * model);
 	~SameMBC(){}
 	//returns whether or not this class is going to hanel the boundary between the two angio materials
 	void handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1, Segment & seg) override { assert(false); }
@@ -45,7 +45,7 @@ public:
 class BC : public FEMaterial
 {
 public:
-	BC(FEModel * model);
+	explicit BC(FEModel * model);
 
 	//must be called before anything else is done but construction
 	void SetCulture(Culture * cp);
@@ -73,13 +73,14 @@ protected:
 	
 private:
 	BC & operator=(const BC&);
+	BC(const BC&);
 	DECLARE_PARAMETER_LIST();
 };
 
 class BouncyBC: public BC
 {
 public:
-	BouncyBC(FEModel * model);
+	explicit BouncyBC(FEModel * model);
 	virtual ~BouncyBC(){}
 protected:
 	void HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESolidElement * se) override;
@@ -89,7 +90,7 @@ private:
 class StopBC: public BC
 {
 public:
-	StopBC(FEModel * model);
+	explicit StopBC(FEModel * model);
 	virtual ~StopBC(){}
 protected:
 	void HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESolidElement * se) override;
@@ -99,7 +100,7 @@ private:
 class PassThroughMBC : public MBC
 {
 public:
-	PassThroughMBC(FEModel * model);
+	explicit PassThroughMBC(FEModel * model);
 	~PassThroughMBC(){}
 	void handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1, Segment & seg) override;
 protected:

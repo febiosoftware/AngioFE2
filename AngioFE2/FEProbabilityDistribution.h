@@ -5,7 +5,7 @@
 class FEProbabilityDistribution : public FEMaterial
 {
 public:
-	FEProbabilityDistribution(FEModel* pfem) : FEMaterial(pfem) {}
+	explicit FEProbabilityDistribution(FEModel* pfem) : FEMaterial(pfem) {}
 
 	//generates the next value in the given sequence which fits a given distribution
 	virtual double NextValue(angiofe_random_engine & re) = 0;
@@ -27,7 +27,7 @@ private:
 class FENormalDistribution : public FEProbabilityDistribution
 {
 public:
-	FENormalDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
+	explicit FENormalDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
 
 	//generates the next value in the given sequence which fits a given distribution
 	//this value cannot be zero or less if the value is zero or less the result will be redrawn up to max_retries
@@ -54,7 +54,7 @@ private:
 class FEExponentialDistribution : public FEProbabilityDistribution
 {
 public:
-	FEExponentialDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
+	explicit FEExponentialDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
 
 	//generates the next value in the given sequence which fits a given distribution
 	//this value cannot be zero or less if the value is zero or less the result will be redrawn up to max_retries
@@ -80,7 +80,7 @@ private:
 class FECauchyDistribution : public FEProbabilityDistribution
 {
 public:
-	FECauchyDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
+	explicit FECauchyDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
 
 	//generates the next value in the given sequence which fits a given distribution
 	//this value cannot be zero or less if the value is zero or less the result will be redrawn up to max_retries
@@ -108,7 +108,7 @@ private:
 class FEChiSquaredDistribution : public FEProbabilityDistribution
 {
 public:
-	FEChiSquaredDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
+	explicit FEChiSquaredDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
 
 	//generates the next value in the given sequence which fits a given distribution
 	//this value cannot be zero or less if the value is zero or less the result will be redrawn up to max_retries
@@ -135,7 +135,7 @@ private:
 class FEWeibullDistribution : public FEProbabilityDistribution
 {
 public:
-	FEWeibullDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
+	explicit FEWeibullDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
 
 	//generates the next value in the given sequence which fits a given distribution
 	//this value cannot be zero or less if the value is zero or less the result will be redrawn up to max_retries
@@ -161,7 +161,7 @@ private:
 class FEGammaDistribution : public FEProbabilityDistribution
 {
 public:
-	FEGammaDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
+	explicit FEGammaDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
 
 	//generates the next value in the given sequence which fits a given distribution
 	//this value cannot be zero or less if the value is zero or less the result will be redrawn up to max_retries

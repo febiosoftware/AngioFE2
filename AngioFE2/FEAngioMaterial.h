@@ -83,14 +83,14 @@ class FEAngioMaterial : public FEElasticFiberMaterial//, public FEBiphasic
 public:
 	struct SPROUT
 	{
-		explicit SPROUT(vec3d dir, FESolidElement * el, double * local, FEAngioMaterial * m);
+		explicit SPROUT(const vec3d & dir, FESolidElement * el, double * local, FEAngioMaterial * m);
 		vec3d		sprout;	// sprout direction
 		FESolidElement*	pel;	// element in which this sprout lies
 		double		r[3];	// iso-parameteric elements
 		FEAngioMaterial * mat;
 	};
 
-	FEAngioMaterial(FEModel* pfem);
+	explicit FEAngioMaterial(FEModel* pfem);
 	virtual ~FEAngioMaterial();
 
 	friend class Fileout;
@@ -238,7 +238,7 @@ private:
 class FEPressureMaterial : public FEElasticMaterial
 {
 public:
-	FEPressureMaterial(FEModel* pfem) : FEElasticMaterial(pfem){ m_p = 0; }
+	explicit FEPressureMaterial(FEModel* pfem) : FEElasticMaterial(pfem){ m_p = 0; }
 
 	mat3ds Stress(FEMaterialPoint& mp) override;
 

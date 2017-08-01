@@ -25,7 +25,7 @@ class FragmentSeeder : public FEMaterial
 {
 public:
 	virtual bool SeedFragments(SimulationTime& time, Culture * culture) = 0;
-	FragmentSeeder(FEModel * model);
+	explicit FragmentSeeder(FEModel * model);
 	virtual ~FragmentSeeder(){}
 	//must be called before anything else is done but construction
 	void SetCulture(Culture * cp);
@@ -42,7 +42,7 @@ class ClassicFragmentSeeder : public FragmentSeeder
 {
 public:
 	bool SeedFragments(SimulationTime& time, Culture * culture) override;
-	ClassicFragmentSeeder(FEModel * model);
+	explicit ClassicFragmentSeeder(FEModel * model);
 private:
 	// Seed an initial fragment within the grid
 	bool createInitFrag(Segment& Seg);
@@ -51,7 +51,7 @@ class MultiDomainFragmentSeeder : public FragmentSeeder
 {
 public:
 	bool SeedFragments(SimulationTime& time, Culture * culture) override;
-	MultiDomainFragmentSeeder(FEModel * model);
+	explicit MultiDomainFragmentSeeder(FEModel * model);
 private:
 };
 
@@ -59,7 +59,7 @@ class MDByVolumeFragmentSeeder : public FragmentSeeder
 {
 public:
 	bool SeedFragments(SimulationTime& time, Culture * culture) override;
-	MDByVolumeFragmentSeeder(FEModel * model);
+	explicit MDByVolumeFragmentSeeder(FEModel * model);
 private:
 };
 
@@ -67,7 +67,7 @@ class MDAngVessFileFragmentSeeder :public FragmentSeeder
 {
 public:
 	bool SeedFragments(SimulationTime& time, Culture * culture) override;
-	MDAngVessFileFragmentSeeder(FEModel * model);
+	explicit MDAngVessFileFragmentSeeder(FEModel * model);
 private:
 	DECLARE_PARAMETER_LIST();
 	std::ifstream infile;

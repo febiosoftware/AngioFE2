@@ -104,6 +104,7 @@ void FiberManager::Update()
 {
 	// get the domain
 	FESolidDomain * sd = dynamic_cast<FESolidDomain*>(material->domainptrs[0]);
+	assert(sd);
 	int NN = sd->Nodes();
 	int NE = sd->Elements();
 
@@ -278,6 +279,7 @@ void FiberInitializer::nodeToInt(FiberManager * fman)
 		for (int j = 0; j < dom->Elements(); j++)
 		{
 			FESolidElement *se = dynamic_cast<FESolidElement*>(&dom->ElementRef(j));
+			assert(se);
 			for (int k = 0; k < se->GaussPoints(); k++)
 			{
 				GridPoint pt;
@@ -319,6 +321,7 @@ void RandomFiberInitializerNonMangling::InitializeFibers(FiberManager * fman)
 		for (int j = 0; j < dom->Elements(); j++)
 		{
 			FESolidElement *se = dynamic_cast<FESolidElement*>(&dom->ElementRef(j));
+			assert(se);
 			for (int k = 0; k < se->GaussPoints(); k++)
 			{
 				FEMaterialPoint * mp = se->GetMaterialPoint(k);
@@ -347,6 +350,7 @@ void RandomFiberInitializerPE::InitializeFibers(FiberManager * fman)
 		{
 			mat3d rm = fman->material->m_pangio->unifromRandomRotationMatrix();
 			FESolidElement *se = dynamic_cast<FESolidElement*>(&dom->ElementRef(j));
+			assert(se);
 			for (int k = 0; k < se->GaussPoints(); k++)
 			{
 				FEMaterialPoint * mp = se->GetMaterialPoint(k);

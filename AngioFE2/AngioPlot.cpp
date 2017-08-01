@@ -171,7 +171,6 @@ bool FEPlotMatrixTangent::Save(FEDomain& d, FEDataStream& str)
 		for (int j = 0; j<nint; ++j)
 		{
 			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
-			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
 			tens4ds ten = pmat->matrix_material->GetElasticMaterial()->Tangent(mp);
 			tens4ds sj = ten;
 			s += sj;
@@ -231,7 +230,6 @@ bool FEPlotMatrixElasticStress::Save(FEDomain& d, FEDataStream& str)
 		{
 			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
 			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
-			FEViscoElasticMaterialPoint& matrix_visco_elastic = *angioPt->matPt->ExtractData<FEViscoElasticMaterialPoint>();
 			FEElasticMaterialPoint& emp = *angioPt->matPt->Next()->ExtractData<FEElasticMaterialPoint>();
 
 			mat3ds sj = emp.m_s;
@@ -548,8 +546,8 @@ bool FEPlotMatrixSBMConectration::Save(FEDomain &d, FEDataStream& str)
 	FEMultiphasicSolidDomain* pmd = dynamic_cast<FEMultiphasicSolidDomain*>(&d);
 	FEMultiphasicShellDomain* psd = dynamic_cast<FEMultiphasicShellDomain*>(&d);
 	FEAngioMaterial * angio_mat = dynamic_cast<FEAngioMaterial*>(d.GetMaterial());
-	FEMaterial * matrix_mat = angio_mat->matrix_material;
 	assert(angio_mat);
+	FEMaterial * matrix_mat = angio_mat->matrix_material;
 	if (pmd)
 	{
 		FEMultiphasic* pm = dynamic_cast<FEMultiphasic*>(matrix_mat);

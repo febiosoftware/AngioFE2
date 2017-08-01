@@ -20,13 +20,13 @@ class FESproutBodyForce : public FEBodyForce
 public:
 	struct SPROUT
 	{
-		SPROUT(vec3d r,vec3d sp):rc(r), sprout(sp){}
+		SPROUT(vec3d & r,vec3d & sp):rc(r), sprout(sp){}
 		vec3d	rc;			// center of sprout force
 		vec3d	sprout;		// sprout direction
 	};
 
 // Public functions:
-	FESproutBodyForce(FEModel* pfem);
+	explicit FESproutBodyForce(FEModel* pfem);
 
 	vec3d force(FEMaterialPoint& mp) override;
 	mat3ds stiffness(FEMaterialPoint& mp) override;

@@ -10,13 +10,13 @@ class GridPoint
 {
 public:
 	int		nelem;		// element id
-	int		elemindex;
+	int		elemindex = -1;
 	FESolidDomain *		ndomain=nullptr;    //domain id
 	vec3d	q;			// natural coordinates
 	vec3d	r;			// spatial position
 
-	GridPoint() { nelem = -1; elemindex = -1; }
-	GridPoint(int ne, vec3d& k) { nelem = ne; elemindex = -1; q = k; }
+	GridPoint() : nelem(-1) { }
+	GridPoint(int ne, vec3d& k) : q(k), nelem(ne) { }
 };
 
 //-----------------------------------------------------------------------------
@@ -58,7 +58,8 @@ public:
 
     Segment();
 	Segment(const Segment &obj);
-	virtual ~Segment();
+	void operator = (Segment& seg);
+	~Segment();
     
 	// update the segment data
 	// Call this each time the position of the nodes has changed
@@ -71,10 +72,9 @@ public:
 	const vec3d& uvect() const { return m_uvect; }
 
 	// return one of the tip ends
-	TIP& tip(int i) { return m_tip[i]; }
+	const TIP& tip_c(int i) const { return m_tip[i]; }
 
-	// return one of the tip ends
-	const TIP& tip(int i) const { return m_tip[i]; }
+	TIP& tip(int i) { return m_tip[i]; }
 
 	// add a flag
 	void SetFlagOn(unsigned int nflag) { m_nflag |= nflag; }

@@ -9,7 +9,7 @@ class FEAngio;
 class AngioFETask : public FECoreTask
 {
 public:
-	AngioFETask(FEModel* pfem);
+	explicit AngioFETask(FEModel* pfem);
 	~AngioFETask(void);
 
 	bool Init(const char* szfile) override;
@@ -17,5 +17,5 @@ public:
 	bool Run() override;
 
 private:
-	FEAngio*	m_pangio;
+	FEAngio*	m_pangio=nullptr;
 };

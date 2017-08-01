@@ -5,7 +5,7 @@
 class FEPlotAngioStress : public FEDomainData
 {
 public:
-	FEPlotAngioStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
+	explicit FEPlotAngioStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
@@ -13,7 +13,7 @@ public:
 class FEPlotMatrixStress : public FEDomainData
 {
 public:
-	FEPlotMatrixStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
+	explicit FEPlotMatrixStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
@@ -22,7 +22,7 @@ public:
 class FEPlotMatrixViscoStress : public FEDomainData
 {
 public:
-	FEPlotMatrixViscoStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
+	explicit FEPlotMatrixViscoStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
@@ -31,7 +31,7 @@ public:
 class FEPlotMatrixElasticStress : public FEDomainData
 {
 public:
-	FEPlotMatrixElasticStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
+	explicit FEPlotMatrixElasticStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
@@ -39,7 +39,7 @@ public:
 class FEPlotMatrixElastic_m_Q : public FEDomainData
 {
 public:
-	FEPlotMatrixElastic_m_Q(FEModel* pfem) : FEDomainData(PLT_MAT3F, FMT_ITEM){}
+	explicit FEPlotMatrixElastic_m_Q(FEModel* pfem) : FEDomainData(PLT_MAT3F, FMT_ITEM){}
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
@@ -48,7 +48,7 @@ public:
 class FEPlotVesselStress : public FEDomainData
 {
 public:
-	FEPlotVesselStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
+	explicit FEPlotVesselStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
@@ -56,21 +56,21 @@ public:
 class FEPlotVesselWeight : public FEDomainData
 {
 public:
-	FEPlotVesselWeight(FEModel* pfem) : FEDomainData(PLT_FLOAT, FMT_ITEM){}
+	explicit FEPlotVesselWeight(FEModel* pfem) : FEDomainData(PLT_FLOAT, FMT_ITEM){}
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 //-----------------------------------------------------------------------------
 class FEPlotMatrixWeight : public FEDomainData
 {
 public:
-	FEPlotMatrixWeight(FEModel* pfem) : FEDomainData(PLT_FLOAT, FMT_ITEM){}
+	explicit FEPlotMatrixWeight(FEModel* pfem) : FEDomainData(PLT_FLOAT, FMT_ITEM){}
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 //-----------------------------------------------------------------------------
 class FEPlotMatrixTangent : public FEDomainData
 {
 public:
-	FEPlotMatrixTangent(FEModel* pfem) : FEDomainData(PLT_TENS4FS, FMT_ITEM){}
+	explicit FEPlotMatrixTangent(FEModel* pfem) : FEDomainData(PLT_TENS4FS, FMT_ITEM){}
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
@@ -78,7 +78,7 @@ public:
 class FEPlotAngioGradientCenter : public FEDomainData
 {
 public:
-	FEPlotAngioGradientCenter(FEModel* pfem);
+	explicit FEPlotAngioGradientCenter(FEModel* pfem);
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
@@ -86,7 +86,7 @@ public:
 class FEPlotAngioMaterialHop : public FEDomainData
 {
 public:
-	FEPlotAngioMaterialHop(FEModel* pfem);
+	explicit FEPlotAngioMaterialHop(FEModel* pfem);
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
@@ -95,21 +95,21 @@ public:
 class FEPlotAngioSegmentBadGrowth : public FEDomainData
 {
 public:
-	FEPlotAngioSegmentBadGrowth(FEModel* pfem);
+	explicit FEPlotAngioSegmentBadGrowth(FEModel* pfem);
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 //-----------------------------------------------------------------------------
 class FEPlotAngioEffectiveStress : public FEDomainData
 {
 public:
-	FEPlotAngioEffectiveStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
+	explicit FEPlotAngioEffectiveStress(FEModel* pfem) : FEDomainData(PLT_MAT3FS, FMT_ITEM){}
 	bool Save(FEDomain& d, FEDataStream& str)  override;
 };
 
 class FEPlotAngioGradient : public FENodeData
 {
 public:
-	FEPlotAngioGradient(FEModel * pfem) : FENodeData(PLT_VEC3F, FMT_ITEM){}
+	explicit FEPlotAngioGradient(FEModel * pfem) : FENodeData(PLT_VEC3F, FMT_ITEM){}
 	bool Save(FEMesh & m, FEDataStream & a) override;
 };
 
@@ -117,7 +117,7 @@ public:
 class FEPlotAngioECMDensity : public FENodeData
 {
 public:
-	FEPlotAngioECMDensity(FEModel* pfem) : FENodeData(PLT_FLOAT, FMT_ITEM){}
+	explicit FEPlotAngioECMDensity(FEModel* pfem) : FENodeData(PLT_FLOAT, FMT_ITEM){}
 	bool Save(FEMesh& m, FEDataStream& a)  override;
 };
 
@@ -125,7 +125,7 @@ public:
 class FEPlotAngioECMAlpha : public FENodeData
 {
 public:
-	FEPlotAngioECMAlpha(FEModel* pfem) : FENodeData(PLT_FLOAT, FMT_ITEM){}
+	explicit FEPlotAngioECMAlpha(FEModel* pfem) : FENodeData(PLT_FLOAT, FMT_ITEM){}
 	bool Save(FEMesh& m, FEDataStream& a)  override;
 };
 
@@ -143,14 +143,14 @@ public:
 class FEPlotMatrixConectrationGradient : public FEDomainData
 {
 public:
-	FEPlotMatrixConectrationGradient(FEModel * pfem) : FEDomainData(PLT_VEC3F, FMT_ITEM) {}
+	explicit FEPlotMatrixConectrationGradient(FEModel * pfem) : FEDomainData(PLT_VEC3F, FMT_ITEM) {}
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 
 class FEPlotMatrixSBMConectration : public FEDomainData
 {
 public:
-	FEPlotMatrixSBMConectration(FEModel * pfem) : FEDomainData(PLT_VEC3F, FMT_ITEM) {}
+	explicit FEPlotMatrixSBMConectration(FEModel * pfem) : FEDomainData(PLT_VEC3F, FMT_ITEM) {}
 	bool Save(FEDomain& d, FEDataStream& str) override;
 };
 

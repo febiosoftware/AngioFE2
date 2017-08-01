@@ -36,7 +36,8 @@ bool CreateDensityMap(vector<double>& density, vector<double>& anisotropy, FEMat
 bool CreateConcentrationMap(vector<double>& concentration, FEMaterial* pmat, int vegfID);
 
 //-----------------------------------------------------------------------------
-FEAngio::FEAngio(FEModel& fem) 
+FEAngio::FEAngio(FEModel& fem) : ztopi(std::uniform_real_distribution<double>(0, pi)), 
+	zto2pi(std::uniform_real_distribution<double>(0, 2 * pi))
 {
 	// Body force counter
 	total_bdyf = 0;
@@ -47,9 +48,6 @@ FEAngio::FEAngio(FEModel& fem)
 	m_time.dt = 1.0;
 	// Input random seed number
 	m_irseed = 0;
-	ztopi = std::uniform_real_distribution<double>(0, pi);
-	zto2pi = std::uniform_real_distribution<double>(0, 2 * pi);
-	n1to1 = std::uniform_real_distribution<double>(-1, 1);
 
 	m_fem = dynamic_cast<FEBioModel *>(&fem);
 	assert(m_fem);
@@ -75,7 +73,7 @@ FEMesh * FEAngio::GetMesh() const
 // find the angio material component
 FEAngioMaterial* FEAngio::FindAngioMaterial(FEMaterial* pm)
 {
-	FEMaterial* pmat;
+	FEMaterial* pmat = nullptr;
 	if(strcmp(pm->GetTypeStr(), "angio")==0)
 	{
 		pmat = pm;
@@ -527,11 +525,8 @@ mat3d FEAngio::unifromRandomRotationMatrix()
 	vec3d yt = rv * y;
 	vec3d zt = rv * z;
 	double tol = 0.01;
-	double val = xt * yt;
 	assert(xt * yt < tol && xt * yt > -tol);
-	val = xt * zt;
 	assert(xt * zt < tol && xt * zt > -tol);
-	val = zt * yt;
 	assert(zt * yt < tol && zt * yt > -tol);
 
 	double noq = xt.norm();
@@ -571,13 +566,12 @@ vec3d FEAngio::gradient(FESolidElement * se, std::vector<double> & fn, vec3d pt,
 	double Gr[FEElement::MAX_NODES], Gs[FEElement::MAX_NODES], Gt[FEElement::MAX_NODES];
 	se->shape_deriv(Gr, Gs, Gt, pt.x, pt.y, pt.z);
 
-	double Gx, Gy, Gz;
-
 	vec3d gradf;
 	size_t N = se->Nodes();
 	assert(N == size*fn.size());
 	for (size_t i = 0; i<N; ++i)
 	{
+		double Gx, Gy, Gz;
 		// calculate global gradient of shape functions
 		// note that we need the transposed of Ji, not Ji itself !
 		Gx = Ji[0][0] * Gr[i] + Ji[1][0] * Gs[i] + Ji[2][0] * Gt[i];
@@ -1003,7 +997,6 @@ GridPoint FEAngio::FindGridPoint(FESolidDomain * domain, int nelem, vec3d& q) co
 	assert(domain != nullptr && nelem >= 0);
 	GridPoint pt;
 	pt.q = q;
-	FEMesh & mesh = m_fem->GetMesh();
 	FESolidElement * se;
 	//TODO: refactor if problems with multiple domains
 	if (se = &domain->Element(nelem))
@@ -1134,7 +1127,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 	FETimeInfo fti = fem.GetTime();
 	m_time.t = fti.currentTime;
 	m_time.dt = fti.timeIncrement;
-	static int index = 0;
+	
 	static bool start = false;
 	if (!start)
 	{
@@ -1147,6 +1140,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 
 	if (nwhen == CB_UPDATE_TIME)
 	{
+		static int index = 0;
 		// grab the time information
 		
 		for (size_t i = 0; i < m_pmat.size(); i++)
@@ -1252,9 +1246,6 @@ void FEAngio::update_sprout_stress_scaling()
 // create a map of fiber vectors based on the material's orientation.
 bool CreateFiberMap(vector<vec3d>& fiber, FEMaterial* pmat)
 {
-	// get the material's coordinate system
-	FECoordSysMap* pmap = pmat->GetCoordinateSystemMap();
-
 	// get the mesh
 	FEMesh& mesh = pmat->GetFEModel()->GetMesh();
 

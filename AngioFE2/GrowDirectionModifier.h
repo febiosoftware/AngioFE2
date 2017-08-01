@@ -15,7 +15,7 @@ class Culture;
 class GrowDirectionModifier : public FEMaterial
 {
 public:
-	GrowDirectionModifier(FEModel * model);
+	explicit GrowDirectionModifier(FEModel * model);
 	virtual ~GrowDirectionModifier(){}
 	//will be called once before growth per FE timestep
 	virtual void Update() {}
@@ -65,7 +65,7 @@ private:
 class GrowDirectionModifiers : public FEMaterial
 {
 public:
-	GrowDirectionModifiers(FEModel * model);
+	explicit GrowDirectionModifiers(FEModel * model);
 	virtual ~GrowDirectionModifiers(){}
 
 	vec3d ApplyModifiers(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length);
@@ -76,7 +76,7 @@ public:
 
 private:
 	FEVecPropertyT<GrowDirectionModifier> grow_direction_modifiers;
-	Culture * culture;
+	Culture * culture= nullptr;
 };
 
 
@@ -88,7 +88,7 @@ private:
 class GGP : public FEMaterial
 {
 public:
-	GGP(FEModel * model) : FEMaterial(model) { AddProperty(&child, "child"); child.m_brequired = false; }
+	explicit GGP(FEModel * model) : FEMaterial(model) { AddProperty(&child, "child"); child.m_brequired = false; }
 	virtual ~GGP() {}
 	//will be called once before growth per FE timestep
 	virtual void Update() { if (child) { child->Update(); } };
@@ -119,7 +119,7 @@ protected:
 class Plot2GGP : public GGP
 {
 public:
-	Plot2GGP(FEModel * model) : GGP(model) {}
+	explicit Plot2GGP(FEModel * model) : GGP(model) { field_name[0] = '\0'; }
 	virtual ~Plot2GGP() {}
 	//will be called once before growth per FE timestep
 	bool Init() override;
@@ -138,7 +138,7 @@ protected:
 class GradientPlot2GGP : public Plot2GGP
 {
 public:
-	GradientPlot2GGP(FEModel * model) : Plot2GGP(model) { archive.GradientEnabled(true); }
+	explicit GradientPlot2GGP(FEModel * model) : Plot2GGP(model) { archive.GradientEnabled(true); }
 	virtual ~GradientPlot2GGP() {}
 	//will be called once before growth per FE timestep
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
@@ -152,7 +152,7 @@ private:
 class NodalDataGGP : public GGP
 {
 public:
-	NodalDataGGP(FEModel * model) : GGP(model) { field_name[0] = 0; }
+	explicit NodalDataGGP(FEModel * model) : GGP(model) { field_name[0] = 0; }
 	virtual ~NodalDataGGP() {}
 
 	void Update() override;
@@ -169,7 +169,7 @@ private:
 class MatrixConverterGGP: public GGP
 {
 public:
-	MatrixConverterGGP(FEModel * model);
+	explicit MatrixConverterGGP(FEModel * model);
 	virtual ~MatrixConverterGGP() {}
 	//will be called once before growth per FE timestep
 
@@ -186,7 +186,7 @@ class ForkedGGP : public GGP
 {
 public:
 	//disallow empy forks
-	ForkedGGP(FEModel * model) : GGP(model) { AddProperty(&nest, "nest"); }
+	explicit ForkedGGP(FEModel * model) : GGP(model) { AddProperty(&nest, "nest"); }
 	~ForkedGGP() {}
 	//will be called once before growth per FE timestep
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
@@ -207,7 +207,6 @@ public:
 	}
 
 protected:
-	Culture * culture = nullptr;
 	FEPropertyT<GGP> nest;
 };
 
@@ -218,7 +217,7 @@ protected:
 class EigenValuesGGP: public GGP
 {
 public:
-	EigenValuesGGP(FEModel * model) : GGP(model) {  }
+	explicit EigenValuesGGP(FEModel * model) : GGP(model) {  }
 	virtual ~EigenValuesGGP() {}
 
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
@@ -229,7 +228,7 @@ public:
 class EigenVectorsGGP : public GGP
 {
 public:
-	EigenVectorsGGP(FEModel * model) : GGP(model) {  }
+	explicit EigenVectorsGGP(FEModel * model) : GGP(model) {  }
 	virtual ~EigenVectorsGGP() {}
 
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
@@ -240,7 +239,7 @@ class CrossGGP : public GGP
 {
 public:
 	//disallow empy forks
-	CrossGGP(FEModel * model) : GGP(model)
+	explicit CrossGGP(FEModel * model) : GGP(model)
 	{
 		AddProperty(&v1, "v1");
 		AddProperty(&v2, "v2");
@@ -267,7 +266,6 @@ public:
 	}
 
 protected:
-	Culture * culture = nullptr;
 	FEPropertyT<GGP> v1;
 	FEPropertyT<GGP> v2;
 };
@@ -277,7 +275,7 @@ class ThresholdGGP : public GGP
 {
 public:
 	//disallow empy forks
-	ThresholdGGP(FEModel * model) : GGP(model)
+	explicit ThresholdGGP(FEModel * model) : GGP(model)
 	{
 		AddProperty(&statement, "statement");
 		AddProperty(&threshold, "threshold");
@@ -304,7 +302,6 @@ public:
 	}
 
 protected:
-	Culture * culture = nullptr;
 	FEPropertyT<GGP> statement;
 	FEPropertyT<GGP> threshold;
 	vec3d vec = vec3d(1, 0, 0);
@@ -316,7 +313,7 @@ protected:
 class ArcCosGGP : public GGP
 {
 public:
-	ArcCosGGP(FEModel * model) : GGP(model) {  }
+	explicit ArcCosGGP(FEModel * model) : GGP(model) {  }
 	virtual ~ArcCosGGP() {}
 
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
@@ -326,7 +323,7 @@ public:
 class ArcSinGGP : public GGP
 {
 public:
-	ArcSinGGP(FEModel * model) : GGP(model) {  }
+	explicit ArcSinGGP(FEModel * model) : GGP(model) {  }
 	virtual ~ArcSinGGP() {}
 
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
@@ -336,7 +333,7 @@ public:
 class CosGGP : public GGP
 {
 public:
-	CosGGP(FEModel * model) : GGP(model) {  }
+	explicit CosGGP(FEModel * model) : GGP(model) {  }
 	virtual ~CosGGP() {}
 
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
@@ -346,7 +343,7 @@ public:
 class SinGGP : public GGP
 {
 public:
-	SinGGP(FEModel * model) : GGP(model) {  }
+	explicit SinGGP(FEModel * model) : GGP(model) {  }
 	virtual ~SinGGP() {}
 
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
@@ -356,7 +353,7 @@ public:
 class MatrixInverseGGP : public GGP
 {
 public:
-	MatrixInverseGGP(FEModel * model) : GGP(model) {  }
+	explicit MatrixInverseGGP(FEModel * model) : GGP(model) {  }
 	virtual ~MatrixInverseGGP() {}
 
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
@@ -368,13 +365,11 @@ class SetterGGP : public GGP
 {
 public:
 	//the user must do all initialization themselves
-	SetterGGP(FEModel * model): GGP(model)
-	{
-		invec = vec3d(1, 0, 0);
-		m = mat3d(1,0,0,
+	explicit SetterGGP(FEModel * model): GGP(model), invec(vec3d(1, 0, 0)), m(mat3d(1,0,0,
 			0,1,0,
-			0,0,1);
-	}
+			0,0,1))
+	{}
+	
 	virtual ~SetterGGP() {}
 	//will be called once before growth per FE timestep
 
@@ -391,11 +386,10 @@ class AssertGGP : public GGP
 {
 public:
 	//the user must do all initialization themselves
-	AssertGGP(FEModel * model) : GGP(model) {
-		m = mat3d(1, 0, 0,
+	explicit AssertGGP(FEModel * model) : GGP(model), m(mat3d(1, 0, 0,
 			0, 1, 0,
-			0, 0, 1);
-	}
+			0, 0, 1)) {}
+	
 	virtual ~AssertGGP() {}
 	//will be called once before growth per FE timestep
 
@@ -413,7 +407,7 @@ private:
 class DefaultGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
-	DefaultGrowDirectionModifier(FEModel * model);
+	explicit DefaultGrowDirectionModifier(FEModel * model);
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 	void Update() override;
 	void SetCulture(Culture * cp) override;
@@ -427,7 +421,7 @@ private:
 class BaseFiberAwareGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
-	BaseFiberAwareGrowDirectionModifier(FEModel * model);
+	explicit BaseFiberAwareGrowDirectionModifier(FEModel * model);
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 };
 
@@ -435,7 +429,7 @@ public:
 class BranchGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
-	BranchGrowDirectionModifier(FEModel * model);
+	explicit BranchGrowDirectionModifier(FEModel * model);
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 	void Update() override;
 	void SetCulture(Culture * cp) override;
@@ -448,7 +442,7 @@ private:
 class UnitLengthGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
-	UnitLengthGrowDirectionModifier(FEModel * model);
+	explicit UnitLengthGrowDirectionModifier(FEModel * model);
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 	bool Init() override
 	{
@@ -480,7 +474,7 @@ private:
 class DensityScaleGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
-	DensityScaleGrowDirectionModifier(FEModel * model);
+	explicit DensityScaleGrowDirectionModifier(FEModel * model);
 	bool Init() override
 	{
 		if(density_scale)
@@ -497,7 +491,7 @@ private:
 class SegmentLengthGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
-	SegmentLengthGrowDirectionModifier(FEModel * model);
+	explicit SegmentLengthGrowDirectionModifier(FEModel * model);
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 };
 
@@ -505,7 +499,7 @@ public:
 class GradientGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
-	GradientGrowDirectionModifier(FEModel * model);
+	explicit GradientGrowDirectionModifier(FEModel * model);
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 	void Update() override;
 	void SetCulture(Culture * cp) override;
@@ -518,7 +512,7 @@ private:
 class AnastamosisGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
-	AnastamosisGrowDirectionModifier(FEModel * model);
+	explicit AnastamosisGrowDirectionModifier(FEModel * model);
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 
 private:
@@ -530,7 +524,7 @@ private:
 class EdgeDeflectorGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
-	EdgeDeflectorGrowDirectionModifier(FEModel * model);
+	explicit EdgeDeflectorGrowDirectionModifier(FEModel * model);
 
 	void SetCulture(Culture * cp) override;
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;

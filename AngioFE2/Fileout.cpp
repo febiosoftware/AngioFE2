@@ -122,9 +122,7 @@ void Fileout::save_vessel_state(FEAngio& angio)
 //-----------------------------------------------------------------------------
 // Save active points
 void Fileout::save_active_tips(FEAngio& angio) const
-{
-	double t = angio.CurrentSimTime().t;
-	
+{	
 	for (size_t i = 0; i < angio.m_pmat.size(); i++)
 	{
 		Culture * cult = angio.m_pmat[i]->m_cult;

@@ -425,7 +425,7 @@ void KDTree<DIM, DIMR>::insert(std::list<DIM> items)
         DIMR goal = _accessor(*iter);
         //assert(goal.tuple_size() == ndim);
         assert(goal.size() == ndim);
-        int cdim = 0;
+        
         KDNode * current = root;
 
         if (!root)
@@ -437,6 +437,7 @@ void KDTree<DIM, DIMR>::insert(std::list<DIM> items)
         }
         else
         {
+			int cdim = 0;
             bool found = false;
             while (!found)
             {

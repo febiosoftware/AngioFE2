@@ -27,6 +27,6 @@ public:
 
 private:
 	std::ofstream logstream;
-	FILE*	m_stream4;	// active tips
+	FILE*	m_stream4 = 0;	// active tips
 	FILE*  vessel_state_stream;
 };

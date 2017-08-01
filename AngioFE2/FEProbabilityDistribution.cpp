@@ -60,6 +60,7 @@ void FEProbabilityDistribution::SetLoadCurveToStep(const char * param)
 	if (mlci > 0)
 	{
 		FEDataLoadCurve * mlc = dynamic_cast<FEDataLoadCurve*>(model->GetLoadCurve(mlci));
+		assert(mlc);
 		mlc->SetInterpolation(FEDataLoadCurve::STEP);
 	}
 }

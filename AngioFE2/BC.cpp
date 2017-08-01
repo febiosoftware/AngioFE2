@@ -37,37 +37,37 @@ void BC::CheckBC(Segment &seg)
 	
 	//new implementation may be run on all segments will add the segment once the boundaries are safe
 	//remove the check of whether or not to check the boundary condition in Culture
-	assert(seg.tip(0).pt.nelem != -1);
+	assert(seg.tip_c(0).pt.nelem != -1);
 	//make sure that the defining tip has not drifted too far
-	vec3d pq = culture->m_pmat->m_pangio->Position(seg.tip(0).pt);
-	assert((culture->m_pmat->m_pangio->Position(seg.tip(0).pt) - seg.tip(0).pt.r).norm() < 1.0);
+	vec3d pq = culture->m_pmat->m_pangio->Position(seg.tip_c(0).pt);
+	assert((culture->m_pmat->m_pangio->Position(seg.tip_c(0).pt) - seg.tip_c(0).pt.r).norm() < 1.0);
 	//if the second tip is unititialized make sure it is not in the same element as tip(0)
-	FESolidElement * tse = &seg.tip(0).pt.ndomain->Element(seg.tip(0).pt.elemindex);
+	FESolidElement * tse = &seg.tip_c(0).pt.ndomain->Element(seg.tip_c(0).pt.elemindex);
 
-	if (seg.tip(1).pt.nelem == -1)
+	if (seg.tip_c(1).pt.nelem == -1)
 	{
 		
 		double arr[3];
-		if (tse && culture->m_pmat->m_pangio->IsInsideHex8(tse, seg.tip(1).pt.r, culture->m_pmat->m_pangio->GetMesh(), arr))
+		if (tse && culture->m_pmat->m_pangio->IsInsideHex8(tse, seg.tip_c(1).pt.r, culture->m_pmat->m_pangio->GetMesh(), arr))
 		{
 			//just copy the data from tip(0)
 			seg.tip(1).pt.q.x = arr[0]; seg.tip(1).pt.q.y = arr[1]; seg.tip(1).pt.q.z = arr[2];
-			seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
-			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
-			seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
+			seg.tip(1).pt.nelem = seg.tip_c(0).pt.nelem;
+			seg.tip(1).pt.ndomain = seg.tip_c(0).pt.ndomain;
+			seg.tip(1).pt.elemindex = seg.tip_c(0).pt.elemindex;
 		}
 	}
 	//this is the costliest part of the boundary check if reached
-	if (seg.tip(1).pt.nelem == -1)
+	if (seg.tip_c(1).pt.nelem == -1)
 	{
-		culture->m_pmat->FindGridPoint(seg.tip(1).pt.r ,seg.tip(1).pt);
+		culture->m_pmat->FindGridPoint(seg.tip_c(1).pt.r ,seg.tip(1).pt);
 	}
 	//check if the segment is in another angio material
-	if (seg.tip(1).pt.nelem == -1)
+	if (seg.tip_c(1).pt.nelem == -1)
 	{
 		FEMesh * mesh = culture->m_pmat->m_pangio->GetMesh();
 		double r[3];
-		FESolidElement * se = mesh->FindSolidElement(seg.tip(1).pt.r, r);
+		FESolidElement * se = mesh->FindSolidElement(seg.tip_c(1).pt.r, r);
 		FEAngioMaterial * angm;
 		if (se && (angm = dynamic_cast<FEAngioMaterial*>(culture->m_pmat->m_pangio->m_fem->GetMaterial(se->GetMatID()))))
 		{
@@ -92,7 +92,7 @@ void BC::CheckBC(Segment &seg)
 	}
 	
 	//if both are in the same element just add the segment
-	if (seg.tip(0).pt.nelem == seg.tip(1).pt.nelem)
+	if (seg.tip_c(0).pt.nelem == seg.tip_c(1).pt.nelem)
 	{
 		seg.Update();
 		if (seg.length() >= culture->m_cultParams->min_segment_length)
@@ -103,10 +103,10 @@ void BC::CheckBC(Segment &seg)
 	}
 	//if both elmeents are in the same material add the segment
 	//this implies that angio materials are convex or that the user will in some way mitigate the nonconvex portions of the material
-	if (seg.tip(1).pt.ndomain != nullptr && seg.tip(1).pt.elemindex >= 0)
+	if (seg.tip_c(1).pt.ndomain != nullptr && seg.tip_c(1).pt.elemindex >= 0)
 	{
-		FEElement & t1se = seg.tip(1).pt.ndomain->ElementRef(seg.tip(1).pt.elemindex);
-		FEElement & t0se = seg.tip(0).pt.ndomain->ElementRef(seg.tip(0).pt.elemindex);
+		FEElement & t1se = seg.tip_c(1).pt.ndomain->ElementRef(seg.tip_c(1).pt.elemindex);
+		FEElement & t0se = seg.tip_c(0).pt.ndomain->ElementRef(seg.tip_c(0).pt.elemindex);
 		if (t1se.GetMatID() == t0se.GetMatID())
 		{
 			if (seg.length() >= culture->m_cultParams->min_segment_length)
@@ -117,14 +117,14 @@ void BC::CheckBC(Segment &seg)
 		}
 	}
 	
-	vec3d dir = seg.tip(1).pt.r - seg.tip(0).pt.r;
+	vec3d dir = seg.tip_c(1).pt.r - seg.tip_c(0).pt.r;
 	double dist = dir.norm();
 	assert(dir.norm() > 0.0);
 
 	dir.unit();
 
-	FESolidDomain & sd = reinterpret_cast<FESolidDomain&>(*seg.tip(0).pt.ndomain);
-	FESolidElement * se = &sd.Element(seg.tip(0).pt.elemindex);
+	FESolidDomain & sd = reinterpret_cast<FESolidDomain&>(*seg.tip_c(0).pt.ndomain);
+	FESolidElement * se = &sd.Element(seg.tip_c(0).pt.elemindex);
 	assert(se);//make sure we have an element
 
 	FEMaterial * mat = sd.GetMaterial();
@@ -143,21 +143,21 @@ void BC::CheckBC(Segment &seg)
 		if (surf->Elements() > culture->m_pmat->m_pangio->m_fe_element_data[se->GetID()].surfacesIndices[i])
 		{
 			FESurfaceElement & surfe = reinterpret_cast<FESurfaceElement&>(surf->ElementRef(culture->m_pmat->m_pangio->m_fe_element_data[se->GetID()].surfacesIndices[i]));
-			if (culture->m_pmat->exterior_surface->Intersect(surfe, seg.tip(0).pt.r, dir, rs, g, 0.0001))//see the epsilon in FIndSolidElement
+			if (culture->m_pmat->exterior_surface->Intersect(surfe, seg.tip_c(0).pt.r, dir, rs, g, 0.0001))//see the epsilon in FIndSolidElement
 			{
 				lastgood_pt = surf->Local2Global(surfe, rs[0], rs[1]);
-				double rdist = (lastgood_pt - seg.tip(1).pt.r).norm();
+				double rdist = (lastgood_pt - seg.tip_c(1).pt.r).norm();
 				if((abs(g) <= seg.expected_length) && (rdist < 1.01*(seg.expected_length)))
 				{
 					//set last_goodpt
 					
-					vec3d projected_pt = (seg.tip(1).pt.r - seg.tip(0).pt.r);
+					vec3d projected_pt = (seg.tip_c(1).pt.r - seg.tip_c(0).pt.r);
 					projected_pt.unit();
-					projected_pt = seg.tip(0).pt.r + projected_pt*g;
+					projected_pt = seg.tip_c(0).pt.r + projected_pt*g;
 
-					seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
-					seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
-					seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
+					seg.tip(1).pt.elemindex = seg.tip_c(0).pt.elemindex;
+					seg.tip(1).pt.nelem = seg.tip_c(0).pt.nelem;
+					seg.tip(1).pt.ndomain = seg.tip_c(0).pt.ndomain;
 					return HandleBoundary(seg, lastgood_pt, rs, se);
 				}
 				
@@ -166,7 +166,7 @@ void BC::CheckBC(Segment &seg)
 		
 		
 	}
-	FESurfaceElement * surfe = culture->m_pmat->normal_proj->Project(seg.tip(0).pt.r, -dir, rs);
+	FESurfaceElement * surfe = culture->m_pmat->normal_proj->Project(seg.tip_c(0).pt.r, -dir, rs);
 	if (!surfe)
 	{
 		printf("no surface element found\n");
@@ -244,12 +244,11 @@ void StopBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESoli
 	//fill in the pt's data and add the segment
 	//remaining distance is ignored
 	//does not need to do anything for branching segments as the branch will 
-	FEMesh * mesh = culture->m_pmat->m_pangio->GetMesh();
 	seg.tip(1).pt.r = lastGoodPt;
 	seg.SetFlagOn(Segment::BC_DEAD);
 	if (culture->m_pmat->FindGridPoint(lastGoodPt, seg.tip(1).pt.ndomain, seg.tip(1).pt.elemindex, seg.tip(1).pt))
 	{
-		assert(seg.tip(1).pt.nelem != -1);
+		assert(seg.tip_c(1).pt.nelem != -1);
 		seg.Update();
 		if (seg.length() >= culture->m_cultParams->min_segment_length)
 		{
@@ -305,7 +304,7 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 	seg.SetFlagOn(Segment::BC_DEAD);
 	if (culture->m_pmat->FindGridPoint(lastGoodPt, seg.tip(1).pt.ndomain, seg.tip(1).pt.elemindex, seg.tip(1).pt))
 	{
-		assert(seg.tip(1).pt.nelem != -1);
+		assert(seg.tip_c(1).pt.nelem != -1);
 		seg.Update();
 		if (seg.length() >= culture->m_cultParams->min_segment_length)
 		{
@@ -336,7 +335,7 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 			found0 = true;
 		}
 	}
-	assert(seg.tip(1).pt.nelem != -1);
+	assert(seg.tip_c(1).pt.nelem != -1);
 	vec3d dir = seg.tip(1).pt.r - seg.tip(0).pt.r;
 	dir.unit();
 
@@ -424,7 +423,7 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 	}
 	//see if the previous tip needs reactivated
 }
-MBC::MBC(FEModel * model) : FEMaterial(model)
+MBC::MBC(FEModel * model) : FEMaterial(model) //-V730
 {
 	
 }

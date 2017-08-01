@@ -10,6 +10,7 @@ Segment::TIP::TIP()
 	BC = 0;
 	nseed = -1;
 	nvessel = -1;
+	parent = nullptr;
 }
 
 //-----------------------------------------------------------------------------
@@ -33,8 +34,16 @@ Segment::Segment()
 Segment::Segment(const Segment &obj)
 {
 	//can i just do what ever would have been done before for the rest of the parameters
-	memcpy(this, &obj, sizeof(Segment));
+	memcpy(this, &obj, sizeof(Segment)); //-V598
 	//update the parent pointers
+	tip(0).parent = this;
+	tip(1).parent = this;
+}
+void Segment::operator = (Segment& seg)
+{
+	//can i just do what ever would have been done before for the rest of the parameters
+	memcpy(this, &seg, sizeof(Segment)); //-V598
+										 //update the parent pointers
 	tip(0).parent = this;
 	tip(1).parent = this;
 }

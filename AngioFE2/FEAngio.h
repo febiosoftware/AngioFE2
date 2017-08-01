@@ -31,7 +31,7 @@ public:
 class FEAngio
 {
 public:
-	FEAngio(FEModel& fem);
+	explicit FEAngio(FEModel& fem);
 	~FEAngio();
 
 	// initialize the FEAnio class
@@ -127,7 +127,7 @@ private:
 
 	static bool feangio_callback(FEModel* pfem, unsigned int nwhen, void* pd)
 	{
-		FEAngio* pfa = (FEAngio*)(pd);
+		FEAngio* pfa = reinterpret_cast<FEAngio*>(pd);
 		pfa->OnCallback(pfem, nwhen);
 		return true;
 	}
@@ -142,8 +142,6 @@ public:	// parameters read directly from file
 
 	// miscellaneous
 	unsigned int	m_irseed;			// Seed number for the random number generator
-
-    double	half_cell_l;			// Half the length of one grid element in the x direction, use in determining variable time step
     
 	int		total_bdyf;
 	int		FE_state;			// State counter to count the number of solved FE states
@@ -160,7 +158,7 @@ private:
 
 	SimulationTime	m_time;		// simulation time
 
-    time_t m_start;			// time of start
+    time_t m_start = 0;			// time of start
 	Fileout * fileout = nullptr;		// output manager
 	
 	std::uniform_real_distribution<double> ztopi;

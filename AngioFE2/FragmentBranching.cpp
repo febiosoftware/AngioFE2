@@ -169,11 +169,13 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 		printf("segment ended due to length\n");
 		return;
 	}
+	seg.expected_length = seg.length();
 		
 	//now calculate the length to branch from the new tip
 	seg.tip(1).length_to_branch = tip->length_to_branch;
 	seg.tip(0).length_to_branch = tip->length_to_branch;
 	seg.tip(1).wait_time_to_branch = tip->wait_time_to_branch;
+	
 	culture->AddNewSegment(seg);
 	auto rseg = culture->RecentSegments();
 	if (rseg.size() == 1) //handle segments in non bouncing mode
@@ -215,8 +217,8 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 				rseg[i + 1]->tip(0).connected = rseg[i];
 			}
 		}
-		assert(seg.tip(1).length_to_branch > 0.0);//force the update/intialization of values
-		assert(seg.tip(1).wait_time_to_branch >= 0.0);
+		assert(seg.tip_c(1).length_to_branch > 0.0);//force the update/intialization of values
+		assert(seg.tip_c(1).wait_time_to_branch >= 0.0);
 		double ct = start_time;
 		double l2b = seg.tip(1).length_to_branch;
 		tip->connected = rseg[0];
@@ -280,7 +282,9 @@ void PsuedoDeferedFragmentBranching::GrowSegment(std::set<BranchPoint>::iterator
 	static int mis_count = 0;
 	Segment::TIP tip0 = bp->parent->tip(0);
 	Segment::TIP tip1 = bp->parent->tip(1);
-	vec3d pos = mix(bp->parent->tip(0).pos(), bp->parent->tip(1).pos(), bp->percent_of_parent);
+	vec3d t0p = bp->parent->tip(0).pos();
+	vec3d t1p = bp->parent->tip(1).pos();
+	vec3d pos = mix(t0p, t1p , bp->percent_of_parent);
 	if (culture->m_pmat->FindGridPoint(pos, tip0.pt.ndomain, tip0.pt.elemindex, tip0.pt))
 	{
 		//roll for the length to branch of the new segment

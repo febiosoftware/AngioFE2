@@ -11,7 +11,7 @@ class FiberManager;
 class FiberInitializer : public FEMaterial
 {
 public:
-	FiberInitializer(FEModel * model):FEMaterial(model){}
+	explicit FiberInitializer(FEModel * model):FEMaterial(model){}
 	virtual ~FiberInitializer(){}
 	virtual void InitializeFibers(FiberManager * fman) = 0;
 
@@ -22,7 +22,7 @@ public:
 class NullFiberInitializer : public FiberInitializer
 {
 public:
-	NullFiberInitializer(FEModel * model) : FiberInitializer(model){}
+	explicit NullFiberInitializer(FEModel * model) : FiberInitializer(model){}
 	virtual ~NullFiberInitializer(){}
 	void InitializeFibers(FiberManager * fman) override{}
 };
@@ -30,7 +30,7 @@ public:
 class RandomFiberInitializer : public FiberInitializer
 {
 public:
-	RandomFiberInitializer(FEModel * model) : FiberInitializer(model){}
+	explicit RandomFiberInitializer(FEModel * model) : FiberInitializer(model){}
 	virtual ~RandomFiberInitializer(){}
 	void InitializeFibers(FiberManager * fman) override;
 };
@@ -39,7 +39,7 @@ public:
 class RandomFiberInitializerNonMangling : public FiberInitializer
 {
 public:
-	RandomFiberInitializerNonMangling(FEModel * model) : FiberInitializer(model) {}
+	explicit RandomFiberInitializerNonMangling(FEModel * model) : FiberInitializer(model) {}
 	virtual ~RandomFiberInitializerNonMangling() {}
 	void InitializeFibers(FiberManager * fman) override;
 };
@@ -47,7 +47,7 @@ public:
 class RandomFiberInitializerPE : public FiberInitializer
 {
 public:
-	RandomFiberInitializerPE(FEModel * model) : FiberInitializer(model) {}
+	explicit RandomFiberInitializerPE(FEModel * model) : FiberInitializer(model) {}
 	virtual ~RandomFiberInitializerPE() {}
 	void InitializeFibers(FiberManager * fman) override;
 };
@@ -55,7 +55,7 @@ public:
 class FiberManager
 {
 public:
-	FiberManager(FEAngioMaterial * mat){ material = mat; }
+	explicit FiberManager(FEAngioMaterial * mat) : material(mat){  }
 	virtual ~FiberManager(){}
 
 	vec3d GetFiberDirection(GridPoint & pt, double& lambda);

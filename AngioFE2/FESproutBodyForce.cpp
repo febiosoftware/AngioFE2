@@ -27,7 +27,7 @@ END_PARAMETER_LIST();
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-FESproutBodyForce::FESproutBodyForce(FEModel* pfem) : FEBodyForce(pfem)
+FESproutBodyForce::FESproutBodyForce(FEModel* pfem) : FEBodyForce(pfem) //-V730
 {
 	m_factor = 1.0;
 	m_pel = 0; 

@@ -95,7 +95,7 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double start_time, double grow_t
 	assert(tip.bactive);
 
 	// this is the new segment length
-	double seg_length;
+	double seg_length = 0.0;
 	
 	// determine the growth direction
 	vec3d seg_vec = m_pmat->gdms->ApplyModifiers( vec3d(), tip, m_pmat, branch, start_time, grow_time, seg_length);
@@ -190,8 +190,7 @@ void Culture::BranchSegment(Segment::TIP& tip, double starttime, double grow_tim
 // Create a new sprout force component for a newly formed branch
 // TODO: What if both tips are active?
 void Culture::CreateBranchingForce(Segment& seg)
-{
-	m_angio.total_bdyf = 0;																// Obtain the total number of sprouts
+{															// Obtain the total number of sprouts
 	m_angio.total_bdyf = m_pmat->Sprouts();
 
 	vec3d tip, sprout_vect;
@@ -237,7 +236,7 @@ void Culture::AddNewSegment(Segment& seg)
 	//adding zero length segments shoudl be avoided
 	//this will clear and refill recents
 	assert(seg.length() > 0.0);
-	assert(seg.tip(0).pt.nelem >= 0);
+	assert(seg.tip_c(0).pt.nelem >= 0);
 
 	// get the new tip
 	Segment::TIP& new_tip = seg.tip(1);
@@ -253,8 +252,8 @@ void Culture::AddNewSegmentNoClear(Segment& seg)
 	//adding zero length segments shoudl be avoided
 	//this will clear and refill recents
 	assert(seg.length() > 0.0);
-	assert(seg.tip(0).pt.nelem >= 0);
-	assert(seg.tip(0).connected);
+	assert(seg.tip_c(0).pt.nelem >= 0);
+	assert(seg.tip_c(0).connected);
 
 
 	// get the new tip
@@ -274,20 +273,20 @@ void Culture::AddNewSegmentNoClear(Segment& seg)
 void Culture::AddSegment(Segment& seg)
 {
 	// let's check a few things
-	assert(seg.tip(0).pt.nelem >= 0);
-	assert(seg.tip(1).pt.nelem >= 0);
+	assert(seg.tip_c(0).pt.nelem >= 0);
+	assert(seg.tip_c(1).pt.nelem >= 0);
 
-	assert(seg.tip(0).pt.ndomain != nullptr);
-	assert(seg.tip(1).pt.ndomain != nullptr);
+	assert(seg.tip_c(0).pt.ndomain != nullptr);
+	assert(seg.tip_c(1).pt.ndomain != nullptr);
 
-	assert(seg.tip(0).pt.elemindex >= 0);
-	assert(seg.tip(1).pt.elemindex >= 0);
+	assert(seg.tip_c(0).pt.elemindex >= 0);
+	assert(seg.tip_c(1).pt.elemindex >= 0);
 
-	assert(seg.tip(0).nseed >= 0);
-	assert(seg.tip(1).nseed >= 0);
+	assert(seg.tip_c(0).nseed >= 0);
+	assert(seg.tip_c(1).nseed >= 0);
 
-	assert(seg.tip(0).nvessel >= 0);
-	assert(seg.tip(1).nvessel >= 0);
+	assert(seg.tip_c(0).nvessel >= 0);
+	assert(seg.tip_c(1).nvessel >= 0);
 
 	assert(seg.seed() >= 0);
 	assert(seg.vessel() >= 0);

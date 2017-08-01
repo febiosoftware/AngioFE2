@@ -526,7 +526,6 @@ vec3d  GDMArchive::GetDataVec3d(int domain, int element_index)
 //gradient version of element functions
 vec3d  GDMArchive::GetDataGradientFloat(int domain, int element_index, Segment::TIP& tip,int size,int offset)
 {
-	const int index = element_index;
 	FESolidElement * tse = &tip.pt.ndomain->Element(element_index);
 	vec3d d1 = FEAngio::gradient(tse, unrolled_data, tip.pt.r, size, offset);
 	return d1;

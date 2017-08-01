@@ -224,15 +224,15 @@ bool FragmentSeeder::createInitFrag(Segment& seg, SegGenItem & item, Culture * c
 	seg.tip(0).length_to_branch = culture->fbrancher->GetLengthToBranch();
 	seg.tip(1).length_to_branch = culture->fbrancher->GetLengthToBranch();
 	seg.tip(0).wait_time_to_branch = culture->fbrancher->GetTimeToEmerge();
-	assert(seg.tip(0).wait_time_to_branch > 0.0);
+	assert(seg.tip_c(0).wait_time_to_branch > 0.0);
 	seg.tip(1).wait_time_to_branch = culture->fbrancher->GetTimeToEmerge();
-	assert(seg.tip(1).wait_time_to_branch > 0.0);
+	assert(seg.tip_c(1).wait_time_to_branch > 0.0);
 
-	assert(seg.tip(0).wait_time_to_branch >= 0);
-	assert(seg.tip(1).wait_time_to_branch >= 0);
+	assert(seg.tip_c(0).wait_time_to_branch >= 0);
+	assert(seg.tip_c(1).wait_time_to_branch >= 0);
 
-	assert(seg.tip(0).length_to_branch > 0.0);
-	assert(seg.tip(1).length_to_branch > 0.0);
+	assert(seg.tip_c(0).length_to_branch > 0.0);
+	assert(seg.tip_c(1).length_to_branch > 0.0);
 
 	// Mark segment as an initial fragment
 	seg.SetFlagOn(Segment::INIT_SPROUT);
@@ -308,7 +308,14 @@ bool MDByVolumeFragmentSeeder::SeedFragments(SimulationTime& time, Culture * cul
 		sgi.ielement = elem->GetID() - 1 - culture->m_pmat->meshOffsets[elem->GetDomain()];
 		sgi.domain = dynamic_cast<FESolidDomain*>(elem->GetDomain());
 
-		if (createInitFrag(seg, sgi, culture) == false) return false;
+		if (createInitFrag(seg, sgi, culture) == false)
+		{
+			delete[] totalWeightsBegin;
+			delete[] totalWeightsEnd;
+			delete[] elements;
+			return false;
+		}
+			
 
 		// Give the segment the appropriate label
 		seg.seed(i);
@@ -343,7 +350,6 @@ MDAngVessFileFragmentSeeder::MDAngVessFileFragmentSeeder(FEModel * model) :Fragm
 // Create initial fragments
 bool MDAngVessFileFragmentSeeder::SeedFragments(SimulationTime& time, Culture * culture)
 {
-	FEMesh * mesh = culture->m_pmat->m_pangio->GetMesh();
 	infile.open(vessel_file);
 	if (infile.fail())
 	{
