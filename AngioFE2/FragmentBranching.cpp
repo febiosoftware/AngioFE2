@@ -220,7 +220,7 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 		assert(seg.tip_c(1).length_to_branch > 0.0);//force the update/intialization of values
 		assert(seg.tip_c(1).wait_time_to_branch >= 0.0);
 		double ct = start_time;
-		double l2b = seg.tip(1).length_to_branch;
+		double l2b = seg.tip_c(1).length_to_branch;
 		tip->connected = rseg[0];
 		rseg[0]->tip(0).connected = tip->parent;
 		//set all of the adjacenty pointers
@@ -231,18 +231,18 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 			rseg[i]->tip(0).length_to_branch = l2b;
 			l2b -= rseg[i]->length();
 			rseg[i]->tip(1).length_to_branch = l2b;
-			rseg[i]->tip(1).wait_time_to_branch = seg.tip(1).wait_time_to_branch;
-			assert(rseg[i]->tip(0).connected);
+			rseg[i]->tip(1).wait_time_to_branch = seg.tip_c(1).wait_time_to_branch;
+			assert(rseg[i]->tip_c(0).connected);
 			if (l2b <= 0.0)
 			{
-				double bf = (rseg[i]->length() + rseg[i]->tip(1).length_to_branch) / rseg[i]->length();
+				double bf = (rseg[i]->length() + rseg[i]->tip_c(1).length_to_branch) / rseg[i]->length();
 				assert(bf >= 0.0 && bf <= 1.0);
 				double bt = mix(ct, ct + TimeOfGrowth(rseg[i], grow_time), bf);
 				FragmentBranching * fb = nullptr;
 				//add the points
 				assert(tip->wait_time_to_branch >= 0.0);
 				//note this is what GetBrancherForSegment is based on but also contains logic for BranchPoints
-				if (std::find(this->culture->m_pmat->domainptrs.begin(), this->culture->m_pmat->domainptrs.end(), rseg[i]->tip(1).pt.ndomain) != this->culture->m_pmat->domainptrs.end())
+				if (std::find(this->culture->m_pmat->domainptrs.begin(), this->culture->m_pmat->domainptrs.end(), rseg[i]->tip_c(1).pt.ndomain) != this->culture->m_pmat->domainptrs.end())
 				{
 					//change this if tips can grow across materials
 					BranchPoint bp(bt + tip->wait_time_to_branch, bt, rseg[i], bf, rseg[i]->m_nid, this);
@@ -256,7 +256,7 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 					for (size_t j = 0; j < this->culture->m_pmat->m_pangio->m_pmat.size(); j++)
 					{
 						if (std::find(this->culture->m_pmat->m_pangio->m_pmat[j]->domainptrs.begin(), this->culture->m_pmat->m_pangio->m_pmat[j]->domainptrs.end(),
-							rseg[i]->tip(1).pt.ndomain) != this->culture->m_pmat->m_pangio->m_pmat[j]->domainptrs.end())
+							rseg[i]->tip_c(1).pt.ndomain) != this->culture->m_pmat->m_pangio->m_pmat[j]->domainptrs.end())
 						{
 							fb = this->culture->m_pmat->m_pangio->m_pmat[j]->fbrancher;
 							//change this if tips can grow across materials
@@ -282,8 +282,8 @@ void PsuedoDeferedFragmentBranching::GrowSegment(std::set<BranchPoint>::iterator
 	static int mis_count = 0;
 	Segment::TIP tip0 = bp->parent->tip(0);
 	Segment::TIP tip1 = bp->parent->tip(1);
-	vec3d t0p = bp->parent->tip(0).pos();
-	vec3d t1p = bp->parent->tip(1).pos();
+	vec3d t0p = bp->parent->tip_c(0).pos();
+	vec3d t1p = bp->parent->tip_c(1).pos();
 	vec3d pos = mix(t0p, t1p , bp->percent_of_parent);
 	if (culture->m_pmat->FindGridPoint(pos, tip0.pt.ndomain, tip0.pt.elemindex, tip0.pt))
 	{
@@ -352,7 +352,7 @@ void PsuedoDeferedFragmentBranching::ProcessNewSegments(double start_time, doubl
 	else
 	{
 		double ct = start_time;
-		double lr = rseg[0]->tip(0).length_to_branch;
+		double lr = rseg[0]->tip_c(0).length_to_branch;
 		assert(lr > 0.0);
 		for (size_t i = 0; i < rseg.size(); i++)
 		{
@@ -381,7 +381,7 @@ void PsuedoDeferedFragmentBranching::ProcessNewSegments(double start_time, doubl
 				//add it back to the queue
 				double bt = mix(rseg[i]->GetTimeOfBirth(), rseg[i]->GetTimeOfBirth() + TimeOfGrowth(rseg[i],grow_time), bpct);
 				//consider doing more to determine which material the tip is in
-				BranchPoint bpt(bt + rseg[0]->tip(1).wait_time_to_branch, bt, rseg[i], bpct, rseg[i]->m_nid, GetBrancherForSegment(rseg[i]));
+				BranchPoint bpt(bt + rseg[0]->tip_c(1).wait_time_to_branch, bt, rseg[i], bpct, rseg[i]->m_nid, GetBrancherForSegment(rseg[i]));
 				parentgen.insert(bpt);
 				//make sure adding both back was wrong
 				branch_points.insert(bpt);
@@ -400,20 +400,20 @@ void PsuedoDeferedFragmentBranching::UpdateSegmentBranchDistance(std::set<Branch
 	bp->parent->tip(0).length_to_branch += diff;
 	if (bp->parent->tip(1).length_to_branch < 0.0)
 	{
-		assert(bp->parent->tip(0).length_to_branch >= 0.0);
-		double bpct = bp->parent->tip(0).length_to_branch / bp->parent->length();
+		assert(bp->parent->tip_c(0).length_to_branch >= 0.0);
+		double bpct = bp->parent->tip_c(0).length_to_branch / bp->parent->length();
 		//add it back to the queue
 		double bt = mix(bp->epoch_time, start_time + grow_time, bpct);
 		
-		BranchPoint bpt(bt + bp->parent->tip(1).wait_time_to_branch, bt, bp->parent, bpct, bp->priority, GetBrancherForSegment(bp->parent));
+		BranchPoint bpt(bt + bp->parent->tip_c(1).wait_time_to_branch, bt, bp->parent, bpct, bp->priority, GetBrancherForSegment(bp->parent));
 		parentgen.insert(bpt);
 		//make sure adding both back were wrong
 		branch_points.insert(bpt);
 		return;
 	}
 	//propogate the length to branch point 
-	Segment * cur = bp->parent->tip(1).connected;
-	double dr = bp->parent->tip(1).length_to_branch;
+	Segment * cur = bp->parent->tip_c(1).connected;
+	double dr = bp->parent->tip_c(1).length_to_branch;
 	//may need to have an additional condition when anastamosis is added or anastamosis may not connect segments
 	while(cur)
 	{
@@ -428,7 +428,7 @@ void PsuedoDeferedFragmentBranching::UpdateSegmentBranchDistance(std::set<Branch
 			//add it back to the queue
 			double bt = mix(bp->epoch_time, bp->epoch_time + TimeOfGrowth(cur,grow_time), bpct);
 			
-			BranchPoint bpt(bt + bp->parent->tip(1).wait_time_to_branch, bt, bp->parent, bpct, bp->priority, GetBrancherForSegment(bp->parent));
+			BranchPoint bpt(bt + bp->parent->tip_c(1).wait_time_to_branch, bt, bp->parent, bpct, bp->priority, GetBrancherForSegment(bp->parent));
 			parentgen.insert(bpt);
 			//make sure adding both back was wrong
 			branch_points.insert(bpt);

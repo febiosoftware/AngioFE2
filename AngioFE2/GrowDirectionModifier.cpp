@@ -115,12 +115,12 @@ vec3d AnastamosisGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_d
 	}
 	Segment * nearest_valid_target = mat->m_cult->tips.nearestCondition(tip.parent, [&tip](Segment * seg){return seg->seed() != tip.parent->seed(); });
 
-	if (nearest_valid_target && (distance(nearest_valid_target->tip(1).pos().x,
-			tip.parent->tip(1).pos().x,
-		nearest_valid_target->tip(1).pos().y,
-		tip.parent->tip(1).pos().y,
-		nearest_valid_target->tip(1).pos().z, 
-		tip.parent->tip(1).pos().z) > (search_radius + search_multiplier * seg_length )))
+	if (nearest_valid_target && (distance(nearest_valid_target->tip_c(1).pos().x,
+			tip.parent->tip_c(1).pos().x,
+		nearest_valid_target->tip_c(1).pos().y,
+		tip.parent->tip_c(1).pos().y,
+		nearest_valid_target->tip_c(1).pos().z, 
+		tip.parent->tip_c(1).pos().z) > (search_radius + search_multiplier * seg_length )))
 	{
 		nearest_valid_target = nullptr;
 	}
@@ -128,7 +128,7 @@ vec3d AnastamosisGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_d
 	if (nearest_valid_target)
 	{
 		//grow towards nearest valid target
-		vec3d dir_to_nearest = nearest_valid_target->tip(1).pos() - tip.pos();
+		vec3d dir_to_nearest = nearest_valid_target->tip_c(1).pos() - tip.pos();
 		//make this the same length as 
 		double new_length = dir_to_nearest.unit();
 
