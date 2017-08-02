@@ -4,7 +4,11 @@
 #include "FECore/FESolidDomain.h"
 #include "FEBioMech/FEElasticMaterial.h"
 #include "Segment.h"
-#include "FEAngio.h"
+#include "CultureParameters.h"
+#include "ECMInitializer.h"
+#include "Culture.h"
+#include <FECore/FENormalProjection.h>
+#include "FiberManager.h"
 
 
 //contains the shared functionality, material pointers may need to be passed in to get portions of the functionality

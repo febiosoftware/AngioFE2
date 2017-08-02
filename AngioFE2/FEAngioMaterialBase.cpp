@@ -142,7 +142,7 @@ void FEAngioMaterialBase::AddSprout(const Segment::TIP & tip, FEElasticMaterial*
 	pos[1] = tip.pt.q.y;
 	pos[2] = tip.pt.q.z;
 
-	m_spr.emplace_back(tip.u, &tip.pt.ndomain->Element(tip.pt.elemindex), pos, this);
+	m_spr.emplace_back(tip.u, &tip.pt.ndomain->Element(tip.pt.elemindex), pos, this, emat);
 	sprouts.insert(std::pair<size_t, std::vector<SPROUT> *>(m_spr.size() - 1, &m_spr));
 }
 
@@ -159,7 +159,7 @@ void FEAngioMaterialBase::AddSprout(const vec3d& r, const vec3d& t, FEDomain * d
 	pos[1] = r.y;
 	pos[2] = r.z;
 
-	m_spr.emplace_back(dir, el, pos, this);
+	m_spr.emplace_back(dir, el, pos, this, emat);
 	sprouts.insert(std::pair<size_t, std::vector<SPROUT> *>(m_spr.size() - 1, &m_spr));
 }
 
@@ -182,7 +182,7 @@ void FEAngioMaterialBase::AddSprout(const vec3d& r, const vec3d& t, FESolidDomai
 	pos[1] = r.y;
 	pos[2] = r.z;
 
-	m_spr.emplace_back(dir, &domain->Element(elemindex), pos, this);
+	m_spr.emplace_back(dir, &domain->Element(elemindex), pos, this, emat);
 	sprouts.insert(std::pair<size_t, std::vector<SPROUT> *>(m_spr.size() - 1, &m_spr));
 }
 
