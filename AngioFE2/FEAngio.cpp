@@ -210,7 +210,7 @@ void FEAngio::FinalizeFEM()
 	for (size_t i = 0; i < m_pmat.size(); i++)
 	{
 		//TODO: remove this constant or make it a user parameter
-		m_pmat[i]->CreateSprouts(0.5);
+		m_pmat[i]->CreateSprouts(0.5,m_pmat[i]->matrix_material->GetElasticMaterial());
 		m_pmat[i]->AdjustMeshStiffness(m_pmat[i]);
 		m_pmat[i]->UpdateFiberManager();
 		m_pmat[i]->InitializeFibers();
@@ -1167,7 +1167,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		}
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
-			m_pmat[i]->UpdateSprouts(1.0);
+			m_pmat[i]->UpdateSprouts(1.0, m_pmat[i]->matrix_material->GetElasticMaterial());
 		}
 	}
 	else if (nwhen == CB_MAJOR_ITERS)

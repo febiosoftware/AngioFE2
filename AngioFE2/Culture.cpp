@@ -218,7 +218,7 @@ void Culture::CreateBranchingForce(Segment& seg)
 		sprout_vect = seg_vec;
 	}
 
-	m_pmat->AddSprout(tip, sprout_vect, stip.pt.ndomain, stip.pt.elemindex);
+	m_pmat->AddSprout(tip, sprout_vect, stip.pt.ndomain, stip.pt.elemindex,m_pmat->matrix_material->GetElasticMaterial());
 	m_angio.total_bdyf = m_pmat->Sprouts();
 }
 
@@ -318,11 +318,11 @@ void Culture::AddSegment(Segment& seg)
 	//add the sprouts to the material
 	if (seg.tip(0).bactive)
 	{
-		m_pmat->AddSprout(seg.tip(0));
+		m_pmat->AddSprout(seg.tip(0),m_pmat->matrix_material->GetElasticMaterial());
 	}
 	if (seg.tip(1).bactive)
 	{
-		m_pmat->AddSprout(seg.tip(1));
+		m_pmat->AddSprout(seg.tip(1), m_pmat->matrix_material->GetElasticMaterial());
 	}
 }
 

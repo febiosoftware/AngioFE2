@@ -281,8 +281,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -336,9 +335,12 @@
     <ClInclude Include="..\AngioFE2\BC.h" />
     <ClInclude Include="..\AngioFE2\Culture.h" />
     <ClInclude Include="..\AngioFE2\CultureParameters.h" />
+    <ClInclude Include="..\AngioFE2\ECMInitializer.h" />
     <ClInclude Include="..\AngioFE2\Elem.h" />
     <ClInclude Include="..\AngioFE2\FEAngio.h" />
     <ClInclude Include="..\AngioFE2\FEAngioMaterial.h" />
+    <ClInclude Include="..\AngioFE2\FEAngioMaterialBase.h" />
+    <ClInclude Include="..\AngioFE2\FEAngioMaterialPoint.h" />
     <ClInclude Include="..\AngioFE2\FEProbabilityDistribution.h" />
     <ClInclude Include="..\AngioFE2\FESproutBodyForce.h" />
     <ClInclude Include="..\AngioFE2\FiberManager.h" />
@@ -359,9 +361,12 @@
     <ClCompile Include="..\AngioFE2\BC.cpp" />
     <ClCompile Include="..\AngioFE2\Culture.cpp" />
     <ClCompile Include="..\AngioFE2\dllmain.cpp" />
+    <ClCompile Include="..\AngioFE2\ECMInitializer.cpp" />
     <ClCompile Include="..\AngioFE2\Elem.cpp" />
     <ClCompile Include="..\AngioFE2\FEAngio.cpp" />
     <ClCompile Include="..\AngioFE2\FEAngioMaterial.cpp" />
+    <ClCompile Include="..\AngioFE2\FEAngioMaterialBase.cpp" />
+    <ClCompile Include="..\AngioFE2\FEAngioMaterialPoint.cpp" />
     <ClCompile Include="..\AngioFE2\FEProbabilityDistribution.cpp" />
     <ClCompile Include="..\AngioFE2\FESproutBodyForce.cpp" />
     <ClCompile Include="..\AngioFE2\FiberManager.cpp" />

@@ -3,7 +3,6 @@
 #include "KDTree/kdtree.h"
 
 #include <FECore/FEElement.h>
-#include "FEAngioMaterialPoint.h"
 #include "FEAngioMaterial.h"
 
 const double PI = 3.141592653589793;
@@ -29,8 +28,7 @@ std::vector<double> access_sprout(std::pair<size_t, std::vector<FEAngioMaterialB
 {
 	std::vector<double> rv;
 	FEAngioMaterialBase::SPROUT * spr = &((*p.second)[p.first]);
-	FEAngioMaterialBase * mat = dynamic_cast<FEAngioMaterialBase*>(spr->mat);
-	vec3d cpos = mat->CurrentPosition(spr->pel, spr->r[0], spr->r[1], spr->r[2]);
+	vec3d cpos = spr->mat0->CurrentPosition(spr->pel, spr->r[0], spr->r[1], spr->r[2]);
 	rv.emplace_back(cpos.x);
 	rv.emplace_back(cpos.y);
 	rv.emplace_back(cpos.z);
@@ -89,14 +87,14 @@ bool FEAngioMaterialBase::FindGridPoint(const vec3d & r, FESolidDomain * domain,
 	return false;
 }
 
-FEAngioMaterialBase::SPROUT::SPROUT(const vec3d & dir, FESolidElement * el, double * local, FEAngioMaterial * m) : sprout(dir), pel(el), mat(m)
+FEAngioMaterialBase::SPROUT::SPROUT(const vec3d & dir, FESolidElement * el, double * local, FEAngioMaterialBase * m0, FEElasticMaterial * m1) : sprout(dir), pel(el), mat0(m0), mat1(m1)
 {
 	r[0] = local[0];
 	r[1] = local[1];
 	r[2] = local[2];
 }
 
-void FEAngioMaterialBase::CreateSprouts(double scale)
+void FEAngioMaterialBase::CreateSprouts(double scale, FEElasticMaterial* emat)
 {
 	//#pragma omp parallel for
 	const SegmentTipList& tip_list = m_cult->GetActiveTipList();
@@ -105,7 +103,7 @@ void FEAngioMaterialBase::CreateSprouts(double scale)
 		Segment::TIP& tip = *(*tip_it);
 		if (tip.bactive)
 		{
-			AddSprout(tip);
+			AddSprout(tip,emat);
 		}
 	}
 }
@@ -116,7 +114,7 @@ void FEAngioMaterialBase::UpdateFiberManager()
 	fiber_manager->Update();
 }
 
-void FEAngioMaterialBase::UpdateSprouts(double scale)
+void FEAngioMaterialBase::UpdateSprouts(double scale, FEElasticMaterial* emat)
 {
 	ClearSprouts();
 
@@ -133,11 +131,11 @@ void FEAngioMaterialBase::UpdateSprouts(double scale)
 
 		// TODO: What to do with BC==1? Currently, tips that stop growing after hitting boundary
 		//       are no longer active. We should still add a sprout for those
-		AddSprout(tip);
+		AddSprout(tip,emat);
 	}
 }
 
-void FEAngioMaterialBase::AddSprout(const Segment::TIP & tip)
+void FEAngioMaterialBase::AddSprout(const Segment::TIP & tip, FEElasticMaterial* emat)
 {
 	double pos[3];
 	pos[0] = tip.pt.q.x;
@@ -149,7 +147,7 @@ void FEAngioMaterialBase::AddSprout(const Segment::TIP & tip)
 }
 
 //-----------------------------------------------------------------------------
-void FEAngioMaterialBase::AddSprout(const vec3d& r, const vec3d& t, FEDomain * domain)
+void FEAngioMaterialBase::AddSprout(const vec3d& r, const vec3d& t, FEDomain * domain, FEElasticMaterial* emat)
 {
 	assert(domain != nullptr);
 	FESolidDomain * dom = dynamic_cast<FESolidDomain *>(domain);
@@ -173,7 +171,7 @@ void FEAngioMaterialBase::ClearSprouts()
 }
 
 //-----------------------------------------------------------------------------
-void FEAngioMaterialBase::AddSprout(const vec3d& r, const vec3d& t, FESolidDomain * domain, int elemindex)
+void FEAngioMaterialBase::AddSprout(const vec3d& r, const vec3d& t, FESolidDomain * domain, int elemindex, FEElasticMaterial* emat)
 {
 	assert(domain != nullptr);
 	assert(elemindex != -1);

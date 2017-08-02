@@ -135,7 +135,7 @@ bool FEAngioMaterial::Init()
 	for (unsigned int i=0; i<m_suser.size(); ++i)
 	{
 		if (domains.size())
-			AddSprout(m_suser[i], vec3d(0,0,0), &mesh.Domain(domains[0]));
+			AddSprout(m_suser[i], vec3d(0,0,0), &mesh.Domain(domains[0]), matrix_material->GetElasticMaterial());
 		//TODO: sprouts probably need distributed among the domains of the material
 	}
 	m_suser.clear();
@@ -373,7 +373,7 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 			local[0] = angioPt.m_pt.q.x;
 			local[1] = angioPt.m_pt.q.y;
 			local[2] = angioPt.m_pt.q.z;
-			temp.emplace_back(vec3d(), &angioPt.m_pt.ndomain->Element(angioPt.m_pt.elemindex), local, this);
+			temp.emplace_back(vec3d(), &angioPt.m_pt.ndomain->Element(angioPt.m_pt.elemindex), local, dynamic_cast<FEAngioMaterialBase*>(this), matrix_material->GetElasticMaterial());
 			std::pair<size_t, std::vector<SPROUT> *> dim = std::pair<size_t, std::vector<SPROUT> * >(0, &temp);
 			std::vector<std::pair<size_t, std::vector<SPROUT> *>> nst;
 			sprouts.within(dim, m_cultureParams.stress_radius * m_cultureParams.stress_radius, nst);

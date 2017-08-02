@@ -2,10 +2,10 @@
 #include <FECore/vec3d.h>
 #include "FECore/FEElement.h"
 #include "FECore/FESolidDomain.h"
+#include "FEBioMech/FEElasticMaterial.h"
 #include "Segment.h"
 #include "FEAngio.h"
 
-class FEAngioMaterial;
 
 //contains the shared functionality, material pointers may need to be passed in to get portions of the functionality
 class FEAngioMaterialBase
@@ -13,11 +13,12 @@ class FEAngioMaterialBase
 public:
 	struct SPROUT
 	{
-		explicit SPROUT(const vec3d & dir, FESolidElement * el, double * local, FEAngioMaterial * m);
+		explicit SPROUT(const vec3d & dir, FESolidElement * el, double * local, FEAngioMaterialBase * m0, FEElasticMaterial *m1);
 		vec3d		sprout;	// sprout direction
 		FESolidElement*	pel;	// element in which this sprout lies
 		double		r[3];	// iso-parameteric elements
-		FEAngioMaterial * mat;
+		FEAngioMaterialBase * mat0;
+		FEElasticMaterial * mat1;
 	};
 	FEAngioMaterialBase();
 	virtual ~FEAngioMaterialBase(){}
@@ -30,18 +31,18 @@ public:
 	// get a sprout
 	SPROUT& GetSprout(int i) { return m_spr[i]; }
 
-	void CreateSprouts(double scale);
+	void CreateSprouts(double scale, FEElasticMaterial* emat);
 
-	void UpdateSprouts(double scale);
+	void UpdateSprouts(double scale, FEElasticMaterial* emat);
 
 	// clear all sprouts
 	void ClearSprouts();
 
 	// add a sprout force
 	// at position r with directional vector n
-	void AddSprout(const vec3d& r, const vec3d& n, FESolidDomain * domain, int elemindex);
-	void AddSprout(const vec3d& r, const vec3d& n, FEDomain * domain);
-	void AddSprout(const Segment::TIP & tip);
+	void AddSprout(const vec3d& r, const vec3d& n, FESolidDomain * domain, int elemindex, FEElasticMaterial* emat);
+	void AddSprout(const vec3d& r, const vec3d& n, FEDomain * domain, FEElasticMaterial* emat);
+	void AddSprout(const Segment::TIP & tip, FEElasticMaterial* emat);
 
 
 	bool FindGridPoint(const vec3d & r, GridPoint & p) const;

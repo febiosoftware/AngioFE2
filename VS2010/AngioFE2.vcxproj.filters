@@ -78,6 +78,15 @@
     <ClInclude Include="..\AngioFE2\angio3d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\AngioFE2\FEAngioMaterialPoint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AngioFE2\ECMInitializer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AngioFE2\FEAngioMaterialBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\AngioFE2\AngioFE.cpp">
@@ -135,6 +144,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\AngioFE2\FiberManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AngioFE2\FEAngioMaterialPoint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AngioFE2\ECMInitializer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AngioFE2\FEAngioMaterialBase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
