@@ -372,3 +372,31 @@ void FEAngioMaterialBase::MirrorSym(vec3d y, mat3ds &s, SPROUT sp, double den_sc
 
 	return;
 }
+
+void FEAngioMaterialBase::UpdateSproutStressScaling()
+{
+	//TODO: make these user parameters and get better names for these
+	double y0 = -0.004; double x0 = 3.0; double b = 0.5436; double a = 1.0081;
+
+	auto time = m_pangio->CurrentSimTime();
+
+	scale = y0 + a / (1 + exp(-(time.t - x0) / b));
+
+	return;
+}
+
+bool FEAngioMaterialBase::InitCulture()
+{
+	return m_cult->Init();
+}
+
+void FEAngioMaterialBase::Update()
+{
+	fiber_manager->Update();
+	m_cult->Update();
+}
+
+bool FEAngioMaterialBase::Overwrite() const
+{
+	return ecm_initializer->overwrite();
+}

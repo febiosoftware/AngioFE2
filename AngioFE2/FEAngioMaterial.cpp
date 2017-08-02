@@ -234,18 +234,6 @@ void FEAngioMaterial::InitializeFibers()
 	fiber_initializer->InitializeFibers(fiber_manager);
 }
 
-
-
-void FEAngioMaterial::UpdateSproutStressScaling()
-{
-	//TODO: make these user parameters and get better names for these
-	double y0 = -0.004; double x0 = 3.0; double b = 0.5436; double a = 1.0081;
-
-	scale = y0 + a / (1 + exp(-(m_pangio->m_time.t - x0) / b));
-
-	return;
-}
-
 void FEAngioMaterial::SetLocalCoordinateSystem(FEElement& el, int n, FEMaterialPoint& mp)
 {
 	// get the material's coordinate system (if defined)
@@ -409,23 +397,13 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 	return s;
 }
 
-void FEAngioMaterial::Update()
-{
-	fiber_manager->Update();
-	m_cult->Update();
-}
 void FEAngioMaterial::UpdateECM()
 {
 	ecm_initializer->updateECMdensity(this);
 }
-bool FEAngioMaterial::Overwrite() const
-{
-	return ecm_initializer->overwrite();
-}
-bool FEAngioMaterial::InitCulture()
-{
-	return m_cult->Init();
-}
+
+
+
 //this function accumulates the the anistropy and ecm_density, n_tag is incremented to be used to take the average
 bool FEAngioMaterial::InitECMDensity(FEAngio * angio)
 {

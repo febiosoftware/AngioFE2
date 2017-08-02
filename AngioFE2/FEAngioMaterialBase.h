@@ -65,6 +65,17 @@ public:
 
 	void MirrorSym(vec3d x, mat3ds &si, SPROUT sp, double den_scale);
 
+	void UpdateSproutStressScaling();
+
+	bool InitCulture();
+
+	void Update();
+
+	bool Overwrite() const;
+
+	//begin virtual functions
+	virtual void InitializeFibers()=0;
+
 	FEAngio * m_pangio;
 	CultureParameters m_cultureParams;
 	Culture * m_cult;

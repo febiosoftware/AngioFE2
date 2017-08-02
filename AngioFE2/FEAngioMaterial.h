@@ -31,37 +31,25 @@ public:
 	friend class FEPlotVesselStress;
 	friend class FEPlotMatrixTangent;
 
-	// material initialization
-	bool Init() override;
+	// Calculate the active Angio stress
+	mat3ds AngioStress(FEAngioMaterialPoint& mp);
+
 	void FinalizeInit();
-
-	
-
-	void InitializeFibers();
-
-	
-
-	
-
-	void UpdateSproutStressScaling();
-
-	bool InitCulture();
-
-	void Update();
-
-	void UpdateGDMs();
 
 	void UpdateECM();
 
-	bool Overwrite() const;
+	void UpdateGDMs();
 
 	bool InitECMDensity(FEAngio * angio);
+
+	void InitializeFibers() override;
+	
+	// material initialization
+	bool Init() override;
 
 	// Calculate Cauchy-stress
 	mat3ds Stress(FEMaterialPoint& mp) override;
 
-	// Calculate the active Angio stress
-	mat3ds AngioStress(FEAngioMaterialPoint& mp);
 
 	// Calculate spatial elasticity tangent
 	tens4ds Tangent(FEMaterialPoint& mp) override;
