@@ -211,7 +211,7 @@ void FEAngio::FinalizeFEM()
 	{
 		//TODO: remove this constant or make it a user parameter
 		m_pmat[i]->CreateSprouts(0.5);
-		m_pmat[i]->AdjustMeshStiffness();
+		m_pmat[i]->AdjustMeshStiffness(m_pmat[i]);
 		m_pmat[i]->UpdateFiberManager();
 		m_pmat[i]->InitializeFibers();
 		m_pmat[i]->UpdateFiberManager();
@@ -1159,7 +1159,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
-			m_pmat[i]->AdjustMeshStiffness();
+			m_pmat[i]->AdjustMeshStiffness(m_pmat[i]);
 		}
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
@@ -1224,7 +1224,7 @@ void FEAngio::adjust_mesh_stiffness()
 {
 	for (size_t i = 0; i < m_pmat.size(); i++)
 	{
-		m_pmat[i]->AdjustMeshStiffness();
+		m_pmat[i]->AdjustMeshStiffness(m_pmat[i]);
 	}
 }
 

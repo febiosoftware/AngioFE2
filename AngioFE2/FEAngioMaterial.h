@@ -1,5 +1,4 @@
 #pragma once
-#include "StdAfx.h"
 #include <FEBioMech/FEElasticMaterial.h>
 #include <FEBioMech/FEElasticFiberMaterial.h>
 #include <FECore/FEDataArray.h>
@@ -10,85 +9,19 @@
 #include "FEProbabilityDistribution.h"
 #include "KDTree/kdtree.h"
 #include "FiberManager.h"
+#include "FEAngioMaterialPoint.h"
 #include <FEBioMix/FEBiphasic.h>
+#include "ECMInitializer.h"
+#include "FEAngioMaterialBase.h"
 
-//-----------------------------------------------------------------------------
-// A new material point class is defined to store the elastic parameters for 
-// each integration point.
-class FEAngioMaterialPoint : public FEMaterialPoint
-{
-public:
-	//! constructor
-	FEAngioMaterialPoint(FEMaterialPoint* pt, FEMaterialPoint* vesselPt, FEMaterialPoint *matrixPt);
 
-	//! The init function is used to intialize data
-	void Init() override;
-
-	//! copy material point data (for running restarts) todo Is this still used?
-	FEMaterialPoint* Copy() override;
-
-	//! copy material point data (for running restarts) todo Is this still used?
-	void Serialize(DumpStream& dmp) override;
-
-	// These are the material parameters
-	double		m_D;		// collagen density (?)
-	double		m_DA;		// degree of anisotropy (?)
-	//TODO: consider adding a custom weigth parameter per element 
-
-	GridPoint	m_pt;	// grid point location of this material point
-
-	double vessel_weight;
-	double matrix_weight;
-	FEMaterialPoint* vessPt;
-	FEMaterialPoint* matPt;
-
-	DECLARE_PARAMETER_LIST();
-
-public:
-	static FEAngioMaterialPoint* FindAngioMaterialPoint(FEMaterialPoint* mp);
-};
-class FEAngioMaterial;
-//the interface for the seeding of the extra cellular matrix
-//interfaces can be used for a number of objectives
-//these include controlling what happens on the boundaries and seeding according to a distribution
-
-//needs to set the intitial ecm density and anisotropy
-//if the density has not yet been modified it will be 0.0
-class ECMInitializer
-{
-public:
-	virtual ~ECMInitializer(){}
-	virtual void seedECMDensity(FEAngioMaterial * mat) = 0;
-	virtual bool overwrite(){ return true; }
-	virtual void updateECMdensity(FEAngioMaterial * mat);
-};
-class ECMInitializerConstant : public ECMInitializer
-{
-	void seedECMDensity(FEAngioMaterial * mat) override;
-};
-class ECMInitializerSpecified : public ECMInitializer
-{
-	void seedECMDensity(FEAngioMaterial * mat) override;
-};
-class ECMInitializerNoOverwrite : public ECMInitializer
-{
-	void seedECMDensity(FEAngioMaterial * mat) override;
-	bool overwrite() override{ return false; }
-};
 
 //-----------------------------------------------------------------------------
 // Class implementing a stress induced by a non-local point force
-class FEAngioMaterial : public FEElasticFiberMaterial//, public FEBiphasic
+class FEAngioMaterial : public FEElasticFiberMaterial, public FEAngioMaterialBase
 {
 public:
-	struct SPROUT
-	{
-		explicit SPROUT(const vec3d & dir, FESolidElement * el, double * local, FEAngioMaterial * m);
-		vec3d		sprout;	// sprout direction
-		FESolidElement*	pel;	// element in which this sprout lies
-		double		r[3];	// iso-parameteric elements
-		FEAngioMaterial * mat;
-	};
+	
 
 	explicit FEAngioMaterial(FEModel* pfem);
 	virtual ~FEAngioMaterial();
@@ -102,15 +35,13 @@ public:
 	bool Init() override;
 	void FinalizeInit();
 
-	void AdjustMeshStiffness();
-
-	void UpdateFiberManager();
+	
 
 	void InitializeFibers();
 
-	void CreateSprouts(double scale);
+	
 
-	void UpdateSprouts(double scale);
+	
 
 	void UpdateSproutStressScaling();
 
@@ -143,81 +74,31 @@ public:
 
 	double StrainEnergyDensity(FEMaterialPoint& mp) override;
 
-	// clear all sprouts
-	void ClearSprouts();
+	
 
-	// add a sprout force
-	// at position r with directional vector n
-	void AddSprout(const vec3d& r, const vec3d& n, FESolidDomain * domain, int elemindex);
-	void AddSprout(const vec3d& r, const vec3d& n, FEDomain * domain);
-	void AddSprout(const Segment::TIP & tip);
+	
 
-	// return number of sprouts
-	int Sprouts() const { return (int) m_spr.size(); }
+	
 
-	// get a sprout
-	SPROUT& GetSprout(int i) { return m_spr[i]; }
-
-	// calculate the current spatial position, given an element and local coordinates
-	vec3d CurrentPosition(FESolidElement * pe, double r, double s, double t) const;
+	
 
 	// we use this to define a sprout in the material section of the input file
 	void SetParameter(FEParam& p) override;
-
-	//! Assign a grid
-	void SetFEAngio(FEAngio* pangio) { m_pangio = pangio; }
 
 	double GetAnisotropy() const;
 	
 	void SetupSurface();
 
-	bool FindGridPoint(const vec3d & r, GridPoint & p) const;
-	bool FindGridPoint(const vec3d & r, FESolidDomain * domain, int elemindex, GridPoint & p) const;
-private:
-	ECMInitializer * ecm_initializer;
-
 	
-
-	int mat_id;
-
-	// user-defined sprouts
-	vec3d	m_s;	//!< dummy parameter used for reading sprouts from the input file
-	std::vector<vec3d>	m_suser;
-
-	//m_spr is the underlying storage for sprouts
-	std::vector<SPROUT>	m_spr;
-	KDTree<std::pair<size_t, std::vector<SPROUT> *>, std::vector<double>> sprouts;
+	
+private:
+	
 
 	DECLARE_PARAMETER_LIST();
 
-public:
-	double scale;
-
-	int sym_planes[7];
-	
-	bool sym_on;
-
-	vec3d sym;
-	double sym_vects[7][3];
-
-	std::vector<int> domains;
-	std::vector<FEDomain*> domainptrs;
-	std::unordered_map<int, int> node_map;//maps global node number to domain local node numbers
-	std::unordered_map<FEDomain *,int> meshOffsets;
-	FESurface * exterior_surface;
-	FENormalProjection * normal_proj;
-	Culture * m_cult;
-	FEAngio * m_pangio;
-	CultureParameters m_cultureParams;
-	FiberManager * fiber_manager;
-private:
-	
-
-	
 
 public:
 	void ApplySym();
-	void MirrorSym(vec3d x, mat3ds &si, SPROUT sp, double den_scale);
 	FEPropertyT<GrowDirectionModifiers> gdms;
 	
 	FEPropertyT<FragmentSeeder> fseeder;
