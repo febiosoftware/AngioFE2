@@ -14,8 +14,6 @@
 
 const double PI = 3.141592653589793;
 
-
-
 //-----------------------------------------------------------------------------
 BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	ADD_PARAMETER2(m_cultureParams.sprout_s_mag, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "a");
@@ -39,10 +37,6 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	
 END_PARAMETER_LIST();
 
-
-
-
-
 //-----------------------------------------------------------------------------
 FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticFiberMaterial(pfem)
 {
@@ -60,7 +54,6 @@ FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticFiberMaterial(pfem)
 	AddProperty(&fseeder, "fragment_seeder");
 	AddProperty(&bc, "boundary_condition");
 	AddProperty(&gdms, "grow_direction_modifiers");
-
 }
 
 FEAngioMaterial::~FEAngioMaterial()
@@ -71,6 +64,7 @@ FEAngioMaterial::~FEAngioMaterial()
 	}
 	m_cult = nullptr;
 }
+
 //-----------------------------------------------------------------------------
 bool FEAngioMaterial::Init()
 {
@@ -87,13 +81,11 @@ bool FEAngioMaterial::Init()
 
 	sym_on = false;
 
-
 	if(!matrix_material->Init()) return false;
 
 	if(!vessel_material->Init()) return false;
 
 	if (FEElasticMaterial::Init() == false) return false;
-
 
 	//culture must be initialized here  so pangio is defined
 	assert(m_pangio);
@@ -225,9 +217,6 @@ void FEAngioMaterial::SetupSurface()
 		m_pangio->m_fe_element_data[base_eindex + 1].surfacesIndices.emplace_back(i);
 	}
 }
-
-
-
 
 void FEAngioMaterial::InitializeFibers()
 {
@@ -391,9 +380,7 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 				s += si;
 			}
 		}
-		
 	}
-	
 	return s;
 }
 
@@ -401,8 +388,6 @@ void FEAngioMaterial::UpdateECM()
 {
 	ecm_initializer->updateECMdensity(this);
 }
-
-
 
 //this function accumulates the the anistropy and ecm_density, n_tag is incremented to be used to take the average
 bool FEAngioMaterial::InitECMDensity(FEAngio * angio)
@@ -474,7 +459,6 @@ tens4ds FEAngioMaterial::Tangent(FEMaterialPoint& mp)
 
 double FEAngioMaterial::StrainEnergyDensity(FEMaterialPoint& mp)
 {
-
 	FEElasticMaterialPoint& elastic_pt = *mp.ExtractData<FEElasticMaterialPoint>();
 	FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
     
@@ -517,13 +501,10 @@ tens4ds FEPressureMaterial::Tangent(FEMaterialPoint& pt)
 	return tens4ds(0.0);
 }
 
-//============================================================================
-
 ///////////////////////////////////////////////////////////////////////
 // FEAngioMaterial - ApplySym
 //      Determine if symmetry is turned on, if so create the symmetry vectors
 ///////////////////////////////////////////////////////////////////////
-
 void FEAngioMaterial::ApplySym()
 {
 	if (m_cultureParams.m_symmetry_plane.x != 0)															// Turn on x symmetry
@@ -553,13 +534,8 @@ void FEAngioMaterial::ApplySym()
 	return;
 }
 
-
-
-
 //-----------------------------------------------------------------------------
 FEMaterialPoint* FEAngioMaterial::CreateMaterialPointData()
 {
 	return new FEAngioMaterialPoint(new FEFiberMaterialPoint(FEElasticMaterial::CreateMaterialPointData()), vessel_material->CreateMaterialPointData(), matrix_material->CreateMaterialPointData());
 }
-
-

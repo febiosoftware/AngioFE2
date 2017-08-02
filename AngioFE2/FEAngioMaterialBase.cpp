@@ -276,10 +276,7 @@ void FEAngioMaterialBase::AdjustMeshStiffness(FEMaterial* mat)
 			subunit.tip(0).pt.r = subunit.tip(1).pos();
 		}
 	}
-
 	// Volume fraction for the composite material model
-
-
 
 	//verified good on core in field model
 	m_pangio->ForEachElementPar([&](FESolidElement & e, FESolidDomain & d)
@@ -328,8 +325,7 @@ void FEAngioMaterialBase::MirrorSym(vec3d y, mat3ds &s, SPROUT sp, double den_sc
 
 			vec3d x = CurrentPosition(sp.pel, sp.r[0], sp.r[1], sp.r[2]);
 			vec3d r = y - x;																	// Draw the vector r from the sprout location to the position of the material point
-
-																								//r.x += 2*sym_v.x*(sym.x - x.x); r.y += 2*sym_v.y*(sym.y - x.y); r.z += 2*sym_v.z*(sym.z - x.z);		// Find r for the mirrored vessel sprout
+																			//r.x += 2*sym_v.x*(sym.x - x.x); r.y += 2*sym_v.y*(sym.y - x.y); r.z += 2*sym_v.z*(sym.z - x.z);		// Find r for the mirrored vessel sprout
 			r.x = r.x + sym_v.x*sym.x; r.y = r.y + sym_v.y*sym.y; r.z = r.z + sym_v.z*sym.z;
 			double l = r.unit();													// Find the length of r
 
@@ -362,15 +358,12 @@ void FEAngioMaterialBase::MirrorSym(vec3d y, mat3ds &s, SPROUT sp, double den_sc
 			if ((p != p) || (r.x != r.x) || (r.y != r.y) || (r.z != r.z)) {			// If the mirrored force vector isn't real...
 				p = 0.; r.x = 0.; r.y = 0.; r.z = 0.;
 			}									// Set it to zero
-
 			ssym += dyad(r)*p;
 		}
 	}
 
 
 	s += ssym;															// Add the symmetry results to the force vector
-
-	return;
 }
 
 void FEAngioMaterialBase::UpdateSproutStressScaling()
@@ -381,8 +374,6 @@ void FEAngioMaterialBase::UpdateSproutStressScaling()
 	auto time = m_pangio->CurrentSimTime();
 
 	scale = y0 + a / (1 + exp(-(time.t - x0) / b));
-
-	return;
 }
 
 bool FEAngioMaterialBase::InitCulture()

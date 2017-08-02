@@ -31,19 +31,23 @@ public:
 	friend class FEPlotVesselStress;
 	friend class FEPlotMatrixTangent;
 
+	//begin functions from FEAngioMaterialBase
+
 	// Calculate the active Angio stress
-	mat3ds AngioStress(FEAngioMaterialPoint& mp);
+	mat3ds AngioStress(FEAngioMaterialPoint& mp) override;
 
-	void FinalizeInit();
+	void FinalizeInit() override;
 
-	void UpdateECM();
+	void UpdateECM() override;
 
-	void UpdateGDMs();
+	void UpdateGDMs() override;
 
-	bool InitECMDensity(FEAngio * angio);
+	bool InitECMDensity(FEAngio * angio)  override;
 
 	void InitializeFibers() override;
 	
+	//begin functions from FEMaterial
+
 	// material initialization
 	bool Init() override;
 
@@ -62,45 +66,27 @@ public:
 
 	double StrainEnergyDensity(FEMaterialPoint& mp) override;
 
-	
-
-	
-
-	
-
-	
-
 	// we use this to define a sprout in the material section of the input file
 	void SetParameter(FEParam& p) override;
 
 	double GetAnisotropy() const;
 	
 	void SetupSurface();
-
-	
-	
 private:
-	
-
 	DECLARE_PARAMETER_LIST();
 
 
 public:
 	void ApplySym();
 	FEPropertyT<GrowDirectionModifiers> gdms;
-	
 	FEPropertyT<FragmentSeeder> fseeder;
 	FEPropertyT<BC> bc;
 	FEPropertyT<FragmentBranching> fbrancher;
 	FEPropertyT<FESolidMaterial> vessel_material;
 	FEPropertyT<FEMaterial> matrix_material;
 private:
-	
 	FEPropertyT<FEProbabilityDistribution> length_to_branch;
 	FEPropertyT<FiberInitializer> fiber_initializer;
-	
-	
-	
 };
 
 //-----------------------------------------------------------------------------

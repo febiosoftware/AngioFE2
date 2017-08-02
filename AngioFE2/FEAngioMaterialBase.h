@@ -11,6 +11,8 @@
 #include "FiberManager.h"
 
 
+class FEAngioMaterialPoint;
+
 //contains the shared functionality, material pointers may need to be passed in to get portions of the functionality
 class FEAngioMaterialBase
 {
@@ -76,6 +78,16 @@ public:
 	//begin virtual functions
 	virtual void InitializeFibers()=0;
 
+	virtual mat3ds AngioStress(FEAngioMaterialPoint& mp)=0;
+
+	virtual void FinalizeInit()=0;
+
+	virtual void UpdateECM()=0;
+
+	virtual void UpdateGDMs()=0;
+
+	virtual bool InitECMDensity(FEAngio * angio)=0;
+
 	FEAngio * m_pangio;
 	CultureParameters m_cultureParams;
 	Culture * m_cult;
@@ -109,6 +121,5 @@ public:
 	//m_spr is the underlying storage for sprouts
 	std::vector<SPROUT>	m_spr;
 	KDTree<std::pair<size_t, std::vector<SPROUT> *>, std::vector<double>> sprouts;
-
 protected:
 };
