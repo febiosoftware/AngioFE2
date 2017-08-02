@@ -68,8 +68,6 @@ public:
 
 	// we use this to define a sprout in the material section of the input file
 	void SetParameter(FEParam& p) override;
-
-	double GetAnisotropy() const;
 	
 	void SetupSurface();
 private:

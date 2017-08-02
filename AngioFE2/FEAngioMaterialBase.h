@@ -75,6 +75,8 @@ public:
 
 	bool Overwrite() const;
 
+	double GetAnisotropy() const;
+
 	//begin virtual functions
 	virtual void InitializeFibers()=0;
 

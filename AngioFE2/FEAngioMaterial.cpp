@@ -396,10 +396,7 @@ bool FEAngioMaterial::InitECMDensity(FEAngio * angio)
 	return true;
 }
 
-double FEAngioMaterial::GetAnisotropy() const
-{
-	return m_cultureParams.GetWeightInterpolation(1.0);
-}
+
 
 mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 {

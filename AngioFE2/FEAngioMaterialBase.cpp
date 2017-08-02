@@ -391,3 +391,8 @@ bool FEAngioMaterialBase::Overwrite() const
 {
 	return ecm_initializer->overwrite();
 }
+
+double FEAngioMaterialBase::GetAnisotropy() const
+{
+	return m_cultureParams.GetWeightInterpolation(1.0);
+}
