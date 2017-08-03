@@ -434,7 +434,7 @@ MBC::MBC(FEModel * model) : FEMaterial(model) //-V730
 bool MBC::acceptBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1)
 {
 	assert(mat0 == culture->m_pmat);
-	return (mat0->bc->angio_boundary_groups & mat1->bc->angio_boundary_groups) != 0;
+	return (mat0->common_properties->bc->angio_boundary_groups & mat1->common_properties->bc->angio_boundary_groups) != 0;
 }
 
 PassThroughMBC::PassThroughMBC(FEModel* model) : MBC(model)

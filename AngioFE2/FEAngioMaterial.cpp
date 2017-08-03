@@ -40,20 +40,8 @@ END_PARAMETER_LIST();
 //-----------------------------------------------------------------------------
 FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticFiberMaterial(pfem)
 {
-	
-	scale = 1.0;
-	
-	m_pangio = nullptr;
-
-	m_cult = nullptr;
-
-	AddProperty(&vessel_material, "vessel");
-	AddProperty(&matrix_material , "matrix");
-	AddProperty(&fbrancher, "brancher");
-	AddProperty(&fiber_initializer, "fiber_initializer");
-	AddProperty(&fseeder, "fragment_seeder");
-	AddProperty(&bc, "boundary_condition");
-	AddProperty(&gdms, "grow_direction_modifiers");
+	AddProperty(&common_properties, "common_properties");
+	AddProperty(&matrix_material, "matrix");
 }
 
 FEAngioMaterial::~FEAngioMaterial()
@@ -83,13 +71,13 @@ bool FEAngioMaterial::Init()
 
 	if(!matrix_material->Init()) return false;
 
-	if(!vessel_material->Init()) return false;
+	if(!common_properties->vessel_material->Init()) return false;
 
 	if (FEElasticMaterial::Init() == false) return false;
 
 	//culture must be initialized here  so pangio is defined
 	assert(m_pangio);
-	m_cult = new Culture(*m_pangio, this, &m_cultureParams, fbrancher);
+	m_cult = new Culture(*m_pangio, this, &m_cultureParams, common_properties->fbrancher);
 
 	switch (m_cultureParams.ecm_control)
 	{
@@ -220,7 +208,7 @@ void FEAngioMaterial::SetupSurface()
 
 void FEAngioMaterial::InitializeFibers()
 {
-	fiber_initializer->InitializeFibers(fiber_manager);
+	common_properties->InitializeFibers(fiber_manager);
 }
 
 void FEAngioMaterial::SetLocalCoordinateSystem(FEElement& el, int n, FEMaterialPoint& mp)
@@ -244,7 +232,7 @@ void FEAngioMaterial::SetLocalCoordinateSystem(FEElement& el, int n, FEMaterialP
 		vessel_elastic.m_Q = pt.m_Q;
 		matrix_elastic.m_Q = pt.m_Q;
 
-		FEElasticMaterial* vess_elastic = vessel_material->GetElasticMaterial();
+		FEElasticMaterial* vess_elastic = common_properties->vessel_material->GetElasticMaterial();
 		FEElasticMaterial* mat_elastic = matrix_material->GetElasticMaterial();
 
 		vess_elastic->SetLocalCoordinateSystem(el, n, *angioPt->vessPt);
@@ -423,7 +411,7 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 		matrix_elastic.m_J = elastic_pt.m_J;
 
 		mat3ds activeStress = AngioStress(*angioPt) ;
-		vessel_elastic.m_s = vessel_material->Stress(*angioPt->vessPt);
+		vessel_elastic.m_s = common_properties->vessel_material->Stress(*angioPt->vessPt);
 		matrix_elastic.m_s = matrix_material->GetElasticMaterial()->Stress(*angioPt->matPt);
 
 		s = activeStress + angioPt->vessel_weight*vessel_elastic.m_s + angioPt->matrix_weight*matrix_elastic.m_s;
@@ -449,7 +437,7 @@ tens4ds FEAngioMaterial::Tangent(FEMaterialPoint& mp)
 		matrix_elastic.m_r0 = elastic_pt.m_r0;
 		matrix_elastic.m_F = elastic_pt.m_F;
 		matrix_elastic.m_J = elastic_pt.m_J;
-		s = angioPt->vessel_weight*vessel_material->Tangent(*angioPt->vessPt) + angioPt->matrix_weight*matrix_material->GetElasticMaterial()->Tangent(*angioPt->matPt);
+		s = angioPt->vessel_weight*common_properties->vessel_material->Tangent(*angioPt->vessPt) + angioPt->matrix_weight*matrix_material->GetElasticMaterial()->Tangent(*angioPt->matPt);
 	}
 	return s;
 }
@@ -473,30 +461,16 @@ double FEAngioMaterial::StrainEnergyDensity(FEMaterialPoint& mp)
 		matrix_elastic.m_r0 = elastic_pt.m_r0;
 		matrix_elastic.m_F = elastic_pt.m_F;
 		matrix_elastic.m_J = elastic_pt.m_J;
-		sed = angioPt->vessel_weight*vessel_material->GetElasticMaterial()->StrainEnergyDensity(*angioPt->vessPt) + angioPt->matrix_weight*matrix_material->GetElasticMaterial()->StrainEnergyDensity(*angioPt->matPt);
+		sed = angioPt->vessel_weight*common_properties->vessel_material->GetElasticMaterial()->StrainEnergyDensity(*angioPt->vessPt) + angioPt->matrix_weight*matrix_material->GetElasticMaterial()->StrainEnergyDensity(*angioPt->matPt);
 	}
 	return sed;
 }
 
 void FEAngioMaterial::UpdateGDMs()
 {
-	gdms->Update();
-}
-//=============================================================================
-BEGIN_PARAMETER_LIST(FEPressureMaterial, FEElasticMaterial)
-	ADD_PARAMETER(m_p, FE_PARAM_DOUBLE, "p");
-END_PARAMETER_LIST();
-
-mat3ds FEPressureMaterial::Stress(FEMaterialPoint& pt)
-{
-	mat3dd I(1.0);
-	return I*m_p;
+	common_properties->UpdateGDMs();
 }
 
-tens4ds FEPressureMaterial::Tangent(FEMaterialPoint& pt)
-{
-	return tens4ds(0.0);
-}
 
 ///////////////////////////////////////////////////////////////////////
 // FEAngioMaterial - ApplySym
@@ -534,5 +508,5 @@ void FEAngioMaterial::ApplySym()
 //-----------------------------------------------------------------------------
 FEMaterialPoint* FEAngioMaterial::CreateMaterialPointData()
 {
-	return new FEAngioMaterialPoint(new FEFiberMaterialPoint(FEElasticMaterial::CreateMaterialPointData()), vessel_material->CreateMaterialPointData(), matrix_material->CreateMaterialPointData());
+	return new FEAngioMaterialPoint(new FEFiberMaterialPoint(FEElasticMaterial::CreateMaterialPointData()), common_properties->vessel_material->CreateMaterialPointData(), matrix_material->CreateMaterialPointData());
 }

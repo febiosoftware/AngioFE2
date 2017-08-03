@@ -13,7 +13,8 @@
 #include <FEBioMix/FEBiphasic.h>
 #include "ECMInitializer.h"
 #include "FEAngioMaterialBase.h"
-
+#include "CommonAngioProperites.h"
+#include <FEBioMix/FEMultiphasic.h>
 
 
 //-----------------------------------------------------------------------------
@@ -75,29 +76,73 @@ private:
 
 
 public:
-	void ApplySym();
-	FEPropertyT<GrowDirectionModifiers> gdms;
-	FEPropertyT<FragmentSeeder> fseeder;
-	FEPropertyT<BC> bc;
-	FEPropertyT<FragmentBranching> fbrancher;
-	FEPropertyT<FESolidMaterial> vessel_material;
+	void ApplySym() override;
+	FEPropertyT<CommonAngioProperties> common_properties;
 	FEPropertyT<FEMaterial> matrix_material;
-private:
-	FEPropertyT<FEProbabilityDistribution> length_to_branch;
-	FEPropertyT<FiberInitializer> fiber_initializer;
+	
 };
-
+/*
 //-----------------------------------------------------------------------------
-class FEPressureMaterial : public FEElasticMaterial
+// Class implementing a stress induced by a non-local point force
+class FEAngioMaterialMultiPhasic : public FEMultiphasic, public FEAngioMaterialBase
 {
 public:
-	explicit FEPressureMaterial(FEModel* pfem) : FEElasticMaterial(pfem){ m_p = 0; }
 
+
+	explicit FEAngioMaterialMultiPhasic(FEModel* pfem);
+	virtual ~FEAngioMaterialMultiPhasic();
+
+	friend class Fileout;
+	friend class FEPlotMatrixStress;
+	friend class FEPlotVesselStress;
+	friend class FEPlotMatrixTangent;
+
+	//begin functions from FEAngioMaterialBase
+
+	// Calculate the active Angio stress
+	mat3ds AngioStress(FEAngioMaterialPoint& mp) override;
+
+	void FinalizeInit() override;
+
+	void UpdateECM() override;
+
+	void UpdateGDMs() override;
+
+	bool InitECMDensity(FEAngio * angio)  override;
+
+	void InitializeFibers() override;
+
+	//begin functions from FEMaterial
+
+	// material initialization
+	bool Init() override;
+
+	// Calculate Cauchy-stress
 	mat3ds Stress(FEMaterialPoint& mp) override;
 
+
+	// Calculate spatial elasticity tangent
 	tens4ds Tangent(FEMaterialPoint& mp) override;
 
-	double	m_p;	// pressure
+	//! create material point data for this material
+	FEMaterialPoint* CreateMaterialPointData() override;
 
+	//! Set the local coordinate system for a material point (overridden from FEMaterial)
+	void SetLocalCoordinateSystem(FEElement& el, int n, FEMaterialPoint& mp) override;
+
+	double StrainEnergyDensity(FEMaterialPoint& mp) override;
+
+	// we use this to define a sprout in the material section of the input file
+	void SetParameter(FEParam& p) override;
+
+	void SetupSurface();
+private:
 	DECLARE_PARAMETER_LIST();
+
+
+public:
+	void ApplySym() override;
+	FEPropertyT<CommonAngioProperties> common_properties;
+
 };
+*/

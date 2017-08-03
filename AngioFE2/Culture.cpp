@@ -58,19 +58,15 @@ Culture::~Culture()
 // Initialize the culture
 bool Culture::Init()
 {
-	if (!m_pmat->bc)
+	if (!m_pmat->common_properties->bc)
 		return false;
-	m_pmat->bc->SetCulture(this);
-
-	//intialize the Fragment Seeder
-	m_pmat->fseeder->SetCulture(this);
 
 	fbrancher->SetCulture(this);
 
-	m_pmat->gdms->SetCulture(this);
+	m_pmat->common_properties->SetCulture(this);
 
 	// do the initial seeding
-	if (!m_pmat->fseeder->SeedFragments(m_angio.CurrentSimTime(), this))
+	if (!m_pmat->common_properties->fseeder->SeedFragments(m_angio.CurrentSimTime(), this))
 		return false;
 
 	return true;
@@ -98,7 +94,7 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double start_time, double grow_t
 	double seg_length = 0.0;
 	
 	// determine the growth direction
-	vec3d seg_vec = m_pmat->gdms->ApplyModifiers( vec3d(), tip, m_pmat, branch, start_time, grow_time, seg_length);
+	vec3d seg_vec = m_pmat->common_properties->gdms->ApplyModifiers( vec3d(), tip, m_pmat, branch, start_time, grow_time, seg_length);
 
 
 	// Create a new segment
@@ -244,7 +240,7 @@ void Culture::AddNewSegment(Segment& seg)
 	//init done elsewhere
 	assert(new_tip.bactive);
 
-	m_pmat->bc->CheckBC(seg);
+	m_pmat->common_properties->bc->CheckBC(seg);
 }
 
 void Culture::AddNewSegmentNoClear(Segment& seg)
@@ -262,7 +258,7 @@ void Culture::AddNewSegmentNoClear(Segment& seg)
 	//init done elsewhere
 	assert(new_tip.bactive);
 
-	m_pmat->bc->CheckBC(seg);
+	m_pmat->common_properties->bc->CheckBC(seg);
 }
 
 //-----------------------------------------------------------------------------

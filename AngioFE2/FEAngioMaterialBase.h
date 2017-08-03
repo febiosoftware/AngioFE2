@@ -90,6 +90,8 @@ public:
 
 	virtual bool InitECMDensity(FEAngio * angio)=0;
 
+	virtual void ApplySym()=0;
+
 	FEAngio * m_pangio;
 	CultureParameters m_cultureParams;
 	Culture * m_cult;

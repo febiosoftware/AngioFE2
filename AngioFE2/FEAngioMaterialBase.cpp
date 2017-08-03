@@ -37,7 +37,13 @@ std::vector<double> access_sprout(std::pair<size_t, std::vector<FEAngioMaterialB
 
 //begin implementation of FEAngioBase
 FEAngioMaterialBase::FEAngioMaterialBase() : sprouts(access_sprout, ndim_distance, ndim_distance_to_plane, units3d)
-{}
+{
+	scale = 1.0;
+
+	m_pangio = nullptr;
+
+	m_cult = nullptr;
+}
 
 bool FEAngioMaterialBase::FindGridPoint(const vec3d & r, GridPoint & p) const
 {

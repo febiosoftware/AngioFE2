@@ -12,6 +12,7 @@
 #include "FESproutBodyForce.h"
 #include "FEAngioMaterial.h"
 #include "AngioPlot.h"
+#include "FEPressureMaterial.h"
 #ifdef SVN
 #include "svnrev.h"
 #else
@@ -23,6 +24,7 @@ FEPluginFactory_T<AngioFETask       , FETASK_ID    > angiofe_task_factory("angio
 FEPluginFactory_T<FESproutBodyForce , FEBODYLOAD_ID> angio_sprout_factory("sprout"  );
 FEPluginFactory_T<FEAngioMaterial   , FEMATERIAL_ID> angio_mat_factory   ("angio"   );
 FEPluginFactory_T<FEPressureMaterial, FEMATERIAL_ID> pressure_mat_factory("pressure");
+FEPluginFactory_T<CommonAngioProperties, FEMATERIAL_ID> common_angio_properties_factory("angio_properties");
 
 FEPluginFactory_T<NoFragmentBranching           , FEMATERIAL_ID> no_fragment_branching_factory            ("no_branch"            );
 FEPluginFactory_T<PsuedoDeferedFragmentBranching, FEMATERIAL_ID> psuedo_defered_fragment_branching_factory("psuedo_defered_branch");
@@ -166,7 +168,10 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		&threshold_ggp_factory, &nodal_data_ggp_factory,
 		&arc_cos_ggp_factory, &arc_sin_ggp_factory, &cos_ggp_factory, &sin_ggp_factory,
 		&matrix_inverse_ggp_factory, &eigen_vectors_ggp_factory, &eigen_values_ggp_factory,
-		&setter_ggp_factory,  &assert_ggp_factory
+		&setter_ggp_factory,  &assert_ggp_factory,
+
+		//other needed items
+		&common_angio_properties_factory
 	};
 
 	if(i < addon_classes.size())
