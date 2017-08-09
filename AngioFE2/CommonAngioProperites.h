@@ -4,9 +4,10 @@
 #include <FEBioMech/FESolidMaterial.h>
 #include "FiberManager.h"
 #include "FragmentBranching.h"
-#include "BC.h"
 #include "FragmentSeeder.h"
 #include "GrowDirectionModifier.h"
+
+class BC;
 
 class CommonAngioProperties :public FEMaterial
 {

@@ -1,4 +1,5 @@
 #include "CommonAngioProperites.h"
+#include "BC.h"
 
 CommonAngioProperties::CommonAngioProperties(FEModel * pfem) : FEMaterial(pfem)
 {

@@ -6,6 +6,7 @@
 #include "angio3d.h"
 #include "FEAngioMaterial.h"
 #include "GrowDirectionModifier.h"
+#include "BC.h"
 #include "FECore/FEMesh.h"
 #include <random>
 #include <regex>
@@ -29,7 +30,7 @@ std::vector<double> SegTo1TipPos(Segment * seg)
 std::vector<double> units(3, 1.0);
 
 //-----------------------------------------------------------------------------
-Culture::Culture(FEAngio& angio, FEAngioMaterial * matl, CultureParameters * cp, FragmentBranching *fbr) : m_angio(angio), tips(SegTo1TipPos, ndim_distance, ndim_distance_to_plane, units)
+Culture::Culture(FEAngio& angio, FEAngioMaterialBase * matl, CultureParameters * cp, FragmentBranching *fbr) : m_angio(angio), tips(SegTo1TipPos, ndim_distance, ndim_distance_to_plane, units)
 {
 	assert(matl && cp);
 	m_cultParams = cp;
@@ -58,15 +59,15 @@ Culture::~Culture()
 // Initialize the culture
 bool Culture::Init()
 {
-	if (!m_pmat->common_properties->bc)
+	if (!m_pmat->GetCommonAngioProperties()->bc)
 		return false;
 
 	fbrancher->SetCulture(this);
 
-	m_pmat->common_properties->SetCulture(this);
+	m_pmat->GetCommonAngioProperties()->SetCulture(this);
 
 	// do the initial seeding
-	if (!m_pmat->common_properties->fseeder->SeedFragments(m_angio.CurrentSimTime(), this))
+	if (!m_pmat->GetCommonAngioProperties()->fseeder->SeedFragments(m_angio.CurrentSimTime(), this))
 		return false;
 
 	return true;
@@ -94,7 +95,7 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double start_time, double grow_t
 	double seg_length = 0.0;
 	
 	// determine the growth direction
-	vec3d seg_vec = m_pmat->common_properties->gdms->ApplyModifiers( vec3d(), tip, m_pmat, branch, start_time, grow_time, seg_length);
+	vec3d seg_vec = m_pmat->GetCommonAngioProperties()->gdms->ApplyModifiers( vec3d(), tip, m_pmat, branch, start_time, grow_time, seg_length);
 
 
 	// Create a new segment
@@ -164,6 +165,7 @@ void Culture::BranchSegment(Segment::TIP& tip, double starttime, double grow_tim
 	seg.tip(1).wait_time_to_branch = tip.wait_time_to_branch;
 	seg.tip(0).wait_time_to_branch = tip.wait_time_to_branch;
 
+	seg.Update();
 	//will not scale with multiple threads
 	double prev_min_seg_length = m_cultParams->min_segment_length;
 	m_cultParams->min_segment_length = 0.0;
@@ -214,7 +216,7 @@ void Culture::CreateBranchingForce(Segment& seg)
 		sprout_vect = seg_vec;
 	}
 
-	m_pmat->AddSprout(tip, sprout_vect, stip.pt.ndomain, stip.pt.elemindex,m_pmat->matrix_material->GetElasticMaterial());
+	m_pmat->AddSprout(tip, sprout_vect, stip.pt.ndomain, stip.pt.elemindex,m_pmat->GetMatrixMaterial()->GetElasticMaterial());
 	m_angio.total_bdyf = m_pmat->Sprouts();
 }
 
@@ -240,7 +242,7 @@ void Culture::AddNewSegment(Segment& seg)
 	//init done elsewhere
 	assert(new_tip.bactive);
 
-	m_pmat->common_properties->bc->CheckBC(seg);
+	m_pmat->GetCommonAngioProperties()->bc->CheckBC(seg);
 }
 
 void Culture::AddNewSegmentNoClear(Segment& seg)
@@ -258,7 +260,7 @@ void Culture::AddNewSegmentNoClear(Segment& seg)
 	//init done elsewhere
 	assert(new_tip.bactive);
 
-	m_pmat->common_properties->bc->CheckBC(seg);
+	m_pmat->GetCommonAngioProperties()->bc->CheckBC(seg);
 }
 
 //-----------------------------------------------------------------------------
@@ -314,11 +316,11 @@ void Culture::AddSegment(Segment& seg)
 	//add the sprouts to the material
 	if (seg.tip(0).bactive)
 	{
-		m_pmat->AddSprout(seg.tip(0),m_pmat->matrix_material->GetElasticMaterial());
+		m_pmat->AddSprout(seg.tip(0),m_pmat->GetMatrixMaterial()->GetElasticMaterial());
 	}
 	if (seg.tip(1).bactive)
 	{
-		m_pmat->AddSprout(seg.tip(1), m_pmat->matrix_material->GetElasticMaterial());
+		m_pmat->AddSprout(seg.tip(1), m_pmat->GetMatrixMaterial()->GetElasticMaterial());
 	}
 }
 

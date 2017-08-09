@@ -13,7 +13,7 @@
 class FEAngio;
 class SimulationTime;
 class GridPoint;
-class FEAngioMaterial;
+class FEAngioMaterialBase;
 class BouncyBC;
 
 //-----------------------------------------------------------------------------
@@ -37,7 +37,7 @@ typedef list<Segment::TIP*>::const_iterator ConstTipIter;
 class Culture  
 {
 public:
-	Culture(FEAngio& angio, FEAngioMaterial * matl, CultureParameters * cp, FragmentBranching *fbr);
+	Culture(FEAngio& angio, FEAngioMaterialBase * matl, CultureParameters * cp, FragmentBranching *fbr);
 	virtual ~Culture();
 
 	// initialize
@@ -141,7 +141,7 @@ public:
 	FragmentBranching * fbrancher = nullptr;
 	int		m_num_vessel;   // Counter that indicates the next vessel ID number of new Segments
 	int		m_num_branches;		// Counter indicating the number of branches formed during the simulation
-	FEAngioMaterial * m_pmat = nullptr;
+	FEAngioMaterialBase * m_pmat = nullptr;
 	
 	int m_num_anastom;	// Counter indicating the number of anastomoses formed during the simulation
 	int m_num_zdead;

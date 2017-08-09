@@ -2,6 +2,7 @@
 #include "StdAfx.h"
 #include <FECore/vec3d.h>
 #include "FECore/FEMaterial.h"
+#include "CommonAngioProperites.h"
 
 
 //-----------------------------------------------------------------------------
@@ -11,7 +12,7 @@ class Segment;
 class Node;
 class FESolidElement;
 class Culture;
-class FEAngioMaterial;
+class FEAngioMaterialBase;
 
 
 //multAngioBC is boundary condition used when a segment would cross from one angio material to another
@@ -21,8 +22,8 @@ public:
 	virtual ~MBC(){}
 	explicit MBC(FEModel * model);
 	//returns whether or not this class is going to hanel the boundary between the two angio materials
-	virtual bool acceptBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1);
-	virtual void handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1, Segment & seg) = 0;
+	virtual bool acceptBoundary(FEAngioMaterialBase* mat0, FEAngioMaterialBase* mat1);
+	virtual void handleBoundary(FEAngioMaterialBase* mat0, FEAngioMaterialBase* mat1, Segment & seg) = 0;
 
 	//must be called before anything else is done but construction
 	void SetCulture(Culture * cp);
@@ -35,7 +36,7 @@ public:
 	explicit SameMBC(FEModel * model);
 	~SameMBC(){}
 	//returns whether or not this class is going to hanel the boundary between the two angio materials
-	void handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1, Segment & seg) override { assert(false); }
+	void handleBoundary(FEAngioMaterialBase* mat0, FEAngioMaterialBase* mat1, Segment & seg) override { assert(false); }
 };
 
 
@@ -102,6 +103,6 @@ class PassThroughMBC : public MBC
 public:
 	explicit PassThroughMBC(FEModel * model);
 	~PassThroughMBC(){}
-	void handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1, Segment & seg) override;
+	void handleBoundary(FEAngioMaterialBase* mat0, FEAngioMaterialBase* mat1, Segment & seg) override;
 protected:
 };

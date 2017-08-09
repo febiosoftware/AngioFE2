@@ -2,12 +2,13 @@
 #include "ECMInitializer.h"
 #include <FECore/FEMesh.h>
 #include "FEAngioMaterialPoint.h"
-#include "FEAngioMaterial.h"
+#include "FEAngioMaterialBase.h"
+#include "FEAngio.h"
 
-void ECMInitializer::updateECMdensity(FEAngioMaterial * mat)
+void ECMInitializer::updateECMdensity(FEAngioMaterialBase* mat)
 {
 	std::vector<int> matls;
-	matls.emplace_back(mat->GetID());
+	matls.emplace_back(mat->GetID_ang());
 	FEMesh * mesh = mat->m_pangio->GetMesh();
 	//break even on core in field model
 	mat->m_pangio->ForEachElementPar([&](FESolidElement & elem, FESolidDomain & d)
@@ -81,10 +82,10 @@ void ECMInitializer::updateECMdensity(FEAngioMaterial * mat)
 	}, matls);
 }
 
-void ECMInitializerConstant::seedECMDensity(FEAngioMaterial * mat)
+void ECMInitializerConstant::seedECMDensity(FEAngioMaterialBase * mat)
 {
 	std::vector<int> matls;
-	matls.emplace_back(mat->GetID());
+	matls.emplace_back(mat->GetID_ang());
 	mat->m_pangio->ForEachNodePar([&](FENode & node)
 	{
 		mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den0 = mat->m_cultureParams.m_matrix_density;
@@ -93,10 +94,10 @@ void ECMInitializerConstant::seedECMDensity(FEAngioMaterial * mat)
 	}, matls);
 }
 
-void ECMInitializerSpecified::seedECMDensity(FEAngioMaterial * mat)
+void ECMInitializerSpecified::seedECMDensity(FEAngioMaterialBase * mat)
 {
 	std::vector<int> matls;
-	matls.emplace_back(mat->GetID());
+	matls.emplace_back(mat->GetID_ang());
 	FEMesh * mesh = mat->m_pangio->GetMesh();
 	mat->m_pangio->ForEachElement([this, mat, mesh](FESolidElement & se, FESolidDomain & sd)
 	{
@@ -123,10 +124,10 @@ void ECMInitializerSpecified::seedECMDensity(FEAngioMaterial * mat)
 	}, matls);
 }
 
-void ECMInitializerNoOverwrite::seedECMDensity(FEAngioMaterial * mat)
+void ECMInitializerNoOverwrite::seedECMDensity(FEAngioMaterialBase * mat)
 {
 	std::vector<int> matls;
-	matls.emplace_back(mat->GetID());
+	matls.emplace_back(mat->GetID_ang());
 	mat->m_pangio->ForEachNodePar([&](FENode & node)
 	{
 		if (mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den0 == 0.0)

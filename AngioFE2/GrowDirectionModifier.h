@@ -6,7 +6,7 @@
 #include <FECore/DataRecord.h>
 #include <FECore/Archive.h>
 #include "FEBioPlot/FEBioPlotFile2.h"
-class FEAngioMaterial;
+class FEAngioMaterialBase;
 class Culture;
 
 //the interface for all operations that modify the growth direction
@@ -19,7 +19,7 @@ public:
 	virtual ~GrowDirectionModifier(){}
 	//will be called once before growth per FE timestep
 	virtual void Update() {}
-	virtual vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) = 0;
+	virtual vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) = 0;
 	//used to sort these by priority
 
 	//must be called before anything else is done but construction
@@ -68,7 +68,7 @@ public:
 	explicit GrowDirectionModifiers(FEModel * model);
 	virtual ~GrowDirectionModifiers(){}
 
-	vec3d ApplyModifiers(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length);
+	vec3d ApplyModifiers(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length);
 
 	void SetCulture(Culture * c);
 
@@ -92,7 +92,7 @@ public:
 	virtual ~GGP() {}
 	//will be called once before growth per FE timestep
 	virtual void Update() { if (child) { child->Update(); } };
-	virtual mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) { if (child) { return child->Operation(in, fin, mat, tip); } return in; };
+	virtual mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) { if (child) { return child->Operation(in, fin, mat, tip); } return in; };
 
 	bool Init() override
 	{
@@ -125,7 +125,7 @@ public:
 	bool Init() override;
 
 	void Update() override;
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 
 protected:
 	list<FEBioPlotFile2::DICTIONARY_ITEM>::const_iterator record_index;
@@ -141,7 +141,7 @@ public:
 	explicit GradientPlot2GGP(FEModel * model) : Plot2GGP(model) { archive.GradientEnabled(true); }
 	virtual ~GradientPlot2GGP() {}
 	//will be called once before growth per FE timestep
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 
 private:
 	int size=1;
@@ -156,7 +156,7 @@ public:
 	virtual ~NodalDataGGP() {}
 
 	void Update() override;
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 
 	void SetCulture(Culture * cp) override;
 private:
@@ -174,7 +174,7 @@ public:
 	//will be called once before growth per FE timestep
 
 	void Update() override { GGP::Update(); }
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 
 private:
 	double m[9][9];//the matrix that the unrolled matrix will be multiplied by
@@ -189,7 +189,7 @@ public:
 	explicit ForkedGGP(FEModel * model) : GGP(model) { AddProperty(&nest, "nest"); }
 	~ForkedGGP() {}
 	//will be called once before growth per FE timestep
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 	void Update() override { 
 		GGP::Update();
 		nest->Update();
@@ -220,7 +220,7 @@ public:
 	explicit EigenValuesGGP(FEModel * model) : GGP(model) {  }
 	virtual ~EigenValuesGGP() {}
 
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 };
 
 //computes the eigen vectors and stores them in the collums of the matrix
@@ -231,7 +231,7 @@ public:
 	explicit EigenVectorsGGP(FEModel * model) : GGP(model) {  }
 	virtual ~EigenVectorsGGP() {}
 
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 };
 
 //the computes the cross product and stores it in the diagonal of the returned matrix
@@ -246,7 +246,7 @@ public:
 	}
 	~CrossGGP() {}
 
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 	void Update() override {
 		GGP::Update();
 		v1->Update();
@@ -282,7 +282,7 @@ public:
 	}
 	~ThresholdGGP() {}
 
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 	void Update() override {
 		GGP::Update();
 		statement->Update();
@@ -316,7 +316,7 @@ public:
 	explicit ArcCosGGP(FEModel * model) : GGP(model) {  }
 	virtual ~ArcCosGGP() {}
 
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 };
 
 //applies arccos to all elements of the matrix
@@ -326,7 +326,7 @@ public:
 	explicit ArcSinGGP(FEModel * model) : GGP(model) {  }
 	virtual ~ArcSinGGP() {}
 
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 };
 
 //applies cos to all elements of the matrix
@@ -336,7 +336,7 @@ public:
 	explicit CosGGP(FEModel * model) : GGP(model) {  }
 	virtual ~CosGGP() {}
 
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 };
 
 //applies sin to all elements of the matrix
@@ -346,7 +346,7 @@ public:
 	explicit SinGGP(FEModel * model) : GGP(model) {  }
 	virtual ~SinGGP() {}
 
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 };
 
 //calculates the inverse of in and passes this on
@@ -356,7 +356,7 @@ public:
 	explicit MatrixInverseGGP(FEModel * model) : GGP(model) {  }
 	virtual ~MatrixInverseGGP() {}
 
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 };
 
 //GGP classes used in testing
@@ -374,7 +374,7 @@ public:
 	//will be called once before growth per FE timestep
 
 	void Update() override { GGP::Update(); }
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 
 private:
 	mat3d m;//the matrix 
@@ -394,7 +394,7 @@ public:
 	//will be called once before growth per FE timestep
 
 	void Update() override { GGP::Update(); }
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterial* mat, Segment::TIP& tip) override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 
 private:
 	mat3d m;//the matrix
@@ -408,7 +408,7 @@ class DefaultGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
 	explicit DefaultGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 	void Update() override;
 	void SetCulture(Culture * cp) override;
 private:
@@ -422,7 +422,7 @@ class BaseFiberAwareGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
 	explicit BaseFiberAwareGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 };
 
 //this class changes the grow direction if the segment is a branch
@@ -430,7 +430,7 @@ class BranchGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
 	explicit BranchGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 	void Update() override;
 	void SetCulture(Culture * cp) override;
 private:
@@ -443,7 +443,7 @@ class UnitLengthGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
 	explicit UnitLengthGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 	bool Init() override
 	{
 		if (length_modifier)
@@ -481,7 +481,7 @@ public:
 			return density_scale->Init();
 		return true;
 	}
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 	void Update() override;
 	void SetCulture(Culture * cp) override;
 private:
@@ -492,7 +492,7 @@ class SegmentLengthGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
 	explicit SegmentLengthGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 };
 
 //the class modifies the grow dierction if the gradeint is above a given threshold
@@ -500,7 +500,7 @@ class GradientGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
 	explicit GradientGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 	void Update() override;
 	void SetCulture(Culture * cp) override;
 private:
@@ -513,7 +513,7 @@ class AnastamosisGrowDirectionModifier : public GrowDirectionModifier
 {
 public:
 	explicit AnastamosisGrowDirectionModifier(FEModel * model);
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 
 private:
 	double search_radius = 100.0;
@@ -527,7 +527,7 @@ public:
 	explicit EdgeDeflectorGrowDirectionModifier(FEModel * model);
 
 	void SetCulture(Culture * cp) override;
-	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterial* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
 	//used to sort these by priority
 private:
 	std::unordered_map<int,bool> edge_element;

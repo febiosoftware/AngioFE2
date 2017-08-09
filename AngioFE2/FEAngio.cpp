@@ -18,6 +18,7 @@
 #include <FECore/FEAnalysis.h>
 #include "FECore/FESolidDomain.h"
 #include "FEAngioMaterial.h"
+#include "FEAngioMaterialMultiPhasic.h"
 #include "FEBioMech/FEElasticMixture.h"
 #include "Elem.h"
 #include "angio3d.h"
@@ -182,11 +183,11 @@ bool FEAngio::InitFEM()
 {
 	for (int i = 0; i < m_fem->Materials(); i++)
 	{
-		FEAngioMaterial * cmat = dynamic_cast<FEAngioMaterial*>(m_fem->GetMaterial(i));
+		FEAngioMaterialBase * cmat = dynamic_cast<FEAngioMaterialBase*>(m_fem->GetMaterial(i));
 		if (cmat)
 		{
 			m_pmat.emplace_back(cmat);
-			m_pmat_ids.emplace_back(cmat->GetID());
+			m_pmat_ids.emplace_back(cmat->GetID_ang());
 			//TODO: check that material parameters are set here
 			cmat->ApplySym();
 			cmat->SetFEAngio(this);
@@ -198,7 +199,7 @@ bool FEAngio::InitFEM()
 	felog.printf("%d Angio materials found. Stress approach will be used.", m_pmat.size());
 
 	// register the callback
-	m_fem->AddCallback(FEAngio::feangio_callback, CB_UPDATE_TIME | CB_MAJOR_ITERS | CB_SOLVED, this);
+	m_fem->AddCallback(FEAngio::feangio_callback, CB_UPDATE_TIME | CB_MAJOR_ITERS | CB_SOLVED | CB_STEP_ACTIVE, this);
 
 	// Do the model initialization
 	if (m_fem->Init() == false) return false;
@@ -210,8 +211,8 @@ void FEAngio::FinalizeFEM()
 	for (size_t i = 0; i < m_pmat.size(); i++)
 	{
 		//TODO: remove this constant or make it a user parameter
-		m_pmat[i]->CreateSprouts(0.5,m_pmat[i]->matrix_material->GetElasticMaterial());
-		m_pmat[i]->AdjustMeshStiffness(m_pmat[i]);
+		m_pmat[i]->CreateSprouts(0.5,m_pmat[i]->GetMatrixMaterial()->GetElasticMaterial());
+		m_pmat[i]->AdjustMeshStiffness(m_pmat[i]->GetMaterial());
 		m_pmat[i]->UpdateFiberManager();
 		m_pmat[i]->InitializeFibers();
 		m_pmat[i]->UpdateFiberManager();
@@ -304,7 +305,7 @@ void FEAngio::UpdateECM()
 			m_fe_node_data[node.GetID()].m_collfib.unit();
 			m_fe_node_data[node.GetID()].m_ntag = 0;
 			//maybe worry about density creep
-			//m_fe_node_data[node.GetID()].m_ecm_den0 = m_fe_node_data[node.GetID()].m_ecm_den;
+			//m_fe_node_data[node.GetID_ang()].m_ecm_den0 = m_fe_node_data[node.GetID_ang()].m_ecm_den;
 		}
 	});
 }
@@ -1090,7 +1091,7 @@ double FEAngio::FindECMDensity(const GridPoint& pt)
 	/*
 	double rez[3];
 	FESolidElement* se = mesh.FindSolidElement(pt.r, rez);//TODO uses spatial coordinates
-	assert(se->GetID() == pt.nelem);//verify that migration is not happening
+	assert(se->GetID_ang() == pt.nelem);//verify that migration is not happening
 	*/
 	FESolidElement * se = nullptr;
 	if (pt.elemindex >= 0)
@@ -1159,7 +1160,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
-			m_pmat[i]->AdjustMeshStiffness(m_pmat[i]);
+			m_pmat[i]->AdjustMeshStiffness(m_pmat[i]->GetMaterial());
 		}
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
@@ -1167,7 +1168,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		}
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
-			m_pmat[i]->UpdateSprouts(1.0, m_pmat[i]->matrix_material->GetElasticMaterial());
+			m_pmat[i]->UpdateSprouts(1.0, m_pmat[i]->GetMatrixMaterial()->GetElasticMaterial());
 		}
 	}
 	else if (nwhen == CB_MAJOR_ITERS)
@@ -1204,6 +1205,14 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		fileout = nullptr;
 			
 	}
+	//needed to copy data between material points to fix things for multiphasic materials
+	else if(nwhen == CB_STEP_ACTIVE)
+	{
+		for (size_t i = 0; i < m_pmat.size(); i++)
+		{
+			//m_pmat[i]->ActiveFix();
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -1224,7 +1233,7 @@ void FEAngio::adjust_mesh_stiffness()
 {
 	for (size_t i = 0; i < m_pmat.size(); i++)
 	{
-		m_pmat[i]->AdjustMeshStiffness(m_pmat[i]);
+		m_pmat[i]->AdjustMeshStiffness(m_pmat[i]->GetMaterial());
 	}
 }
 

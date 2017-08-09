@@ -127,7 +127,7 @@ FragmentBranching * FragmentBranching::GetBrancherForSegment(Segment * seg)
 			if (std::find(this->culture->m_pmat->m_pangio->m_pmat[j]->domainptrs.begin(), this->culture->m_pmat->m_pangio->m_pmat[j]->domainptrs.end(),
 				seg->tip(1).pt.ndomain) != this->culture->m_pmat->m_pangio->m_pmat[j]->domainptrs.end())
 			{
-				fb = this->culture->m_pmat->m_pangio->m_pmat[j]->common_properties->fbrancher;
+				fb = this->culture->m_pmat->m_pangio->m_pmat[j]->GetCommonAngioProperties()->fbrancher;
 				break;//only one angio material should contain a domain
 			}
 		}
@@ -258,7 +258,7 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 						if (std::find(this->culture->m_pmat->m_pangio->m_pmat[j]->domainptrs.begin(), this->culture->m_pmat->m_pangio->m_pmat[j]->domainptrs.end(),
 							rseg[i]->tip_c(1).pt.ndomain) != this->culture->m_pmat->m_pangio->m_pmat[j]->domainptrs.end())
 						{
-							fb = this->culture->m_pmat->m_pangio->m_pmat[j]->common_properties->fbrancher;
+							fb = this->culture->m_pmat->m_pangio->m_pmat[j]->GetCommonAngioProperties()->fbrancher;
 							//change this if tips can grow across materials
 							BranchPoint bp(bt + tip->wait_time_to_branch, bt, rseg[i], bf, rseg[i]->m_nid, fb);
 							branch_points.insert(bp);

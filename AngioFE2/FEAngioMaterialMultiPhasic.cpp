@@ -1,3 +1,5 @@
+#include "FEAngioMaterialMultiPhasic.h" 
+
 #include "StdAfx.h"
 #include "FEAngioMaterial.h"
 #include <FECore/FEModel.h>
@@ -14,37 +16,39 @@
 
 const double PI = 3.141592653589793;
 
+#ifndef N_MF
 //-----------------------------------------------------------------------------
-BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
-	ADD_PARAMETER2(m_cultureParams.sprout_s_mag, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "a");
-	ADD_PARAMETER2(m_cultureParams.sprout_s_range, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "b");
-	ADD_PARAMETER2(m_cultureParams.sprout_s_width, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "N");
+BEGIN_PARAMETER_LIST(FEAngioMaterialMultiPhasic, FEMultiphasic)
+ADD_PARAMETER2(m_cultureParams.sprout_s_mag, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "a");
+ADD_PARAMETER2(m_cultureParams.sprout_s_range, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "b");
+ADD_PARAMETER2(m_cultureParams.sprout_s_width, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "N");
 
-	ADD_PARAMETER2(m_cultureParams.m_length_adjustment, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "length_adjustment");
-	ADD_PARAMETER2(m_cultureParams.m_vessel_width, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "vessel_width");
-	ADD_PARAMETER(m_cultureParams.growth_length_over_time, FE_PARAM_DOUBLE, "growth_length_over_time");
+ADD_PARAMETER2(m_cultureParams.m_length_adjustment, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "length_adjustment");
+ADD_PARAMETER2(m_cultureParams.m_vessel_width, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "vessel_width");
+ADD_PARAMETER(m_cultureParams.growth_length_over_time, FE_PARAM_DOUBLE, "growth_length_over_time");
 
-	ADD_PARAMETER(m_cultureParams.ecm_control, FE_PARAM_INT, "ecm_seeder");
-	ADD_PARAMETER2(m_cultureParams.m_matrix_density, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "matrix_density");
+ADD_PARAMETER(m_cultureParams.ecm_control, FE_PARAM_INT, "ecm_seeder");
+ADD_PARAMETER2(m_cultureParams.m_matrix_density, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "matrix_density");
 
-	ADD_PARAMETER(m_cultureParams.m_symmetry_plane, FE_PARAM_VEC3D, "symmetryplane");
-	//uncategorized variables are incomplete
-	ADD_PARAMETER(m_cultureParams.m_composite_material, FE_PARAM_INT, "composite_material");
-	ADD_PARAMETER2(m_cultureParams.m_sprout_force, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "sprout_force");
+ADD_PARAMETER(m_cultureParams.m_symmetry_plane, FE_PARAM_VEC3D, "symmetryplane");
+//uncategorized variables are incomplete
+ADD_PARAMETER(m_cultureParams.m_composite_material, FE_PARAM_INT, "composite_material");
+ADD_PARAMETER2(m_cultureParams.m_sprout_force, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "sprout_force");
 
-	ADD_PARAMETER2(m_cultureParams.active_tip_threshold, FE_PARAM_INT, FE_RANGE_GREATER_OR_EQUAL(0), "active_tip_threshold");
-	ADD_PARAMETER2(m_cultureParams.stress_radius, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "stress_radius");
-	
+ADD_PARAMETER2(m_cultureParams.active_tip_threshold, FE_PARAM_INT, FE_RANGE_GREATER_OR_EQUAL(0), "active_tip_threshold");
+ADD_PARAMETER2(m_cultureParams.stress_radius, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "stress_radius");
+
 END_PARAMETER_LIST();
 
 //-----------------------------------------------------------------------------
-FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticFiberMaterial(pfem)
+FEAngioMaterialMultiPhasic::FEAngioMaterialMultiPhasic(FEModel* pfem) :
+	FEMultiphasic(pfem)
 {
 	AddProperty(&common_properties, "common_properties");
 	AddProperty(&matrix_material, "matrix");
 }
 
-FEAngioMaterial::~FEAngioMaterial()
+FEAngioMaterialMultiPhasic::~FEAngioMaterialMultiPhasic()
 {
 	if (m_cult)
 	{
@@ -54,7 +58,7 @@ FEAngioMaterial::~FEAngioMaterial()
 }
 
 //-----------------------------------------------------------------------------
-bool FEAngioMaterial::Init()
+bool FEAngioMaterialMultiPhasic::Init()
 {
 	// Create symmetry vectors
 	sym_planes[0] = 0; sym_planes[1] = 0; sym_planes[2] = 0; sym_planes[3] = 0; sym_planes[4] = 0; sym_planes[5] = 0; sym_planes[6] = 0;
@@ -69,11 +73,12 @@ bool FEAngioMaterial::Init()
 
 	sym_on = false;
 
-	if(!matrix_material->Init()) return false;
+	if (!matrix_material->Init()) return false;
 
-	if(!common_properties->vessel_material->Init()) return false;
+	if (!common_properties->vessel_material->Init()) return false;
 
-	if (FEElasticMaterial::Init() == false) return false;
+
+	if (FEMultiphasic::Init() == false) return false;
 
 	//culture must be initialized here  so pangio is defined
 	assert(m_pangio);
@@ -106,16 +111,16 @@ bool FEAngioMaterial::Init()
 	int co = 0;
 	for (auto i = 0; i < mesh.Domains(); i++)
 	{
-		if (std::find(domainptrs.begin(), domainptrs.end(),&mesh.Domain(i)) != domainptrs.end())
+		if (std::find(domainptrs.begin(), domainptrs.end(), &mesh.Domain(i)) != domainptrs.end())
 		{
 			meshOffsets[&mesh.Domain(i)] = co;
 		}
 		co += mesh.Domain(i).Elements();
 	}
-	for (unsigned int i=0; i<m_suser.size(); ++i)
+	for (unsigned int i = 0; i<m_suser.size(); ++i)
 	{
 		if (domains.size())
-			AddSprout(m_suser[i], vec3d(0,0,0), &mesh.Domain(domains[0]), matrix_material->GetElasticMaterial());
+			AddSprout(m_suser[i], vec3d(0, 0, 0), &mesh.Domain(domains[0]), matrix_material->GetElasticMaterial());
 		//TODO: sprouts probably need distributed among the domains of the material
 	}
 	m_suser.clear();
@@ -124,7 +129,7 @@ bool FEAngioMaterial::Init()
 
 	return true;
 }
-void FEAngioMaterial::FinalizeInit()
+void FEAngioMaterialMultiPhasic::FinalizeInit()
 {
 	FEMesh * mesh = m_pangio->GetMesh();
 	// initialize material point data
@@ -134,10 +139,10 @@ void FEAngioMaterial::FinalizeInit()
 	{
 		FESolidDomain& dom = reinterpret_cast<FESolidDomain&>(mesh->Domain(n));
 		FEMaterial* pm = dom.GetMaterial();
-		FEAngioMaterial* pam = nullptr;
-		if (strcmp(pm->GetTypeStr(), "angio") == 0)
+		FEAngioMaterialBase* pam = nullptr;
+		if (strcmp(pm->GetTypeStr(), "angio_multiphasic") == 0)
 		{
-			pam = dynamic_cast<FEAngioMaterial*>(pm);
+			pam = dynamic_cast<FEAngioMaterialBase*>(pm);
 		}
 		else
 		{
@@ -184,10 +189,10 @@ void FEAngioMaterial::FinalizeInit()
 		node_map[nn] = i;
 	}
 }
-void FEAngioMaterial::SetupSurface()
+void FEAngioMaterialMultiPhasic::SetupSurface()
 {
 	FEMesh * mesh = m_pangio->GetMesh();
-	
+
 	//setup the exterior_surface
 	assert(domainptrs.size());
 	exterior_surface = mesh->ElementBoundarySurface(domainptrs, true, false);
@@ -206,19 +211,19 @@ void FEAngioMaterial::SetupSurface()
 	}
 }
 
-void FEAngioMaterial::InitializeFibers()
+void FEAngioMaterialMultiPhasic::InitializeFibers()
 {
 	common_properties->InitializeFibers(fiber_manager);
 }
 
-void FEAngioMaterial::SetLocalCoordinateSystem(FEElement& el, int n, FEMaterialPoint& mp)
+void FEAngioMaterialMultiPhasic::SetLocalCoordinateSystem(FEElement& el, int n, FEMaterialPoint& mp)
 {
 	// get the material's coordinate system (if defined)
 	FECoordSysMap* pmap = GetCoordinateSystemMap();
 	//this allows the local coordinates to work correctly
 	if (pmap)
 	{
-		FEElasticMaterial::SetLocalCoordinateSystem(el, n, mp);
+		FEMultiphasic::SetLocalCoordinateSystem(el, n, mp);
 		FEElasticMaterialPoint& pt = *(mp.ExtractData<FEElasticMaterialPoint>());
 		FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
 
@@ -238,11 +243,11 @@ void FEAngioMaterial::SetLocalCoordinateSystem(FEElement& el, int n, FEMaterialP
 		vess_elastic->SetLocalCoordinateSystem(el, n, *angioPt->vessPt);
 		mat_elastic->SetLocalCoordinateSystem(el, n, *angioPt->matPt);
 	}
-	
+
 }
 
 //-----------------------------------------------------------------------------
-void FEAngioMaterial::SetParameter(FEParam& p)
+void FEAngioMaterialMultiPhasic::SetParameter(FEParam& p)
 {
 	if (strcmp(p.name(), "sprout") == 0)
 	{
@@ -252,7 +257,7 @@ void FEAngioMaterial::SetParameter(FEParam& p)
 
 
 //-----------------------------------------------------------------------------
-mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
+mat3ds FEAngioMaterialMultiPhasic::AngioStress(FEAngioMaterialPoint& angioPt)
 {
 	mat3ds s;
 	s.zero();
@@ -263,17 +268,17 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 	// loop over all sprout tips
 	int NS = Sprouts();
 	//TODO: fix the stress analysis
-	
+
 	// current position of integration point
 	FESolidDomain * d = angioPt.m_pt.ndomain;
 
 	vec3d y;
 	assert(angioPt.m_pt.elemindex >= 0);
 	y = CurrentPosition(&d->Element(angioPt.m_pt.elemindex), angioPt.m_pt.q.x, angioPt.m_pt.q.x, angioPt.m_pt.q.x);
-		
+
 	if (sym_on)
 	{
-//#pragma omp parallel for shared(s)
+		//#pragma omp parallel for shared(s)
 		for (int i = 0; i<NS; ++i)
 		{
 			SPROUT& sp = m_spr[i];
@@ -288,16 +293,16 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 
 			double theta = acos(sp.sprout*r);											// Calculate theta, the angle between r and the sprout vector
 
-			//TODO: some of this may be precalculated
+																						//TODO: some of this may be precalculated
 			double p = den_scale*scale*m_cultureParams.sprout_s_mag*(pow(cos(theta / 2), m_cultureParams.sprout_s_width))*exp(-m_cultureParams.sprout_s_range*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
 
-			//do we care about the sign of p?
+																																													//do we care about the sign of p?
 
 			mat3ds si = dyad(r)*p;
-														// If symmetry is turned on, apply symmetry
+			// If symmetry is turned on, apply symmetry
 			MirrorSym(y, si, sp, den_scale);
 
-//#pragma omp critical
+			//#pragma omp critical
 			s += si;
 		}
 	}
@@ -305,7 +310,7 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 	{
 		if (NS <= m_cultureParams.active_tip_threshold)
 		{
-//#pragma omp parallel for schedule(dynamic, 24)
+			//#pragma omp parallel for schedule(dynamic, 24)
 			for (int i = 0; i<NS; ++i)
 			{
 				SPROUT& sp = m_spr[i];
@@ -320,14 +325,14 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 
 				double theta = acos(sp.sprout*r);											// Calculate theta, the angle between r and the sprout vector
 
-				//TODO: some of this may be precalculated
+																							//TODO: some of this may be precalculated
 				double p = den_scale*scale*m_cultureParams.sprout_s_mag*(pow(cos(theta / 2), m_cultureParams.sprout_s_width))*exp(-m_cultureParams.sprout_s_range*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
 
-				//double p = sprout_s_mag*exp(-sprout_s_range*l);
+																																														//double p = sprout_s_mag*exp(-sprout_s_range*l);
 
 				mat3ds si = dyad(r)*p;
 
-//#pragma omp critical
+				//#pragma omp critical
 				s += si;
 			}
 		}
@@ -342,7 +347,7 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 			std::pair<size_t, std::vector<SPROUT> *> dim = std::pair<size_t, std::vector<SPROUT> * >(0, &temp);
 			std::vector<std::pair<size_t, std::vector<SPROUT> *>> nst;
 			sprouts.within(dim, m_cultureParams.stress_radius * m_cultureParams.stress_radius, nst);
-//#pragma omp parallel for schedule(dynamic, 24)
+			//#pragma omp parallel for schedule(dynamic, 24)
 			for (int i = 0; i<nst.size(); ++i)
 			{
 				SPROUT& sp = m_spr[nst[i].first];
@@ -357,14 +362,14 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 
 				double theta = acos(sp.sprout*r);											// Calculate theta, the angle between r and the sprout vector
 
-				//TODO: some of this may be precalculated
+																							//TODO: some of this may be precalculated
 				double p = den_scale*scale*m_cultureParams.sprout_s_mag*(pow(cos(theta / 2), m_cultureParams.sprout_s_width))*exp(-m_cultureParams.sprout_s_range*l);					// Calculate the magnitude of the sprout force using the localized directional sprout force equation
 
-				//double p = sprout_s_mag*exp(-sprout_s_range*l);
+																																														//double p = sprout_s_mag*exp(-sprout_s_range*l);
 
 				mat3ds si = dyad(r)*p;
 
-//#pragma omp critical
+				//#pragma omp critical
 				s += si;
 			}
 		}
@@ -372,13 +377,13 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 	return s;
 }
 
-void FEAngioMaterial::UpdateECM()
+void FEAngioMaterialMultiPhasic::UpdateECM()
 {
 	ecm_initializer->updateECMdensity(this);
 }
 
 //this function accumulates the the anistropy and ecm_density, n_tag is incremented to be used to take the average
-bool FEAngioMaterial::InitECMDensity(FEAngio * angio)
+bool FEAngioMaterialMultiPhasic::InitECMDensity(FEAngio * angio)
 {
 	ecm_initializer->seedECMDensity(this);
 	return true;
@@ -386,7 +391,7 @@ bool FEAngioMaterial::InitECMDensity(FEAngio * angio)
 
 
 
-mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
+mat3ds FEAngioMaterialMultiPhasic::Stress(FEMaterialPoint& mp)
 {
 	FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
 	FEElasticMaterialPoint& elastic_pt = *mp.ExtractData<FEElasticMaterialPoint>();
@@ -395,38 +400,64 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 	s.zero();
 	//should always be true but we should check
 	assert(angioPt);
-	if(angioPt)
+	if (angioPt)
 	{
-		FEElasticMaterialPoint& vessel_elastic = *angioPt->vessPt->ExtractData<FEElasticMaterialPoint>();
-		FEElasticMaterialPoint& matrix_elastic = *angioPt->matPt->ExtractData<FEElasticMaterialPoint>();
-
-		vessel_elastic.m_rt = elastic_pt.m_rt;//spatial position
-		vessel_elastic.m_r0 = elastic_pt.m_r0;//material position
-		vessel_elastic.m_F = elastic_pt.m_F;//deformation gradient
-		vessel_elastic.m_J = elastic_pt.m_J;//determinate
+		FEElasticMaterialPoint * vessel_elastic = angioPt->vessPt->ExtractData<FEElasticMaterialPoint>();
+		FEElasticMaterialPoint * matrix_elastic = angioPt->matPt->ExtractData<FEElasticMaterialPoint>();
+		FEBiphasicMaterialPoint * matrix_biphasic = angioPt->matPt->ExtractData<FEBiphasicMaterialPoint>();
+		FEBiphasicMaterialPoint * bmp = angioPt->ExtractData<FEBiphasicMaterialPoint>();
 		
-		matrix_elastic.m_rt = elastic_pt.m_rt;
-		matrix_elastic.m_r0 = elastic_pt.m_r0;
-		matrix_elastic.m_F = elastic_pt.m_F;
-		matrix_elastic.m_J = elastic_pt.m_J;
+		//copy multiphasic params from matrixz bipahsic material
+		bmp->m_p = matrix_biphasic->m_p;
+		bmp->m_gradp = matrix_biphasic->m_gradp;
+		bmp->m_w = matrix_biphasic->m_w;
+		bmp->m_pa = matrix_biphasic->m_pa;
+		bmp->m_phi0 = matrix_biphasic->m_phi0;
+		bmp->m_phi0p = matrix_biphasic->m_phi0p;
+		bmp->m_phi0hat = matrix_biphasic->m_phi0hat;
+		bmp->m_Jp = matrix_biphasic->m_Jp;
+		//consider going deeper if needed
 
-		mat3ds activeStress = AngioStress(*angioPt) ;
-		vessel_elastic.m_s = common_properties->vessel_material->Stress(*angioPt->vessPt);
-		matrix_elastic.m_s = matrix_material->GetElasticMaterial()->Stress(*angioPt->matPt);
+		vessel_elastic->m_rt = elastic_pt.m_rt;//spatial position
+		vessel_elastic->m_r0 = elastic_pt.m_r0;//material position
+		vessel_elastic->m_F = elastic_pt.m_F;//deformation gradient
+		vessel_elastic->m_J = elastic_pt.m_J;//determinate
 
-		s = activeStress + angioPt->vessel_weight*vessel_elastic.m_s + angioPt->matrix_weight*matrix_elastic.m_s;
+		matrix_elastic->m_rt = elastic_pt.m_rt;
+		matrix_elastic->m_r0 = elastic_pt.m_r0;
+		matrix_elastic->m_F = elastic_pt.m_F;
+		matrix_elastic->m_J = elastic_pt.m_J;
+
+		mat3ds activeStress = AngioStress(*angioPt);
+		vessel_elastic->m_s = common_properties->vessel_material->Stress(*angioPt->vessPt);
+		matrix_elastic->m_s = this->GetElasticMaterial()->Stress(*angioPt);
+
+		s = activeStress + angioPt->vessel_weight*vessel_elastic->m_s + angioPt->matrix_weight*matrix_elastic->m_s;
 	}
 	return s;
 }
 
 //-----------------------------------------------------------------------------
-tens4ds FEAngioMaterial::Tangent(FEMaterialPoint& mp)
+tens4ds FEAngioMaterialMultiPhasic::Tangent(FEMaterialPoint& mp)
 {
 	FEElasticMaterialPoint& elastic_pt = *mp.ExtractData<FEElasticMaterialPoint>();
 	FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
 	tens4ds s(0.0);
-	if(angioPt)
+	if (angioPt)
 	{
+		FEBiphasicMaterialPoint * matrix_biphasic = angioPt->matPt->ExtractData<FEBiphasicMaterialPoint>();
+		FEBiphasicMaterialPoint * bmp = angioPt->ExtractData<FEBiphasicMaterialPoint>();
+
+		//copy multiphasic params from matrixz bipahsic material
+		bmp->m_p = matrix_biphasic->m_p;
+		bmp->m_gradp = matrix_biphasic->m_gradp;
+		bmp->m_w = matrix_biphasic->m_w;
+		bmp->m_pa = matrix_biphasic->m_pa;
+		bmp->m_phi0 = matrix_biphasic->m_phi0;
+		bmp->m_phi0p = matrix_biphasic->m_phi0p;
+		bmp->m_phi0hat = matrix_biphasic->m_phi0hat;
+		bmp->m_Jp = matrix_biphasic->m_Jp;
+
 		FEElasticMaterialPoint& vessel_elastic = *angioPt->vessPt->ExtractData<FEElasticMaterialPoint>();
 		vessel_elastic.m_rt = elastic_pt.m_rt;
 		vessel_elastic.m_r0 = elastic_pt.m_r0;
@@ -437,19 +468,19 @@ tens4ds FEAngioMaterial::Tangent(FEMaterialPoint& mp)
 		matrix_elastic.m_r0 = elastic_pt.m_r0;
 		matrix_elastic.m_F = elastic_pt.m_F;
 		matrix_elastic.m_J = elastic_pt.m_J;
-		s = angioPt->vessel_weight*common_properties->vessel_material->Tangent(*angioPt->vessPt) + angioPt->matrix_weight*matrix_material->GetElasticMaterial()->Tangent(*angioPt->matPt);
+		s = angioPt->vessel_weight*common_properties->vessel_material->Tangent(*angioPt->vessPt) + angioPt->matrix_weight*matrix_material->Tangent(*angioPt);
 	}
 	return s;
 }
-
-double FEAngioMaterial::StrainEnergyDensity(FEMaterialPoint& mp)
+/*
+double FEAngioMaterialMultiPhasic::StrainEnergyDensity(FEMaterialPoint& mp)
 {
 	FEElasticMaterialPoint& elastic_pt = *mp.ExtractData<FEElasticMaterialPoint>();
 	FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
-    
+
 	// calculate strain energy density
 	double sed = 0.0;
-	if(angioPt)
+	if (angioPt)
 	{
 		FEElasticMaterialPoint& vessel_elastic = *angioPt->vessPt->ExtractData<FEElasticMaterialPoint>();
 		vessel_elastic.m_rt = elastic_pt.m_rt;
@@ -465,8 +496,9 @@ double FEAngioMaterial::StrainEnergyDensity(FEMaterialPoint& mp)
 	}
 	return sed;
 }
+*/
 
-void FEAngioMaterial::UpdateGDMs()
+void FEAngioMaterialMultiPhasic::UpdateGDMs()
 {
 	common_properties->UpdateGDMs();
 }
@@ -476,7 +508,7 @@ void FEAngioMaterial::UpdateGDMs()
 // FEAngioMaterial - ApplySym
 //      Determine if symmetry is turned on, if so create the symmetry vectors
 ///////////////////////////////////////////////////////////////////////
-void FEAngioMaterial::ApplySym()
+void FEAngioMaterialMultiPhasic::ApplySym()
 {
 	if (m_cultureParams.m_symmetry_plane.x != 0)															// Turn on x symmetry
 		sym_planes[0] = 1;
@@ -498,15 +530,16 @@ void FEAngioMaterial::ApplySym()
 
 	if ((m_cultureParams.m_symmetry_plane.x != 0) && (m_cultureParams.m_symmetry_plane.y != 0) && (m_cultureParams.m_symmetry_plane.z != 0))								// Turn on x y and z symmetry
 		sym_planes[6] = 1;
-	
+
 	if (sym_planes[0] + sym_planes[1] + sym_planes[2] + sym_planes[3] + sym_planes[4] + sym_planes[5] + sym_planes[6] != 0)
-		sym_on = true;														
+		sym_on = true;
 
 	return;
 }
 
 //-----------------------------------------------------------------------------
-FEMaterialPoint* FEAngioMaterial::CreateMaterialPointData()
+FEMaterialPoint* FEAngioMaterialMultiPhasic::CreateMaterialPointData()
 {
-	return new FEAngioMaterialPoint(new FEFiberMaterialPoint(FEElasticMaterial::CreateMaterialPointData()), common_properties->vessel_material->CreateMaterialPointData(), matrix_material->CreateMaterialPointData());
+	return new FEAngioMaterialPoint(FEMultiphasic::CreateMaterialPointData(), common_properties->vessel_material->CreateMaterialPointData(), matrix_material->CreateMaterialPointData());
 }
+#endif

@@ -68,8 +68,8 @@ void BC::CheckBC(Segment &seg)
 		FEMesh * mesh = culture->m_pmat->m_pangio->GetMesh();
 		double r[3];
 		FESolidElement * se = mesh->FindSolidElement(seg.tip_c(1).pt.r, r);
-		FEAngioMaterial * angm;
-		if (se && (angm = dynamic_cast<FEAngioMaterial*>(culture->m_pmat->m_pangio->m_fem->GetMaterial(se->GetMatID()))))
+		FEAngioMaterialBase * angm;
+		if (se && (angm = dynamic_cast<FEAngioMaterialBase*>(culture->m_pmat->m_pangio->m_fem->GetMaterial(se->GetMatID()))))
 		{
 			GridPoint & cpt = seg.tip(1).pt;
 			cpt.q = vec3d(r[0], r[1], r[2]);
@@ -309,7 +309,7 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 	{
 		assert(seg.tip_c(1).pt.nelem != -1);
 		seg.Update();
-		if (seg.length() >= culture->m_cultParams->min_segment_length)
+		if (seg.length() >= culture->m_cultParams->min_segment_length && seg.length() != 0.0)
 		{
 			seg.tip(0).bactive = false;
 			seg.tip(1).bactive = false;
@@ -332,7 +332,7 @@ void BouncyBC::HandleBoundary(Segment & seg, vec3d lastGoodPt, double * rs, FESo
 		seg.Update();
 		seg.tip(0).bactive = false;
 		seg.tip(1).bactive = false;
-		if (seg.length() >= culture->m_cultParams->min_segment_length)
+		if (seg.length() >= culture->m_cultParams->min_segment_length && seg.length() != 0.0)
 		{
 			culture->AddSegment(seg);
 			found0 = true;
@@ -431,10 +431,10 @@ MBC::MBC(FEModel * model) : FEMaterial(model) //-V730
 	
 }
 
-bool MBC::acceptBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1)
+bool MBC::acceptBoundary(FEAngioMaterialBase* mat0, FEAngioMaterialBase* mat1)
 {
 	assert(mat0 == culture->m_pmat);
-	return (mat0->common_properties->bc->angio_boundary_groups & mat1->common_properties->bc->angio_boundary_groups) != 0;
+	return (mat0->GetCommonAngioProperties()->bc->angio_boundary_groups & mat1->GetCommonAngioProperties()->bc->angio_boundary_groups) != 0;
 }
 
 PassThroughMBC::PassThroughMBC(FEModel* model) : MBC(model)
@@ -445,7 +445,7 @@ PassThroughMBC::PassThroughMBC(FEModel* model) : MBC(model)
 
 //this function splits the segment between the cultures mat0 is the originating material while 
 //mat1 is the new material
-void PassThroughMBC::handleBoundary(FEAngioMaterial * mat0, FEAngioMaterial * mat1, Segment & seg)
+void PassThroughMBC::handleBoundary(FEAngioMaterialBase* mat0, FEAngioMaterialBase* mat1, Segment & seg)
 {
 	GridPoint oldtip = seg.tip(1).pt;
 	vec3d dir = seg.tip(1).pt.r - seg.tip(0).pt.r;

@@ -9,6 +9,7 @@
 #include "Culture.h"
 #include <FECore/FENormalProjection.h>
 #include "FiberManager.h"
+#include "CommonAngioProperites.h"
 
 
 class FEAngioMaterialPoint;
@@ -91,6 +92,16 @@ public:
 	virtual bool InitECMDensity(FEAngio * angio)=0;
 
 	virtual void ApplySym()=0;
+
+	virtual void SetupSurface() = 0;
+
+	virtual FEMaterial * GetMatrixMaterial()=0;
+
+	virtual CommonAngioProperties * GetCommonAngioProperties()=0;
+
+	virtual int GetID_ang() const = 0;
+
+	virtual FEMaterial * GetMaterial() = 0;
 
 	FEAngio * m_pangio;
 	CultureParameters m_cultureParams;

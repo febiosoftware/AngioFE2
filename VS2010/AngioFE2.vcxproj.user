@@ -16,7 +16,7 @@
     <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Debug\FEBio2.exe</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febio.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\bouncy\t4</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\Guidance\actual</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug OMP|x64'">
     <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Debug OMP\FEBio2.exe</LocalDebuggerCommand>
@@ -39,7 +39,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Release\FEBio2.exe</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febioRelease.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
-    <LocalDebuggerWorkingDirectory>..\..\v2tests\actual\no_density_compression</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\Guidance\actual</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release OMP|x64'">

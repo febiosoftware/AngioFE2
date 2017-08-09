@@ -171,7 +171,7 @@ bool FEPlotMatrixTangent::Save(FEDomain& d, FEDataStream& str)
 		for (int j = 0; j<nint; ++j)
 		{
 			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
-			tens4ds ten = pmat->matrix_material->GetElasticMaterial()->Tangent(mp);
+			tens4ds ten = pmat->GetMatrixMaterial()->GetElasticMaterial()->Tangent(mp);
 			tens4ds sj = ten;
 			s += sj;
 		}
@@ -510,7 +510,7 @@ int GetLocalSoluteID(FEMaterial* pm, int nsol)
 bool FEPlotMatrixConectrationGradient::Save(FEDomain& d, FEDataStream& str)
 {
 	FEAngioMaterial * angio_mat = dynamic_cast<FEAngioMaterial*>(d.GetMaterial());
-	int nsid = GetLocalSoluteID(angio_mat->matrix_material, 1);
+	int nsid = GetLocalSoluteID(angio_mat->GetMatrixMaterial(), 1);
 
 	// make sure we have a valid index
 	if (nsid == -1) return false;
@@ -547,7 +547,7 @@ bool FEPlotMatrixSBMConectration::Save(FEDomain &d, FEDataStream& str)
 	FEMultiphasicShellDomain* psd = dynamic_cast<FEMultiphasicShellDomain*>(&d);
 	FEAngioMaterial * angio_mat = dynamic_cast<FEAngioMaterial*>(d.GetMaterial());
 	assert(angio_mat);
-	FEMaterial * matrix_mat = angio_mat->matrix_material;
+	FEMaterial * matrix_mat = angio_mat->GetMatrixMaterial();
 	if (pmd)
 	{
 		FEMultiphasic* pm = dynamic_cast<FEMultiphasic*>(matrix_mat);

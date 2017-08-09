@@ -4,6 +4,7 @@
 
 #include <FECore/FEElement.h>
 #include "FEAngioMaterial.h"
+#include "BC.h"
 
 const double PI = 3.141592653589793;
 std::vector<double> units3d(3, 1.0);
@@ -226,10 +227,16 @@ void FEAngioMaterialBase::AdjustMeshStiffness(FEMaterial* mat)
 
 		for (int k = 1; k <= Nsub; k++)									// For each subdivision...
 		{
+			//gracefully ignore very small segments
+			if (seg.length() < m_cultureParams.min_segment_length)
+			{
+				continue;
+			}
 			assert(seg.length() > 0.);
 			if (k == 1) {													// If this is the first subdivision, find the origin of the segment
 				subunit.tip(0).pt = seg.tip_c(0).pt;
 			}
+			
 
 			// Calculate the subdivision
 			vec3d v = seg.uvect();

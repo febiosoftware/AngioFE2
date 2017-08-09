@@ -13,6 +13,7 @@
 #include "FEAngioMaterial.h"
 #include "AngioPlot.h"
 #include "FEPressureMaterial.h"
+#include "FEAngioMaterialMultiPhasic.h"
 #ifdef SVN
 #include "svnrev.h"
 #else
@@ -23,6 +24,7 @@
 FEPluginFactory_T<AngioFETask       , FETASK_ID    > angiofe_task_factory("angio"   );
 FEPluginFactory_T<FESproutBodyForce , FEBODYLOAD_ID> angio_sprout_factory("sprout"  );
 FEPluginFactory_T<FEAngioMaterial   , FEMATERIAL_ID> angio_mat_factory   ("angio"   );
+FEPluginFactory_T<FEAngioMaterialMultiPhasic, FEMATERIAL_ID> angio_multipahsic_mat_factory("angio_multiphasic");
 FEPluginFactory_T<FEPressureMaterial, FEMATERIAL_ID> pressure_mat_factory("pressure");
 FEPluginFactory_T<CommonAngioProperties, FEMATERIAL_ID> common_angio_properties_factory("angio_properties");
 
@@ -130,7 +132,7 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 {
 	std::vector<FECoreFactory *> addon_classes{ 
 		&angiofe_task_factory, &angio_sprout_factory, &angio_mat_factory,
-		&angio_mat_factory, &pressure_mat_factory,
+		&angio_mat_factory, &angio_multipahsic_mat_factory, &pressure_mat_factory,
 		//plot classes
 		&plot_angio_stress, &plot_angio_stress, &plot_angio_eff_stress,
 		&plot_angio_ecm, &plot_angio_alpha, &plot_angio_gradient, &plot_angio_gradient_center,

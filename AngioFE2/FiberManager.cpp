@@ -374,7 +374,7 @@ void FiberInitializer::GridPointOfIntPoint(FESolidElement * se, int ei, int intp
 	gp.q = vec3d(se->gr(intp), se->gs(intp), se->gt(intp));
 
 	//not used in calculations
-	//gp.nelem = se->GetID();
+	//gp.nelem = se->GetID_ang();
 	gp.elemindex = ei;
 
 	//the global position could also be set

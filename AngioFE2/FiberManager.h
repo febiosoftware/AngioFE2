@@ -4,7 +4,7 @@
 #include "Segment.h"
 #include "FECore/FEMaterial.h"
 
-class FEAngioMaterial;
+class FEAngioMaterialBase;
 class FiberManager;
 
 //the base class for classes that initialize the fibers
@@ -55,7 +55,7 @@ public:
 class FiberManager
 {
 public:
-	explicit FiberManager(FEAngioMaterial * mat) : material(mat){  }
+	explicit FiberManager(FEAngioMaterialBase * mat) : material(mat){  }
 	virtual ~FiberManager(){}
 
 	vec3d GetFiberDirection(GridPoint & pt, double& lambda);
@@ -67,7 +67,7 @@ public:
 	void Update();
 
 private:
-	FEAngioMaterial * material;
+	FEAngioMaterialBase * material;
 	std::vector<std::vector<double>> fiber_at_int_pts[4];
 	std::vector<std::vector<double>> m1_at_int_pts[4];
 	std::vector<std::vector<double>> m2_at_int_pts[4];

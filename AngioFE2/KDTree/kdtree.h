@@ -868,7 +868,6 @@ DIM KDTree<DIM, DIMR>::nearestCondition(DIM item, std::function<bool(DIM)> condi
 	{
 		return best_node->dimensions;
 	}
-	assert(false);
 	return item;
 }
 
