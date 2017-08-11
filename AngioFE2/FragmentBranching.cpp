@@ -332,7 +332,7 @@ void PsuedoDeferedFragmentBranching::GrowSegment(std::set<BranchPoint>::iterator
 				}
 			}
 			//failed to place the tip in another element
-			assert(found);
+			//assert(found);
 		}
 	}
 	ProcessNewSegments(bp->emerge_time,grow_time);
