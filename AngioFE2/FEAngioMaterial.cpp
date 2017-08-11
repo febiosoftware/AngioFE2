@@ -38,7 +38,7 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 END_PARAMETER_LIST();
 
 //-----------------------------------------------------------------------------
-FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticFiberMaterial(pfem)
+FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticFiberMaterial(pfem), FEAngioMaterialBase()
 {
 	AddProperty(&common_properties, "common_properties");
 	AddProperty(&matrix_material, "matrix");

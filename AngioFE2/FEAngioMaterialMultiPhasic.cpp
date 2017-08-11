@@ -42,7 +42,7 @@ END_PARAMETER_LIST();
 
 //-----------------------------------------------------------------------------
 FEAngioMaterialMultiPhasic::FEAngioMaterialMultiPhasic(FEModel* pfem) :
-	FEMultiphasic(pfem)
+	FEMultiphasic(pfem), FEAngioMaterialBase()
 {
 	AddProperty(&common_properties, "common_properties");
 	AddProperty(&matrix_material, "matrix");

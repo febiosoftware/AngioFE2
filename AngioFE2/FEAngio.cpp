@@ -189,7 +189,7 @@ bool FEAngio::InitFEM()
 			m_pmat.emplace_back(cmat);
 			m_pmat_ids.emplace_back(cmat->GetID_ang());
 			//TODO: check that material parameters are set here
-			cmat->ApplySym();
+			//cmat->ApplySym();
 			cmat->SetFEAngio(this);
 			cmat->UpdateSproutStressScaling();
 		}
