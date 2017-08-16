@@ -428,6 +428,7 @@ mat3ds FEAngioMaterialMultiPhasic::Stress(FEMaterialPoint& mp)
 		matrix_elastic->m_F = elastic_pt.m_F;
 		matrix_elastic->m_J = elastic_pt.m_J;
 
+#pragma omp critical
 		mat3ds activeStress = AngioStress(*angioPt);
 		vessel_elastic->m_s = common_properties->vessel_material->Stress(*angioPt->vessPt);
 		matrix_elastic->m_s = this->GetElasticMaterial()->Stress(*angioPt);
@@ -439,8 +440,7 @@ mat3ds FEAngioMaterialMultiPhasic::Stress(FEMaterialPoint& mp)
 
 //-----------------------------------------------------------------------------
 tens4ds FEAngioMaterialMultiPhasic::Tangent(FEMaterialPoint& mp)
-{
-	FEElasticMaterialPoint& elastic_pt = *mp.ExtractData<FEElasticMaterialPoint>();
+{	FEElasticMaterialPoint& elastic_pt = *mp.ExtractData<FEElasticMaterialPoint>();
 	FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
 	tens4ds s(0.0);
 	if (angioPt)
