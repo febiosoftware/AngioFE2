@@ -8,6 +8,7 @@
 #include "FEBioPlot/FEBioPlotFile2.h"
 class FEAngioMaterialBase;
 class Culture;
+class FEAngio;
 
 //the interface for all operations that modify the growth direction
 //some examples of this include deflection due to gradient and change in direction for anastamosis
@@ -54,10 +55,14 @@ public:
 	
 	//gradient version of elemnet functions
 	vec3d  GetDataGradientFloat(int domain, int element_index, Segment::TIP& tip, int size, int offset);
-	void GradientEnabled(bool st) { gradient_defined = st; }
+	void GradientEnabled(bool st, FEAngio * fe_angio) { gradient_defined = st; angio = fe_angio; }
 private:
 	std::vector<std::vector<float>> fpdata;
 	std::vector<double> unrolled_data;
+	std::vector<double> projected_nodal_data;
+	std::vector<int> node_hit_count;
+	FEAngio * angio = nullptr;
+
 	bool gradient_defined = false;
 };
 
@@ -138,7 +143,10 @@ protected:
 class GradientPlot2GGP : public Plot2GGP
 {
 public:
-	explicit GradientPlot2GGP(FEModel * model) : Plot2GGP(model) { archive.GradientEnabled(true); }
+	explicit GradientPlot2GGP(FEModel * model) : Plot2GGP(model) {  }
+
+	void SetCulture(Culture * cp) override;
+
 	virtual ~GradientPlot2GGP() {}
 	//will be called once before growth per FE timestep
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
@@ -355,6 +363,16 @@ class MatrixInverseGGP : public GGP
 public:
 	explicit MatrixInverseGGP(FEModel * model) : GGP(model) {  }
 	virtual ~MatrixInverseGGP() {}
+
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
+};
+
+//applies unit to the diagonal of the matrix
+class UnitGGP : public GGP
+{
+public:
+	explicit UnitGGP(FEModel * model) : GGP(model) {  }
+	virtual ~UnitGGP() {}
 
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 };

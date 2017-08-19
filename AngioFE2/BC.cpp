@@ -469,6 +469,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterialBase* mat0, FEAngioMaterialBa
 			seg.tip(1).pt.elemindex = seg.tip(0).pt.elemindex;
 			seg.tip(1).pt.nelem = seg.tip(0).pt.nelem;
 			seg.tip(1).pt.ndomain = seg.tip(0).pt.ndomain;
+			seg.tip(1).bactive = false;
 			seg.Update();
 			
 			if (seg.length() > mat0->m_cultureParams.min_segment_length)
@@ -500,7 +501,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterialBase* mat0, FEAngioMaterialBa
 			FESolidElement & se = reinterpret_cast<FESolidElement&>(seg.tip(1).pt.ndomain->ElementRef(seg.tip(1).pt.elemindex));
 			seg.tip(1).pt.r = surf->Local2Global(*surfe, rs[0], rs[1]);
 			seg.tip(1).pt.q = mat0->m_pangio->FindRST(seg.tip(1).pt.r, vec2d(rs[0], rs[1]), &se);
-
+			seg.tip(1).bactive = false;
 			seg.Update();
 			
 			if ((seg.length() > mat0->m_cultureParams.min_segment_length) && (seg.length() < tdist))
@@ -546,6 +547,7 @@ void PassThroughMBC::handleBoundary(FEAngioMaterialBase* mat0, FEAngioMaterialBa
 			s2.tip(0).pt.q = mat1->m_pangio->FindRST(s2.tip(0).pt.r, vec2d(rs[0], rs[1]), &se1);
 			
 			s2.tip(0).bactive = false;
+			s2.tip(1).bactive = true;
 			
 			s2.tip(0).pt.r = mat1->m_pangio->Position(s2.tip(0).pt);
 			s2.Update();

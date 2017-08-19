@@ -160,6 +160,8 @@ PsuedoDeferedFragmentBranching::PsuedoDeferedFragmentBranching(FEModel * model) 
 }
 void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double start_time, double grow_time)
 {
+	if (!tip->bactive)
+		return;
 	assert(tip->length_to_branch > 0.0);
 	assert(tip->wait_time_to_branch >= 0.0);
 	static int nseg_add = 0;

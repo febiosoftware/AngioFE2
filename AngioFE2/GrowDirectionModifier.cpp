@@ -246,9 +246,10 @@ vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, 
 
 	if(collagen_direction)
 	{
-		mat3d id(1.0, 0.0, 0.0,
-			0.0, 1.0, 0.0,
-			0.0, 0.0, 1.0);
+		mat3d id(coll_dir.x, 0.0, 0.0,
+			0.0, coll_dir.y, 0.0,
+			0.0, 0.0, coll_dir.z);
+		coll_dir = vec3d(1, 1, 1);
 		mat3d ct = collagen_direction->Operation(id, coll_dir, mat, tip);
 		coll_dir = ct * coll_dir;
 	}
@@ -489,14 +490,22 @@ void GDMArchive::WriteData(int nid, std::vector<float>& data)
 	//consider preallocating unrolled data
 	if(gradient_defined)
 	{
-		for (int i = 0; i < fpdata.size(); i++)
-		{
-			for (int k = 0; k < fpdata[i].size(); k++)
+		node_hit_count.resize(angio->GetMesh()->Nodes(), 0);
+		projected_nodal_data.resize(angio->GetMesh()->Nodes(), 0);
+		std::vector<int> dl;
+		angio->GetMesh()->DomainListFromMaterial(angio->m_pmat_ids, dl);
+
+			FESolidDomain & d = reinterpret_cast<FESolidDomain&>(angio->GetMesh()->Domain(dl[nid-1]));
+			for (int j = 0; j < d.Elements(); j++)
 			{
-				unrolled_data.push_back(fpdata[i][k]);
+				FESolidElement & e = reinterpret_cast<FESolidElement&>(d.ElementRef(j));
+				for (int k = 0; k< e.Nodes(); k++)
+				{
+					node_hit_count[e.m_node[k]]++;
+					projected_nodal_data[e.m_node[k]] += fpdata[nid-1][j];
+				}
 			}
 		}
-	}
 }
 mat3dd GDMArchive::GetDataMat3dd(int domain, int element_index)
 {
@@ -531,7 +540,13 @@ vec3d  GDMArchive::GetDataVec3d(int domain, int element_index)
 vec3d  GDMArchive::GetDataGradientFloat(int domain, int element_index, Segment::TIP& tip,int size,int offset)
 {
 	FESolidElement * tse = &tip.pt.ndomain->Element(element_index);
-	vec3d d1 = FEAngio::gradient(tse, unrolled_data, tip.pt.r, size, offset);
+	std::vector<double> v2g;
+	v2g.resize(tse->Nodes());
+	for(int i =0; i < tse->Nodes();i++)
+	{
+		v2g[i] = projected_nodal_data[tse->m_node[i]] / node_hit_count[tse->m_node[i]];
+	}
+	vec3d d1 = FEAngio::gradient(tse,v2g, tip.pt.q, size, offset);
 	return d1;
 }
 
@@ -775,6 +790,12 @@ mat3d GradientPlot2GGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat,
 	}
 
 	return GGP::Operation(in, fin, mat, tip);
+}
+
+void GradientPlot2GGP::SetCulture(Culture * cp) 
+{
+	archive.GradientEnabled(true, cp->m_pmat->m_pangio);
+	GGP::SetCulture(cp);
 }
 
 BEGIN_PARAMETER_LIST(GradientPlot2GGP, Plot2GGP)
@@ -1068,6 +1089,16 @@ END_PARAMETER_LIST();
 mat3d MatrixInverseGGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip)
 {
 	return GGP::Operation(in.inverse(), fin, mat, tip);
+}
+
+mat3d UnitGGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip)
+{
+	vec3d temp(in[0][0], in[1][1], in[2][2]);
+	temp.unit();
+	in[0][0] = temp.x;
+	in[1][1] = temp.y;
+	in[2][2] = temp.z;
+	return GGP::Operation(in, fin, mat, tip);
 }
 
 mat3d AssertGGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip)
