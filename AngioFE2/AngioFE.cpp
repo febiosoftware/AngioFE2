@@ -64,6 +64,7 @@ FEPluginFactory_T<ArcCosGGP, FEMATERIAL_ID> arc_cos_ggp_factory("arccos_ggp");
 FEPluginFactory_T<ArcSinGGP, FEMATERIAL_ID> arc_sin_ggp_factory("arcsin_ggp");
 FEPluginFactory_T<CosGGP, FEMATERIAL_ID> cos_ggp_factory("cos_ggp");
 FEPluginFactory_T<SinGGP, FEMATERIAL_ID> sin_ggp_factory("sin_ggp");
+FEPluginFactory_T<UnitGGP, FEMATERIAL_ID> unit_diagonal_factory("unit_diagonal_ggp");
 FEPluginFactory_T<SetterGGP, FEMATERIAL_ID> setter_ggp_factory("setter_ggp");
 FEPluginFactory_T<MatrixInverseGGP, FEMATERIAL_ID> matrix_inverse_ggp_factory("matrix_inverse_ggp");
 FEPluginFactory_T<AssertGGP, FEMATERIAL_ID> assert_ggp_factory("assert_ggp");
@@ -170,7 +171,7 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		&threshold_ggp_factory, &nodal_data_ggp_factory,
 		&arc_cos_ggp_factory, &arc_sin_ggp_factory, &cos_ggp_factory, &sin_ggp_factory,
 		&matrix_inverse_ggp_factory, &eigen_vectors_ggp_factory, &eigen_values_ggp_factory,
-		&setter_ggp_factory,  &assert_ggp_factory,
+		&setter_ggp_factory,  &assert_ggp_factory, &unit_diagonal_factory,
 
 		//other needed items
 		&common_angio_properties_factory
