@@ -490,6 +490,8 @@ void GDMArchive::WriteData(int nid, std::vector<float>& data)
 	//consider preallocating unrolled data
 	if(gradient_defined)
 	{
+		node_hit_count.clear();
+		projected_nodal_data.clear();
 		node_hit_count.resize(angio->GetMesh()->Nodes(), 0);
 		projected_nodal_data.resize(angio->GetMesh()->Nodes(), 0);
 		std::vector<int> dl;
@@ -795,7 +797,7 @@ mat3d GradientPlot2GGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat,
 void GradientPlot2GGP::SetCulture(Culture * cp) 
 {
 	archive.GradientEnabled(true, cp->m_pmat->m_pangio);
-	GGP::SetCulture(cp);
+	Plot2GGP::SetCulture(cp);
 }
 
 BEGIN_PARAMETER_LIST(GradientPlot2GGP, Plot2GGP)
