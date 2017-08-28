@@ -428,12 +428,13 @@ mat3ds FEAngioMaterialMultiPhasic::Stress(FEMaterialPoint& mp)
 		matrix_elastic->m_F = elastic_pt.m_F;
 		matrix_elastic->m_J = elastic_pt.m_J;
 
-#pragma omp critical
-		mat3ds activeStress = AngioStress(*angioPt);
 		vessel_elastic->m_s = common_properties->vessel_material->Stress(*angioPt->vessPt);
 		matrix_elastic->m_s = this->GetElasticMaterial()->Stress(*angioPt);
-
-		s = activeStress + angioPt->vessel_weight*vessel_elastic->m_s + angioPt->matrix_weight*matrix_elastic->m_s;
+//#pragma omp critical
+		{
+			mat3ds activeStress = AngioStress(*angioPt);
+			s = activeStress + angioPt->vessel_weight*vessel_elastic->m_s + angioPt->matrix_weight*matrix_elastic->m_s;
+		}
 	}
 	return s;
 }
