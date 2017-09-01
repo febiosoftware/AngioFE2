@@ -51,7 +51,13 @@ public:
 
 	CommonAngioProperties * GetCommonAngioProperties() override { return common_properties; };
 
-	int GetID_ang() const override { return FEElasticFiberMaterial::GetID(); };
+	int GetID_ang() override { 
+		FECoreBase  * base = GetParent();
+		if(base)
+		{
+			return base->GetID();
+		}
+		return FEElasticFiberMaterial::GetID(); };
 
 	FEMaterial * GetMaterial()override { return dynamic_cast<FEMaterial*>(this); }
 	//begin functions from FEMaterial

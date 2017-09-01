@@ -341,7 +341,6 @@
     <ClInclude Include="..\AngioFE2\FEAngio.h" />
     <ClInclude Include="..\AngioFE2\FEAngioMaterial.h" />
     <ClInclude Include="..\AngioFE2\FEAngioMaterialBase.h" />
-    <ClInclude Include="..\AngioFE2\FEAngioMaterialMultiPhasic.h" />
     <ClInclude Include="..\AngioFE2\FEAngioMaterialPoint.h" />
     <ClInclude Include="..\AngioFE2\FEPressureMaterial.h" />
     <ClInclude Include="..\AngioFE2\FEProbabilityDistribution.h" />
@@ -370,7 +369,6 @@
     <ClCompile Include="..\AngioFE2\FEAngio.cpp" />
     <ClCompile Include="..\AngioFE2\FEAngioMaterial.cpp" />
     <ClCompile Include="..\AngioFE2\FEAngioMaterialBase.cpp" />
-    <ClCompile Include="..\AngioFE2\FEAngioMaterialMultiPhasic.cpp" />
     <ClCompile Include="..\AngioFE2\FEAngioMaterialPoint.cpp" />
     <ClCompile Include="..\AngioFE2\FEPressureMaterial.cpp" />
     <ClCompile Include="..\AngioFE2\FEProbabilityDistribution.cpp" />

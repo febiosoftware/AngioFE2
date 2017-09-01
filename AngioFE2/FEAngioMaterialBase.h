@@ -99,7 +99,7 @@ public:
 
 	virtual CommonAngioProperties * GetCommonAngioProperties()=0;
 
-	virtual int GetID_ang() const = 0;
+	virtual int GetID_ang() = 0;
 
 	virtual FEMaterial * GetMaterial() = 0;
 

@@ -96,8 +96,19 @@ bool FEAngioMaterial::Init()
 
 	// add the user sprouts
 	std::vector<int> matls;
-	matls.emplace_back(this->GetID_ang());
+	
 	FEMesh& mesh = GetFEModel()->GetMesh();
+	
+	FECoreBase * base = GetParent();
+	if(base)
+	{
+		matls.emplace_back(base->GetID());
+	}
+	else
+	{
+		matls.emplace_back(this->GetID_ang());
+	}
+
 	mesh.DomainListFromMaterial(matls, domains);
 	for (size_t i = 0; i < domains.size(); i++)
 	{
@@ -134,16 +145,18 @@ void FEAngioMaterial::FinalizeInit()
 	{
 		FESolidDomain& dom = reinterpret_cast<FESolidDomain&>(mesh->Domain(n));
 		FEMaterial* pm = dom.GetMaterial();
-		FEAngioMaterial* pam = nullptr;
-		if (strcmp(pm->GetTypeStr(), "angio") == 0)
+		FEAngioMaterial* pam = dynamic_cast<FEAngioMaterial*>(pm);
+
+		if(!pam)
 		{
-			pam = dynamic_cast<FEAngioMaterial*>(pm);
+			FEMultiphasic * mmat = dynamic_cast<FEMultiphasic*>(pm);
+			if(mmat)
+			{
+				pam = dynamic_cast<FEAngioMaterial*>(mmat->GetSolid());
+			}
+			//consider adding the rest of the phasic materials
 		}
-		else
-		{
-			assert(false);
-			//pam = dynamic_cast<FEAngioMaterial*>(pm->FindComponentByType("angio"));
-		}
+
 		if (pam == this)
 		{
 			// loop over all elements
@@ -176,6 +189,10 @@ void FEAngioMaterial::FinalizeInit()
 					}
 				}
 			}
+		}
+		else
+		{
+			assert(false);
 		}
 	}
 	for (int i = 0; i < domainptrs[0]->Nodes(); i++)

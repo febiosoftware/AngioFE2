@@ -18,7 +18,6 @@
 #include <FECore/FEAnalysis.h>
 #include "FECore/FESolidDomain.h"
 #include "FEAngioMaterial.h"
-#include "FEAngioMaterialMultiPhasic.h"
 #include "FEBioMech/FEElasticMixture.h"
 #include "Elem.h"
 #include "angio3d.h"
@@ -183,11 +182,30 @@ bool FEAngio::InitFEM()
 {
 	for (int i = 0; i < m_fem->Materials(); i++)
 	{
-		FEAngioMaterialBase * cmat = dynamic_cast<FEAngioMaterialBase*>(m_fem->GetMaterial(i));
+		FEAngioMaterial * cmat = nullptr;
+		FEMaterial * mat = m_fem->GetMaterial(i);
+		int id = -1;
+		cmat = dynamic_cast<FEAngioMaterial*>(mat);
+		if(!cmat)
+		{
+			FEMultiphasic * mmat = dynamic_cast<FEMultiphasic*>(mat);
+			if(mmat)
+			{
+				cmat = dynamic_cast<FEAngioMaterial*>(mmat->GetSolid());
+				id = mmat->GetID();
+			}
+			//use other phasic materials here
+		}
+		else
+		{
+			id = cmat->GetID_ang();
+		}
+
 		if (cmat)
 		{
+			assert(id != -1);
 			m_pmat.emplace_back(cmat);
-			m_pmat_ids.emplace_back(cmat->GetID_ang());
+			m_pmat_ids.emplace_back(id);
 			//TODO: check that material parameters are set here
 			//cmat->ApplySym();
 			cmat->SetFEAngio(this);
@@ -397,6 +415,7 @@ void FEAngio::ForEachNode(std::function<void(FENode &)> f, std::vector<int> & ma
 	FEMesh & mesh = m_fem->GetMesh();
 	std::vector<int> dl;
 	mesh.DomainListFromMaterial(matls, dl);
+	assert(matls.size() == 0 || dl.size());
 	for (size_t i = 0; i < dl.size(); i++)
 	{
 		FEDomain & d = mesh.Domain(dl[i]);
@@ -419,6 +438,7 @@ void FEAngio::ForEachNodePar(std::function<void(FENode &)> f, std::vector<int> &
 	FEMesh & mesh = m_fem->GetMesh();
 	std::vector<int> dl;
 	mesh.DomainListFromMaterial(matls, dl);
+	assert((matls.size() ==0 )|| dl.size());
 	for (size_t i = 0; i < dl.size(); i++)
 	{
 		FEDomain & d = mesh.Domain(dl[i]);
@@ -446,6 +466,7 @@ void FEAngio::ForEachElement(std::function<void(FESolidElement&, FESolidDomain&)
 	FEMesh & mesh = m_fem->GetMesh();
 	std::vector<int> dl;
 	mesh.DomainListFromMaterial(matls, dl);
+	assert(matls.size() == 0 || dl.size());
 	for (size_t i = 0; i < dl.size(); i++)
 	{
 		FESolidDomain & d = reinterpret_cast<FESolidDomain&>(mesh.Domain(dl[i]));
@@ -461,6 +482,7 @@ void FEAngio::ForEachElementPar(std::function<void(FESolidElement&, FESolidDomai
 	FEMesh & mesh = m_fem->GetMesh();
 	std::vector<int> dl;
 	mesh.DomainListFromMaterial(matls, dl);
+	assert(matls.size() ==0 || dl.size());
 	for (size_t i = 0; i < dl.size(); i++)
 	{
 		FESolidDomain & d = reinterpret_cast<FESolidDomain&>(mesh.Domain(dl[i]));

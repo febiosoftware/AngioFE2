@@ -202,7 +202,7 @@ void FEAngioMaterialBase::AdjustMeshStiffness(FEMaterial* mat)
 	int elem_num = 0;													// Element number
 	vec3d vess_vect;													// Vessel vector
 	std::vector<int> matls;
-	matls.emplace_back(mat->GetID());
+	matls.emplace_back(this->GetID_ang());
 	int Nsub = 2;														// Number of subdivisions used to calculate vessel orientation
 	double sub_scale = 1 / static_cast<double>(Nsub);									// Calculate the subdivision scale 
 	vec3d mid;
