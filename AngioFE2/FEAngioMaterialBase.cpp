@@ -6,7 +6,6 @@
 #include "FEAngioMaterial.h"
 #include "BC.h"
 
-const double PI = 3.141592653589793;
 std::vector<double> units3d(3, 1.0);
 
 //-----------------------------------------------------------------------------

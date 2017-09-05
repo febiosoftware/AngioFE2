@@ -67,6 +67,7 @@ FEPluginFactory_T<SetterGGP, FEMATERIAL_ID> setter_ggp_factory("setter_ggp");
 FEPluginFactory_T<MatrixInverseGGP, FEMATERIAL_ID> matrix_inverse_ggp_factory("matrix_inverse_ggp");
 FEPluginFactory_T<AssertGGP, FEMATERIAL_ID> assert_ggp_factory("assert_ggp");
 FEPluginFactory_T<NodalDataGGP, FEMATERIAL_ID> nodal_data_ggp_factory("nodal_data_ggp");
+FEPluginFactory_T<DirectionChangeGGP, FEMATERIAL_ID> direction_change_ggp_factory("direction_change_ggp");
 
 
 FEPluginFactory_T<ClassicFragmentSeeder      , FEMATERIAL_ID> classic_fragment_seeder_factory("classic"   );
@@ -169,7 +170,7 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		&threshold_ggp_factory, &nodal_data_ggp_factory,
 		&arc_cos_ggp_factory, &arc_sin_ggp_factory, &cos_ggp_factory, &sin_ggp_factory,
 		&matrix_inverse_ggp_factory, &eigen_vectors_ggp_factory, &eigen_values_ggp_factory,
-		&setter_ggp_factory,  &assert_ggp_factory, &unit_diagonal_factory,
+		&setter_ggp_factory,  &assert_ggp_factory, &unit_diagonal_factory, &direction_change_ggp_factory,
 
 		//other needed items
 		&common_angio_properties_factory

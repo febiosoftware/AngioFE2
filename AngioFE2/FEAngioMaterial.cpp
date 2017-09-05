@@ -12,8 +12,6 @@
 #include "angio3d.h"
 
 
-const double PI = 3.141592653589793;
-
 //-----------------------------------------------------------------------------
 BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	ADD_PARAMETER2(m_cultureParams.sprout_s_mag, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "a");

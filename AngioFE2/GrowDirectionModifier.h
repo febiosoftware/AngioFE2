@@ -10,6 +10,8 @@ class FEAngioMaterialBase;
 class Culture;
 class FEAngio;
 
+const double PI = 3.141592653589793;
+
 //the interface for all operations that modify the growth direction
 //some examples of this include deflection due to gradient and change in direction for anastamosis
 //in the future this can be used to change the direction based on vegf concentrations, also consider a modifier for the weight of the previous direction
@@ -292,9 +294,9 @@ public:
 
 	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
 	void Update() override {
-		GGP::Update();
 		statement->Update();
 		threshold->Update();
+		GGP::Update();
 	}
 	void SetCulture(Culture * cp) override
 	{
@@ -549,4 +551,19 @@ public:
 	//used to sort these by priority
 private:
 	std::unordered_map<int,bool> edge_element;
+};
+
+class DirectionChangeGGP : public GGP
+{
+public:
+	explicit DirectionChangeGGP(FEModel * model) : GGP(model) { AddProperty(&vector, "vector"); }
+	virtual ~DirectionChangeGGP() {}
+
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
+	void Update() override;
+	void SetCulture(Culture * cp) override;
+private:
+	double angle = PI / 2;
+	FEPropertyT<GGP> vector;
+	DECLARE_PARAMETER_LIST();
 };

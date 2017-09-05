@@ -191,6 +191,7 @@ bool FEAngio::InitFEM()
 			FEMultiphasic * mmat = dynamic_cast<FEMultiphasic*>(mat);
 			if(mmat)
 			{
+				FEMaterial * smat = mmat->GetSolid();
 				cmat = dynamic_cast<FEAngioMaterial*>(mmat->GetSolid());
 				id = mmat->GetID();
 			}

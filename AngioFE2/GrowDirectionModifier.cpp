@@ -1186,3 +1186,43 @@ void NodalDataGGP::SetCulture(Culture * cp)
 
 	GGP::SetCulture(cp);
 }
+
+mat3d DirectionChangeGGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip)
+{
+	vec3d temp(1, 1, 1);
+	vec3d temp1(1, 1, 1);
+	temp = in * temp;
+	temp.unit();
+
+	mat3d mi = vector->Operation(in, fin, mat, tip);
+	temp1 = mi * temp1;
+	temp1.unit();
+	if(acos(temp*temp1) > angle)
+	{
+		in *= mat3d(-1, 0, 0,
+			0, -1, 0,
+			0, 0, -1);
+	}
+
+	return GGP::Operation(in, fin, mat, tip);
+}
+
+void DirectionChangeGGP::Update()
+{
+	if (vector)
+	{
+		vector->Update();
+	}
+	GGP::Update();
+}
+void DirectionChangeGGP::SetCulture(Culture * cp)
+{
+	if (vector)
+		vector->SetCulture(cp);
+
+	GGP::SetCulture(cp);
+}
+
+BEGIN_PARAMETER_LIST(DirectionChangeGGP, GGP)
+ADD_PARAMETER(angle, FE_PARAM_DOUBLE, "angle");
+END_PARAMETER_LIST();
