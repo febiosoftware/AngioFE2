@@ -402,6 +402,26 @@ private:
 	DECLARE_PARAMETER_LIST();
 };
 
+class MatrixSetterGGP : public GGP
+{
+public:
+	//the user must do all initialization themselves
+	explicit MatrixSetterGGP(FEModel * model) : GGP(model), m(mat3d(1, 0, 0,
+		0, 1, 0,
+		0, 0, 1))
+	{}
+
+	virtual ~MatrixSetterGGP() {}
+	//will be called once before growth per FE timestep
+
+	void Update() override { GGP::Update(); }
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
+
+private:
+	mat3d m;//the matrix 
+	DECLARE_PARAMETER_LIST();
+};
+
 class AssertGGP : public GGP
 {
 public:
@@ -419,6 +439,27 @@ public:
 private:
 	mat3d m;//the matrix
 	double tolerance= 0.01;
+	DECLARE_PARAMETER_LIST();
+};
+
+class DirectionChangeGGP : public GGP
+{
+public:
+	explicit DirectionChangeGGP(FEModel * model) : GGP(model) { AddProperty(&vector, "vector"); }
+	virtual ~DirectionChangeGGP() {}
+
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
+	void Update() override;
+	void SetCulture(Culture * cp) override;
+	bool Init() override
+	{
+		if (vector.Init())
+			return GGP::Init();
+		return false;
+	}
+private:
+	double angle = PI / 2;
+	FEPropertyT<GGP> vector;
 	DECLARE_PARAMETER_LIST();
 };
 
@@ -551,19 +592,4 @@ public:
 	//used to sort these by priority
 private:
 	std::unordered_map<int,bool> edge_element;
-};
-
-class DirectionChangeGGP : public GGP
-{
-public:
-	explicit DirectionChangeGGP(FEModel * model) : GGP(model) { AddProperty(&vector, "vector"); }
-	virtual ~DirectionChangeGGP() {}
-
-	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
-	void Update() override;
-	void SetCulture(Culture * cp) override;
-private:
-	double angle = PI / 2;
-	FEPropertyT<GGP> vector;
-	DECLARE_PARAMETER_LIST();
 };

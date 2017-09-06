@@ -22,7 +22,7 @@
 //-----------------------------------------------------------------------------
 FEPluginFactory_T<AngioFETask       , FETASK_ID    > angiofe_task_factory("angio"   );
 FEPluginFactory_T<FESproutBodyForce , FEBODYLOAD_ID> angio_sprout_factory("sprout"  );
-FEPluginFactory_T<FEAngioMaterial   , FEMATERIAL_ID> angio_mat_factory   ("angio"   );
+FEPluginFactory_T<FEAngioMaterial   , FEMATERIAL_ID> angio_mat_factory   ("angio_mat"   );
 FEPluginFactory_T<FEPressureMaterial, FEMATERIAL_ID> pressure_mat_factory("pressure");
 FEPluginFactory_T<CommonAngioProperties, FEMATERIAL_ID> common_angio_properties_factory("angio_properties");
 
@@ -64,6 +64,7 @@ FEPluginFactory_T<CosGGP, FEMATERIAL_ID> cos_ggp_factory("cos_ggp");
 FEPluginFactory_T<SinGGP, FEMATERIAL_ID> sin_ggp_factory("sin_ggp");
 FEPluginFactory_T<UnitGGP, FEMATERIAL_ID> unit_diagonal_factory("unit_diagonal_ggp");
 FEPluginFactory_T<SetterGGP, FEMATERIAL_ID> setter_ggp_factory("setter_ggp");
+FEPluginFactory_T<MatrixSetterGGP, FEMATERIAL_ID> matrix_setter_ggp_factory("matrix_setter_ggp");
 FEPluginFactory_T<MatrixInverseGGP, FEMATERIAL_ID> matrix_inverse_ggp_factory("matrix_inverse_ggp");
 FEPluginFactory_T<AssertGGP, FEMATERIAL_ID> assert_ggp_factory("assert_ggp");
 FEPluginFactory_T<NodalDataGGP, FEMATERIAL_ID> nodal_data_ggp_factory("nodal_data_ggp");
@@ -170,7 +171,8 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		&threshold_ggp_factory, &nodal_data_ggp_factory,
 		&arc_cos_ggp_factory, &arc_sin_ggp_factory, &cos_ggp_factory, &sin_ggp_factory,
 		&matrix_inverse_ggp_factory, &eigen_vectors_ggp_factory, &eigen_values_ggp_factory,
-		&setter_ggp_factory,  &assert_ggp_factory, &unit_diagonal_factory, &direction_change_ggp_factory,
+		&setter_ggp_factory, &matrix_setter_ggp_factory,
+		&assert_ggp_factory, &unit_diagonal_factory, &direction_change_ggp_factory,
 
 		//other needed items
 		&common_angio_properties_factory

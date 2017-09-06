@@ -426,8 +426,8 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 		matrix_elastic.m_J = elastic_pt.m_J;
 
 		mat3ds activeStress = AngioStress(*angioPt) ;
-		vessel_elastic.m_s = common_properties->vessel_material->Stress(*angioPt->vessPt);
-		matrix_elastic.m_s = matrix_material->GetElasticMaterial()->Stress(*angioPt->matPt);
+		vessel_elastic.m_s = common_properties->vessel_material->Stress(*(angioPt->vessPt));
+		matrix_elastic.m_s = matrix_material->GetElasticMaterial()->Stress(*(angioPt->matPt));
 
 		s = activeStress + angioPt->vessel_weight*vessel_elastic.m_s + angioPt->matrix_weight*matrix_elastic.m_s;
 	}

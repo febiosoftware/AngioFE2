@@ -1088,6 +1088,25 @@ ADD_PARAMETER(invec.z, FE_PARAM_DOUBLE, "in_z");
 END_PARAMETER_LIST();
 
 
+mat3d MatrixSetterGGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip)
+{
+	return GGP::Operation(m, fin, mat, tip);
+}
+
+BEGIN_PARAMETER_LIST(MatrixSetterGGP, GGP)
+ADD_PARAMETER(m[0][0], FE_PARAM_DOUBLE, "m11");
+ADD_PARAMETER(m[0][1], FE_PARAM_DOUBLE, "m12");
+ADD_PARAMETER(m[0][2], FE_PARAM_DOUBLE, "m13");
+
+ADD_PARAMETER(m[1][0], FE_PARAM_DOUBLE, "m21");
+ADD_PARAMETER(m[1][1], FE_PARAM_DOUBLE, "m22");
+ADD_PARAMETER(m[1][2], FE_PARAM_DOUBLE, "m23");
+
+ADD_PARAMETER(m[2][0], FE_PARAM_DOUBLE, "m31");
+ADD_PARAMETER(m[2][1], FE_PARAM_DOUBLE, "m32");
+ADD_PARAMETER(m[2][2], FE_PARAM_DOUBLE, "m33");
+END_PARAMETER_LIST();
+
 mat3d MatrixInverseGGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip)
 {
 	return GGP::Operation(in.inverse(), fin, mat, tip);
@@ -1189,7 +1208,7 @@ void NodalDataGGP::SetCulture(Culture * cp)
 
 mat3d DirectionChangeGGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip)
 {
-	vec3d temp(1, 1, 1);
+	vec3d temp = fin;
 	vec3d temp1(1, 1, 1);
 	temp = in * temp;
 	temp.unit();
