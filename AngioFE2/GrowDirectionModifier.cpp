@@ -650,7 +650,10 @@ bool Plot2GGP::Init()
 	assert(bm);
 	FEBioPlotFile2 * pf2 = dynamic_cast<FEBioPlotFile2 *>(bm->GetPlotFile());
 	if (!pf2)
+	{
+		printf("plot file not in plot file 2 format\n");
 		return false;
+	}
 	const list<FEBioPlotFile2::DICTIONARY_ITEM>& domain_var_list = pf2->GetDictionary().DomainVariableList();
 
 
@@ -662,6 +665,7 @@ bool Plot2GGP::Init()
 			return GGP::Init();
 		}
 	}
+	printf("\nfield %s not found\n", field_name);
 	//data record name not found
 	return false;
 }
@@ -1177,6 +1181,7 @@ END_PARAMETER_LIST();
 void NodalDataGGP::Update()
 {
 	int dofc = culture->m_pmat->m_pangio->m_fem->GetDOFIndex(field_name, offset);
+	assert(dofc != -1);
 	culture->m_pmat->m_pangio->m_fem->GetNodeData(dofc, data);
 }
 mat3d NodalDataGGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip)
@@ -1199,6 +1204,51 @@ mat3d NodalDataGGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Seg
 }
 
 void NodalDataGGP::SetCulture(Culture * cp)
+{
+	int dofc = cp->m_pmat->m_pangio->m_fem->GetDOFIndex(field_name, offset);
+	cp->m_pmat->m_pangio->m_fem->GetNodeData(dofc, data);
+
+	GGP::SetCulture(cp);
+}
+
+BEGIN_PARAMETER_LIST(NodalDataGradientGGP, GGP)
+ADD_PARAMETER(offset, FE_PARAM_INT, "offset");
+ADD_PARAMETER(field_name, FE_PARAM_STRING, "field_name");
+
+END_PARAMETER_LIST();
+
+
+void NodalDataGradientGGP::Update()
+{
+	int dofc = culture->m_pmat->m_pangio->m_fem->GetDOFIndex(field_name, offset);
+	assert(dofc != -1);
+	culture->m_pmat->m_pangio->m_fem->GetNodeData(dofc, data);
+}
+mat3d NodalDataGradientGGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip)
+{
+	double val[FEElement::MAX_NODES];
+	FESolidDomain * d = tip.pt.ndomain;
+	FESolidElement * se;
+	if (se = &d->Element(tip.pt.elemindex))
+	{
+		double arr[FEElement::MAX_NODES];
+		se->shape_fnc(arr, tip.pt.q.x, tip.pt.q.y, tip.pt.q.z);
+		for (int j = 0; j < se->Nodes(); j++)
+		{
+			
+			int  ni = se->m_node[j];
+			val[j] = data[ni] * arr[j];
+		}
+		vec3d grad = d->gradient(*se, val, se->GaussPoints());
+		in[0][0] = grad.x;
+		in[1][1] = grad.y;
+		in[2][2] = grad.z;
+	}
+	
+	return GGP::Operation(in, fin, mat, tip);
+}
+
+void NodalDataGradientGGP::SetCulture(Culture * cp)
 {
 	int dofc = cp->m_pmat->m_pangio->m_fem->GetDOFIndex(field_name, offset);
 	cp->m_pmat->m_pangio->m_fem->GetNodeData(dofc, data);

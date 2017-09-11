@@ -176,6 +176,23 @@ private:
 	DECLARE_PARAMETER_LIST();
 };
 
+class NodalDataGradientGGP : public GGP
+{
+public:
+	explicit NodalDataGradientGGP(FEModel * model) : GGP(model) { field_name[0] = 0; }
+	virtual ~NodalDataGradientGGP() {}
+
+	void Update() override;
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
+
+	void SetCulture(Culture * cp) override;
+private:
+	char field_name[DataRecord::MAX_STRING];
+	int offset = 0;
+	vector<double> data;
+	DECLARE_PARAMETER_LIST();
+};
+
 class MatrixConverterGGP: public GGP
 {
 public:

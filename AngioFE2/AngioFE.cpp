@@ -68,6 +68,7 @@ FEPluginFactory_T<MatrixSetterGGP, FEMATERIAL_ID> matrix_setter_ggp_factory("mat
 FEPluginFactory_T<MatrixInverseGGP, FEMATERIAL_ID> matrix_inverse_ggp_factory("matrix_inverse_ggp");
 FEPluginFactory_T<AssertGGP, FEMATERIAL_ID> assert_ggp_factory("assert_ggp");
 FEPluginFactory_T<NodalDataGGP, FEMATERIAL_ID> nodal_data_ggp_factory("nodal_data_ggp");
+FEPluginFactory_T<NodalDataGradientGGP, FEMATERIAL_ID> nodal_data_gradient_ggp_factory("nodal_data_gradient_ggp");
 FEPluginFactory_T<DirectionChangeGGP, FEMATERIAL_ID> direction_change_ggp_factory("direction_change_ggp");
 
 
@@ -168,7 +169,7 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		//ggp's
 		&plot2_ggp_factory, &gradient_plot2_ggp_factory,
 		&matrix_converter_ggp_factory, &forked_ggp_factory, &cross_ggp_factory,
-		&threshold_ggp_factory, &nodal_data_ggp_factory,
+		&threshold_ggp_factory, &nodal_data_ggp_factory, &nodal_data_gradient_ggp_factory,
 		&arc_cos_ggp_factory, &arc_sin_ggp_factory, &cos_ggp_factory, &sin_ggp_factory,
 		&matrix_inverse_ggp_factory, &eigen_vectors_ggp_factory, &eigen_values_ggp_factory,
 		&setter_ggp_factory, &matrix_setter_ggp_factory,
