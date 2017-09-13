@@ -68,25 +68,34 @@ void BC::CheckBC(Segment &seg)
 		FEMesh * mesh = culture->m_pmat->m_pangio->GetMesh();
 		double r[3];
 		FESolidElement * se = mesh->FindSolidElement(seg.tip_c(1).pt.r, r);
-		FEAngioMaterialBase * angm;
-		if (se && (angm = dynamic_cast<FEAngioMaterialBase*>(culture->m_pmat->m_pangio->m_fem->GetMaterial(se->GetMatID()))))
+		
+		if (se)
 		{
-			GridPoint & cpt = seg.tip(1).pt;
-			cpt.q = vec3d(r[0], r[1], r[2]);
-			cpt.ndomain = dynamic_cast<FESolidDomain*>(se->GetDomain());
-			cpt.nelem = se->GetID();
-			cpt.elemindex = se->GetID() - 1 - angm->meshOffsets.at(cpt.ndomain);
-			seg.Update();
-			if (mbc->acceptBoundary(culture->m_pmat, angm) && (angm != this->culture->m_pmat))
+			FEAngioMaterialBase * angm = dynamic_cast<FEAngioMaterialBase*>(culture->m_pmat->m_pangio->m_fem->GetMaterial(se->GetMatID()));
+			if(!angm)
 			{
-				angm->m_cult->ClearRecents();
-				mbc->handleBoundary(culture->m_pmat, angm, seg);
-				auto orseg = angm->m_cult->RecentSegments();
-				for (size_t i = 0; i < orseg.size(); i++)
+				FEMultiphasic * mmat = dynamic_cast<FEMultiphasic*>(culture->m_pmat->m_pangio->m_fem->GetMaterial(se->GetMatID()));
+				angm = dynamic_cast<FEAngioMaterialBase*>(mmat->GetSolid());
+			}
+			if(angm)
+			{
+				GridPoint & cpt = seg.tip(1).pt;
+				cpt.q = vec3d(r[0], r[1], r[2]);
+				cpt.ndomain = dynamic_cast<FESolidDomain*>(se->GetDomain());
+				cpt.nelem = se->GetID();
+				cpt.elemindex = se->GetID() - 1 - angm->meshOffsets.at(cpt.ndomain);
+				seg.Update();
+				if (mbc->acceptBoundary(culture->m_pmat, angm) && (angm != this->culture->m_pmat))
 				{
-					culture->AddToRecents(orseg[i]);
+					angm->m_cult->ClearRecents();
+					mbc->handleBoundary(culture->m_pmat, angm, seg);
+					auto orseg = angm->m_cult->RecentSegments();
+					for (size_t i = 0; i < orseg.size(); i++)
+					{
+						culture->AddToRecents(orseg[i]);
+					}
+					return;
 				}
-				return;
 			}
 		}
 	}
