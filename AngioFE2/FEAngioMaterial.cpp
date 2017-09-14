@@ -143,17 +143,7 @@ void FEAngioMaterial::FinalizeInit()
 	{
 		FESolidDomain& dom = reinterpret_cast<FESolidDomain&>(mesh->Domain(n));
 		FEMaterial* pm = dom.GetMaterial();
-		FEAngioMaterial* pam = dynamic_cast<FEAngioMaterial*>(pm);
-
-		if(!pam)
-		{
-			FEMultiphasic * mmat = dynamic_cast<FEMultiphasic*>(pm);
-			if(mmat)
-			{
-				pam = dynamic_cast<FEAngioMaterial*>(mmat->GetSolid());
-			}
-			//consider adding the rest of the phasic materials
-		}
+		FEAngioMaterial* pam = m_pangio->GetAngioComponent(pm);
 
 		if (pam == this)
 		{

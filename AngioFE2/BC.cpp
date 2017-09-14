@@ -71,12 +71,7 @@ void BC::CheckBC(Segment &seg)
 		
 		if (se)
 		{
-			FEAngioMaterialBase * angm = dynamic_cast<FEAngioMaterialBase*>(culture->m_pmat->m_pangio->m_fem->GetMaterial(se->GetMatID()));
-			if(!angm)
-			{
-				FEMultiphasic * mmat = dynamic_cast<FEMultiphasic*>(culture->m_pmat->m_pangio->m_fem->GetMaterial(se->GetMatID()));
-				angm = dynamic_cast<FEAngioMaterialBase*>(mmat->GetSolid());
-			}
+			FEAngioMaterialBase * angm = culture->m_pmat->m_pangio->GetAngioComponent(culture->m_pmat->m_pangio->m_fem->GetMaterial(se->GetMatID()));
 			if(angm)
 			{
 				GridPoint & cpt = seg.tip(1).pt;

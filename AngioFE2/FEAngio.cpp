@@ -24,6 +24,7 @@
 #include <ctime>
 #include <algorithm>
 #include <cfloat> 
+#include <FEBioMix/FETriphasic.h>
 
 
 //-----------------------------------------------------------------------------
@@ -185,25 +186,12 @@ bool FEAngio::InitFEM()
 		FEAngioMaterial * cmat = nullptr;
 		FEMaterial * mat = m_fem->GetMaterial(i);
 		int id = -1;
-		cmat = dynamic_cast<FEAngioMaterial*>(mat);
-		if(!cmat)
-		{
-			FEMultiphasic * mmat = dynamic_cast<FEMultiphasic*>(mat);
-			if(mmat)
-			{
-				FEMaterial * smat = mmat->GetSolid();
-				cmat = dynamic_cast<FEAngioMaterial*>(mmat->GetSolid());
-				id = mmat->GetID();
-			}
-			//use other phasic materials here
-		}
-		else
-		{
-			id = cmat->GetID_ang();
-		}
+		cmat = GetAngioComponent(mat);
+		
 
 		if (cmat)
 		{
+			id = mat->GetID();
 			assert(id != -1);
 			m_pmat.emplace_back(cmat);
 			m_pmat_ids.emplace_back(id);
@@ -1072,6 +1060,29 @@ vec3d FEAngio::ReferenceCoords(const GridPoint& pt) const
 		}
 	}
 	return r;
+}
+FEAngioMaterial * FEAngio::GetAngioComponent(FEMaterial * mat)
+{
+	auto angm = dynamic_cast<FEAngioMaterial*>(mat);
+	if (!angm)
+	{
+		FEMultiphasic * mmat = dynamic_cast<FEMultiphasic*>(mat);
+		angm = dynamic_cast<FEAngioMaterial*>(mmat->GetSolid());
+	}
+	if (!angm)
+	{
+		FETriphasic * mmat = dynamic_cast<FETriphasic*>(mat);
+		angm = dynamic_cast<FEAngioMaterial*>(mmat->GetSolid());
+	}
+	/* //Biphasic Material doesn't have a get solid function 
+	 * //this fucntion should be moved to an interface in febio
+	if (!angm)
+	{
+		FEBiphasic * mmat = dynamic_cast<FEBiphasic*>(mat);
+		angm = dynamic_cast<FEAngioMaterialBase*>(mmat->GetSolid());
+	}
+	*/
+	return angm;
 }
 
 //TODO: consider having multiple projection methods

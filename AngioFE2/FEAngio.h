@@ -60,6 +60,7 @@ public:
 	vec3d Position(const GridPoint& pt)  const;
 	vec3d ReferenceCoords(const GridPoint& pt) const;
 
+	static FEAngioMaterial * GetAngioComponent(FEMaterial * mat);
 	// Creates a vector of specified paramenter
 	std::vector<double> createVectorOfMaterialParameters(FEElement * elem,
 		double FEAngioNodeData::*materialparam);
