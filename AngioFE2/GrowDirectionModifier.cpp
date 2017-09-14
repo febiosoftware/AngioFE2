@@ -490,10 +490,16 @@ void GDMArchive::WriteData(int nid, std::vector<float>& data)
 	//consider preallocating unrolled data
 	if(gradient_defined)
 	{
-		node_hit_count.clear();
-		projected_nodal_data.clear();
-		node_hit_count.resize(angio->GetMesh()->Nodes(), 0);
-		projected_nodal_data.resize(angio->GetMesh()->Nodes(), 0);
+		//only reset at once per step
+		//may be a hack
+		if(nid == 1)
+		{
+			node_hit_count.clear();
+			projected_nodal_data.clear();
+			node_hit_count.resize(angio->GetMesh()->Nodes(), 0);
+			projected_nodal_data.resize(angio->GetMesh()->Nodes(), 0);
+		}
+		
 		std::vector<int> dl;
 		angio->GetMesh()->DomainListFromMaterial(angio->m_pmat_ids, dl);
 

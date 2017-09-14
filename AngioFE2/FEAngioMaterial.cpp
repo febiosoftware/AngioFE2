@@ -188,10 +188,6 @@ void FEAngioMaterial::FinalizeInit()
 				}
 			}
 		}
-		else
-		{
-			assert(false);
-		}
 	}
 	for (int i = 0; i < domainptrs[0]->Nodes(); i++)
 	{
