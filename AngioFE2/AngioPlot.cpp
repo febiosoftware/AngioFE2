@@ -19,7 +19,7 @@ extern FEAngio* pfeangio;
 //-----------------------------------------------------------------------------
 bool FEPlotAngioStress::Save(FEDomain& d, FEDataStream& str)
 {
-	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	FEAngioMaterial* pmat = pfeangio->GetAngioComponent(d.GetMaterial());
 	if (pmat == nullptr) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
@@ -46,7 +46,7 @@ bool FEPlotAngioStress::Save(FEDomain& d, FEDataStream& str)
 //-----------------------------------------------------------------------------
 bool FEPlotMatrixStress::Save(FEDomain& d, FEDataStream& str)
 {
-	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	FEAngioMaterial* pmat = pfeangio->GetAngioComponent(d.GetMaterial());
 	if (pmat == nullptr) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
@@ -75,7 +75,7 @@ bool FEPlotMatrixStress::Save(FEDomain& d, FEDataStream& str)
 //-----------------------------------------------------------------------------
 bool FEPlotVesselStress::Save(FEDomain& d, FEDataStream& str)
 {
-	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	FEAngioMaterial* pmat = pfeangio->GetAngioComponent(d.GetMaterial());
 	if (pmat == nullptr) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
@@ -105,7 +105,7 @@ bool FEPlotVesselStress::Save(FEDomain& d, FEDataStream& str)
 //-----------------------------------------------------------------------------
 bool FEPlotVesselWeight::Save(FEDomain& d, FEDataStream& str)
 {
-	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	FEAngioMaterial* pmat = pfeangio->GetAngioComponent(d.GetMaterial());
 	if (pmat == nullptr) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
@@ -131,7 +131,7 @@ bool FEPlotVesselWeight::Save(FEDomain& d, FEDataStream& str)
 //-----------------------------------------------------------------------------
 bool FEPlotMatrixWeight::Save(FEDomain& d, FEDataStream& str)
 {
-	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	FEAngioMaterial* pmat = pfeangio->GetAngioComponent(d.GetMaterial());
 	if (pmat == nullptr) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
@@ -157,7 +157,7 @@ bool FEPlotMatrixWeight::Save(FEDomain& d, FEDataStream& str)
 //-----------------------------------------------------------------------------
 bool FEPlotMatrixTangent::Save(FEDomain& d, FEDataStream& str)
 {
-	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	FEAngioMaterial* pmat = pfeangio->GetAngioComponent(d.GetMaterial());
 	if (pmat == nullptr) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
@@ -185,7 +185,7 @@ bool FEPlotMatrixTangent::Save(FEDomain& d, FEDataStream& str)
 //-----------------------------------------------------------------------------
 bool FEPlotMatrixViscoStress::Save(FEDomain& d, FEDataStream& str)
 {
-	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	FEAngioMaterial* pmat = pfeangio->GetAngioComponent(d.GetMaterial());
 	if (pmat == nullptr) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
@@ -215,7 +215,7 @@ bool FEPlotMatrixViscoStress::Save(FEDomain& d, FEDataStream& str)
 //-----------------------------------------------------------------------------
 bool FEPlotMatrixElasticStress::Save(FEDomain& d, FEDataStream& str)
 {
-	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	FEAngioMaterial* pmat = pfeangio->GetAngioComponent(d.GetMaterial());
 	if (pmat == nullptr) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
@@ -245,7 +245,7 @@ bool FEPlotMatrixElasticStress::Save(FEDomain& d, FEDataStream& str)
 //-----------------------------------------------------------------------------
 bool FEPlotMatrixElastic_m_Q::Save(FEDomain& d, FEDataStream& str)
 {
-	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	FEAngioMaterial* pmat = pfeangio->GetAngioComponent(d.GetMaterial());
 	if (pmat == nullptr) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
@@ -279,7 +279,7 @@ FEPlotAngioGradientCenter::FEPlotAngioGradientCenter(FEModel* pfem): FEDomainDat
 bool FEPlotAngioGradientCenter::Save(FEDomain& d, FEDataStream& str)
 {
 	//note the interpolation in postview may make this look incorrect
-	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	FEAngioMaterial* pmat = pfeangio->GetAngioComponent(d.GetMaterial());
 	if (pmat == nullptr) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
@@ -304,7 +304,7 @@ FEPlotAngioMaterialHop::FEPlotAngioMaterialHop(FEModel* pfem) : FEDomainData(PLT
 bool FEPlotAngioMaterialHop::Save(FEDomain& d, FEDataStream& str)
 {
 	//note the interpolation in postview may make this look incorrect
-	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	FEAngioMaterial* pmat = pfeangio->GetAngioComponent(d.GetMaterial());
 	if (pmat == nullptr) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
@@ -326,7 +326,7 @@ FEPlotAngioSegmentBadGrowth::FEPlotAngioSegmentBadGrowth(FEModel* pfem) : FEDoma
 bool FEPlotAngioSegmentBadGrowth::Save(FEDomain& d, FEDataStream& str)
 {
 	//note the interpolation in postview may make this look incorrect
-	FEAngioMaterial* pmat = pfeangio->FindAngioMaterial(d.GetMaterial());
+	FEAngioMaterial* pmat = pfeangio->GetAngioComponent(d.GetMaterial());
 	if (pmat == nullptr) return false;
 
 	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);

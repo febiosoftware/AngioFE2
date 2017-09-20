@@ -71,28 +71,6 @@ FEMesh * FEAngio::GetMesh() const
 }
 
 //-----------------------------------------------------------------------------
-// find the angio material component
-FEAngioMaterial* FEAngio::FindAngioMaterial(FEMaterial* pm)
-{
-	FEMaterial* pmat = nullptr;
-	if(strcmp(pm->GetTypeStr(), "angio")==0)
-	{
-		pmat = pm;
-	}
-	else
-	{
-		assert(false);
-		//pmat = pm->FindComponentByType("angio");
-	}
-	if (pmat)
-	{
-		FEAngioMaterial* pma = dynamic_cast<FEAngioMaterial*>(pmat);
-		return pma;
-	}
-	return nullptr;
-}
-
-//-----------------------------------------------------------------------------
 // Initializes the FEAngio object.
 bool FEAngio::Init()
 {

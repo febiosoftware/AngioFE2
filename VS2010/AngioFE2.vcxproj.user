@@ -16,7 +16,7 @@
     <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Debug\FEBio2.exe</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febio.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>..\..\v2tests\actual\multiphasic</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\actual\Solute_gdm_as_md_fr - Copy</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug OMP|x64'">
     <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Debug OMP\FEBio2.exe</LocalDebuggerCommand>

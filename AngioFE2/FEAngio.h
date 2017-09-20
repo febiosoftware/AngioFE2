@@ -52,7 +52,6 @@ public:
 
 	void adjust_mesh_stiffness();
 	void update_sprout_stress_scaling();
-	static FEAngioMaterial* FindAngioMaterial(FEMaterial* pm);
 	double FindECMDensity(const GridPoint& pt);
 	vec3d LocalToGlobal(FESolidElement * se, vec3d & rst) const;
 	vec3d FindRST(const vec3d & r, vec2d rs, FESolidElement * elem) const;
