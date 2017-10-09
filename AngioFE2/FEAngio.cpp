@@ -1235,6 +1235,8 @@ void FEAngio::Output()
 {	
 	//write out the timeline of branchpoints
 	fileout->save_timeline(*this);
+	//fileout->save_winfiber(*this);
+	fileout->save_final_vessel_csv(*this);
 }
 
 ///////////////////////////////////////////////////////////////////////

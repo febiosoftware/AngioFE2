@@ -153,6 +153,7 @@ public:
 	friend class StopBC;
 	friend class MBC;
 	friend class PassThroughMBC;
+	friend class Fileout;
 
 	friend class AnastamosisGrowDirectionModifier;
 };

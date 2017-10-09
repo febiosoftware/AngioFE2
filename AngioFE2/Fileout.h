@@ -24,6 +24,8 @@ public:
 	void save_vessel_state(FEAngio& angio);
 	void save_active_tips(FEAngio& angio) const;
 	void save_timeline(FEAngio& angio);
+	void save_winfiber(FEAngio& angio);
+	static void save_final_vessel_csv(FEAngio & angio);
 
 private:
 	std::ofstream logstream;
