@@ -10,7 +10,6 @@
 #pragma once
 
 #include "StdAfx.h"
-#include "zlib.h"
 
 class Segment;
 class FEAngio;
