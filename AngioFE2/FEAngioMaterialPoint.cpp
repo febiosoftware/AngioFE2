@@ -75,11 +75,10 @@ FEAngioMaterialPoint* FEAngioMaterialPoint::FindAngioMaterialPoint(FEMaterialPoi
 		FEElasticMixtureMaterialPoint* mixtureP = dynamic_cast<FEElasticMixtureMaterialPoint*>(pt);
 		if (mixtureP)
 		{
-			vector<FEMaterialPoint*> mixtureVector = mixtureP->m_mp;
-			for (unsigned int i = 0; i<mixtureVector.size(); i++)
+			for (unsigned int i = 0; i<mixtureP->Components(); i++)
 			{
 				//TODO: is the recursion needed or not(is this search too deep?)
-				angioPt = FindAngioMaterialPoint(mixtureVector[i]);
+				angioPt = FindAngioMaterialPoint(mixtureP->GetPointData(i));
 				if (angioPt)
 				{
 					return angioPt;
