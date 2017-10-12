@@ -1,0 +1,10 @@
+			<!-- begin added vessel material  -->
+			<vessel type="viscoelastic">
+				<t1>0.00001</t1>
+				<g0>0.0</g0>
+				<g1>1.0</g1>
+				<elastic type="neo-Hookean">
+					<E>0.003452</E>
+					<v>0.0</v>
+				</elastic>
+			</vessel>
