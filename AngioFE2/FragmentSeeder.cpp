@@ -363,6 +363,7 @@ bool MDAngVessFileFragmentSeeder::SeedFragments(SimulationTime& time, Culture * 
 	while (std::getline(infile, line))
 	{
 
+#ifdef WIN32
 		//any lines starting with a nondigit are considered comments
 		if (!isdigit(line[0]))
 		{
@@ -377,10 +378,10 @@ bool MDAngVessFileFragmentSeeder::SeedFragments(SimulationTime& time, Culture * 
 			//this line is skipped
 			continue;
 		}
+#endif
 
 		// Create an initial segment
 		Segment seg;
-
 
 		//find the elements that contain the point
 		bool rv = culture->m_pmat->FindGridPoint(p1, seg.tip(0).pt);
