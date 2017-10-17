@@ -237,6 +237,37 @@ protected:
 	FEPropertyT<GGP> nest;
 };
 
+//the nested tree will be executed before the child tree
+class MatrixMixGGP : public GGP
+{
+public:
+	//disallow empy forks
+	explicit MatrixMixGGP(FEModel * model) : GGP(model) { AddProperty(&other, "other"); }
+	~MatrixMixGGP() {}
+	//will be called once before growth per FE timestep
+	mat3d Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip) override;
+	void Update() override {
+		GGP::Update();
+		other->Update();
+	}
+	void SetCulture(Culture * cp) override
+	{
+		other->SetCulture(cp);
+		GGP::SetCulture(cp);
+	}
+	bool Init() override
+	{
+		if (other->Init())
+			return GGP::Init();
+		return false;
+	}
+
+protected:
+	FEPropertyT<GGP> other;
+	double alpha = 0.5;
+	DECLARE_PARAMETER_LIST();
+};
+
 //begin difficult to compute functions with the above classes
 
 //computes the eigen values and stores them in the first collumn of the matrix all other values are 0

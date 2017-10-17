@@ -355,6 +355,7 @@
     <ClInclude Include="..\AngioFE2\Segment.h" />
     <ClInclude Include="..\AngioFE2\StdAfx.h" />
     <ClInclude Include="..\AngioFE2\targetver.h" />
+    <ClInclude Include="..\AngioFE2\VesselDirectionContributions.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\AngioFE2\AngioFE.cpp" />
@@ -381,6 +382,7 @@
     <ClCompile Include="..\AngioFE2\GrowDirectionModifier.cpp" />
     <ClCompile Include="..\AngioFE2\Segment.cpp" />
     <ClCompile Include="..\AngioFE2\StdAfx.cpp" />
+    <ClCompile Include="..\AngioFE2\VesselDirectionContributions.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

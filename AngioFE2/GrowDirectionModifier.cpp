@@ -979,6 +979,21 @@ mat3d ForkedGGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segmen
 	return GGP::Operation(temp, fin, mat, tip);
 }
 
+BEGIN_PARAMETER_LIST(MatrixMixGGP, GGP)
+ADD_PARAMETER(alpha, FE_PARAM_DOUBLE, "alpha");
+END_PARAMETER_LIST();
+
+mat3d MatrixMixGGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip)
+{
+	mat3d o = other->Operation(in, fin, mat, tip);
+	mat3d c = GGP::Operation(in, fin, mat, tip);
+	double omalpha = 1 - alpha;
+	return mat3d(
+		o[0][0] * omalpha + c[0][0] * alpha, o[0][1] * omalpha + c[0][1] * alpha, o[0][2] * omalpha + c[0][2] * alpha,
+		o[1][0] * omalpha + c[1][0] * alpha, o[1][1] * omalpha + c[1][1] * alpha, o[1][2] * omalpha + c[1][2] * alpha, 
+		o[2][0] * omalpha + c[2][0] * alpha, o[2][1] * omalpha + c[2][1] * alpha, o[2][2] * omalpha + c[2][2] * alpha);
+}
+
 mat3d EigenValuesGGP::Operation(mat3d in, vec3d fin, FEAngioMaterialBase* mat, Segment::TIP& tip)
 {
 	mat3ds temp(in[0][0], in[1][1], in[2][2], in[0][1], in[1][2], in[0][2]);

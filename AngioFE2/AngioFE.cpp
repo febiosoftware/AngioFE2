@@ -54,6 +54,7 @@ FEPluginFactory_T<Plot2GGP, FEMATERIAL_ID> plot2_ggp_factory("plot2_ggp");
 FEPluginFactory_T<GradientPlot2GGP, FEMATERIAL_ID> gradient_plot2_ggp_factory("gradient_plot2_ggp");
 FEPluginFactory_T<MatrixConverterGGP, FEMATERIAL_ID> matrix_converter_ggp_factory("matrix_converter_ggp");
 FEPluginFactory_T<ForkedGGP, FEMATERIAL_ID> forked_ggp_factory("forked_ggp");
+FEPluginFactory_T<MatrixMixGGP, FEMATERIAL_ID> matrix_mix_ggp_factory("matrix_mix_ggp");
 FEPluginFactory_T<EigenValuesGGP, FEMATERIAL_ID> eigen_values_ggp_factory("eigen_values_ggp");
 FEPluginFactory_T<EigenVectorsGGP, FEMATERIAL_ID> eigen_vectors_ggp_factory("eigen_vectors_ggp");
 FEPluginFactory_T<CrossGGP, FEMATERIAL_ID> cross_ggp_factory("cross_ggp");
@@ -174,6 +175,7 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		&matrix_inverse_ggp_factory, &eigen_vectors_ggp_factory, &eigen_values_ggp_factory,
 		&setter_ggp_factory, &matrix_setter_ggp_factory,
 		&assert_ggp_factory, &unit_diagonal_factory, &direction_change_ggp_factory,
+		&matrix_mix_ggp_factory,
 
 		//other needed items
 		&common_angio_properties_factory
