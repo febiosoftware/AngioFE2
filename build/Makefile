@@ -43,6 +43,7 @@ export LNKFLG = -lz -static-intel -no-intel-extensions -lz
 
 export INC = -I$(FEBINC)
 export DBGFLG = -DNDEBUG
+export LIBS = -lz
 
 gcc: export LNKFLG = -lz
 sky: export LNKFLG = -lz
