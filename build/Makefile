@@ -40,8 +40,9 @@ export FLG = -O3 -fPIC -std=c++11
 
 # Can be removed if not using the Intel compiler.
 export LNKFLG = -lz -static-intel -no-intel-extensions -lz
-export INC = -I$(FEBINC) -I$(ANGDIR)AngioLib
-export DBGFLG = 
+
+export INC = -I$(FEBINC)
+export DBGFLG = -DNDEBUG
 
 gcc: export LNKFLG = -lz
 sky: export LNKFLG = -lz

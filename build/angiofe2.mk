@@ -8,11 +8,20 @@ LIB = $(ANGDIR)build/lib/$(SO)
 
 FECORE = $(FEBLIB)/libfecore_$(PLAT).a
 
+FEBIOLIB = $(FEBLIB)/libfebiolib_$(PLAT).a
+
 FEBIOMECH = $(FEBLIB)/libfebiomech_$(PLAT).a
+
+FEBIOPLOT = $(FEBLIB)/libfebioplot_$(PLAT).a
+
+FEBIOFLUID = $(FEBLIB)/libfebiofluid_$(PLAT).a
 
 FEBIOMIX = $(FEBLIB)/libfebiomix_$(PLAT).a
 
-FEBIOLIBS = $(FEBIOMECH) $(FECORE) $(FEBIOMIX)
+FEBIOXML = $(FEBLIB)/libfebioxml_$(PLAT).a
+
+FEBIOLIBS = -Wl,--start-group $(FEBIOLIB) $(FEBIOMECH) $(FECORE)
+FEBIOLIBS += $(FEBIOPLOT) $(FEBIOFLUID) $(FEBIOMIX) $(FEBIOXML) -Wl,--end-group
 
 $(LIB): $(OBJ)
 ifeq ($(findstring lnx,$(PLAT)),lnx)
