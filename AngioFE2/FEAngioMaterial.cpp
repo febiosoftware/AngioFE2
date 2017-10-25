@@ -113,6 +113,22 @@ bool FEAngioMaterial::Init()
 	{
 		domainptrs.emplace_back(&mesh.Domain(domains[i]));
 	}
+	for(int i = 0; i < domainptrs.size();i++)
+	{
+		if(domainptrs[i]->Elements())
+		{
+			//ideal call followed by actual call
+			//domainptrs[i]->GetElementType()
+			auto ty = domainptrs[i]->ElementRef(0).Type();
+			if (ty != FE_HEX8G8)
+			{
+				printf("\nAngioFE only supports hex8 elements\n");
+				return false;
+			}
+				
+		}
+	}
+
 	int co = 0;
 	for (auto i = 0; i < mesh.Domains(); i++)
 	{
