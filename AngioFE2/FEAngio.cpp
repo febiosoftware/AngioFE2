@@ -529,6 +529,22 @@ mat3d FEAngio::unifromRandomRotationMatrix()
 #endif
 	return rv;
 }
+mat3d FEAngio::rotationMatrix(double alpha, double beta, double gamma)
+{
+	double c_alpha = cos(alpha);
+	double c_beta = cos(beta);
+	double c_gamma = cos(gamma);
+	double s_alpha = sin(alpha);
+	double s_beta = sin(beta);
+	double s_gamma = sin(gamma);
+	//see: https://en.wikipedia.org/wiki/Change_of_basis Three dimensions section
+	mat3d rv(c_alpha*c_gamma - s_alpha*c_beta*s_gamma, -c_alpha*s_gamma - s_alpha*c_beta*c_gamma, s_beta*s_alpha,
+		s_alpha*c_gamma + c_alpha*c_beta*s_gamma, -s_alpha*s_gamma + c_alpha*c_beta*c_gamma, -s_beta*c_alpha,
+		s_beta*s_gamma, s_beta*c_gamma, c_beta
+	);
+	return rv;
+}
+
 vec3d FEAngio::uniformRandomDirection()
 {
 	//to revert this set this to return vrand

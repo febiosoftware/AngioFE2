@@ -379,3 +379,43 @@ void FiberInitializer::GridPointOfIntPoint(FESolidElement * se, int ei, int intp
 
 	//the global position could also be set
 }
+ExplicitDistributionsFiberInitializer::ExplicitDistributionsFiberInitializer(FEModel * model) : FiberInitializer(model)
+{
+	AddProperty(&alpha, "alpha");
+	AddProperty(&alpha, "beta");
+	AddProperty(&alpha, "gamma");
+}
+void ExplicitDistributionsFiberInitializer::Setup()
+{
+	alpha->StepToTime(0);
+	beta->StepToTime(0);
+	gamma->StepToTime(0);
+}
+
+void ExplicitDistributionsFiberInitializer::InitializeFibers(FiberManager * fman)
+{
+	//everything stays at the integration points
+	for (int i = 0; i < fman->material->domainptrs.size(); i++)
+	{
+		FEDomain * dom = fman->material->domainptrs[i];
+		for (int j = 0; j < dom->Elements(); j++)
+		{
+			FESolidElement *se = dynamic_cast<FESolidElement*>(&dom->ElementRef(j));
+			assert(se);
+			for (int k = 0; k < se->GaussPoints(); k++)
+			{
+				FEMaterialPoint * mp = se->GetMaterialPoint(k);
+				FEAngioMaterialPoint * angiopt = mp->ExtractData<FEAngioMaterialPoint>();
+				FEElasticMaterialPoint *  emp = mp->ExtractData<FEElasticMaterialPoint>();
+
+				FEElasticMaterialPoint *  emp_matrix = angiopt->matPt->ExtractData<FEElasticMaterialPoint>();
+				FEElasticMaterialPoint *  emp_vessel = angiopt->vessPt->ExtractData<FEElasticMaterialPoint>();
+
+				mat3d rm = fman->material->m_pangio->rotationMatrix(alpha->NextValue(fman->material->m_pangio->rengine), beta->NextValue(fman->material->m_pangio->rengine), gamma->NextValue(fman->material->m_pangio->rengine));
+				emp->m_Q = emp->m_Q * rm;
+				emp_matrix->m_Q = emp->m_Q;
+				emp_vessel->m_Q = emp->m_Q;
+			}
+		}
+	}
+}

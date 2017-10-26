@@ -11,10 +11,12 @@ public:
 	virtual vec3d GetContribution(FEAngioMaterialBase* mat, Segment::TIP& tip, double grow_time) =0;
 	virtual void SetCulture(Culture * cp);
 	double TimescaledFactor(double grow_time) const;
+	
 protected:
 	Culture * culture = nullptr;
 	double scale = 1.0;
 	bool timedependent;
+	
 private:
 	DECLARE_PARAMETER_LIST();
 	
@@ -22,6 +24,7 @@ private:
 
 class PreviousVesselDirectionContribution : public VesselDirectionContribution
 {
+public:
 	explicit PreviousVesselDirectionContribution(FEModel * model);
 	void Update() override{}
 	vec3d GetContribution(FEAngioMaterialBase* mat, Segment::TIP& tip, double grow_time) override;
@@ -29,15 +32,20 @@ class PreviousVesselDirectionContribution : public VesselDirectionContribution
 
 class FiberVesselDirectionContribution : public VesselDirectionContribution
 {
+public:
 	explicit FiberVesselDirectionContribution(FEModel * model);
 	void Update()override{}
 	vec3d GetContribution(FEAngioMaterialBase* mat, Segment::TIP& tip, double grow_time) override;
 };
 class ArbitraryVesselDirectionContribution : public VesselDirectionContribution
 {
+public:
 	explicit ArbitraryVesselDirectionContribution(FEModel * model);
 	void Update()override;
+	void SetCulture(Culture * cp) override;
 	vec3d GetContribution(FEAngioMaterialBase* mat, Segment::TIP& tip, double grow_time) override;
+private:
+	FEPropertyT<GGP> arbitrary_contribution;
 };
 
 class VesselDirectionContributionsDirectionModifier : public GrowDirectionModifier

@@ -3,6 +3,7 @@
 #include "StdAfx.h"
 #include "Segment.h"
 #include "FECore/FEMaterial.h"
+#include "FEProbabilityDistribution.h"
 
 class FEAngioMaterialBase;
 class FiberManager;
@@ -51,6 +52,18 @@ public:
 	virtual ~RandomFiberInitializerPE() {}
 	void InitializeFibers(FiberManager * fman) override;
 };
+class ExplicitDistributionsFiberInitializer: public FiberInitializer
+{
+public:
+	explicit ExplicitDistributionsFiberInitializer(FEModel * model);
+	virtual ~ExplicitDistributionsFiberInitializer() {}
+	void Setup();
+	void InitializeFibers(FiberManager * fman) override;
+private:
+	FEPropertyT<FEProbabilityDistribution> alpha;
+	FEPropertyT<FEProbabilityDistribution> beta;
+	FEPropertyT<FEProbabilityDistribution> gamma;
+};
 
 class FiberManager
 {
@@ -79,5 +92,6 @@ private:
 	friend class RandomFiberInitializer;
 	friend class RandomFiberInitializerNonMangling;
 	friend class RandomFiberInitializerPE;
+	friend class ExplicitDistributionsFiberInitializer;
 };
 

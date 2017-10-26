@@ -13,6 +13,7 @@
 #include "FEAngioMaterial.h"
 #include "AngioPlot.h"
 #include "FEPressureMaterial.h"
+#include "VesselDirectionContributions.h"
 #ifdef SVN
 #include "svnrev.h"
 #else
@@ -44,7 +45,12 @@ FEPluginFactory_T<BranchGrowDirectionModifier     , FEMATERIAL_ID> branch_grow_d
 FEPluginFactory_T<GradientGrowDirectionModifier   , FEMATERIAL_ID> gradient_grow_direction_modifier_factory   ("gradient_grow_direction"   );
 FEPluginFactory_T<AnastamosisGrowDirectionModifier, FEMATERIAL_ID> anastamosis_grow_direction_modifier_factory("anastamosis_grow_direction");
 FEPluginFactory_T<EdgeDeflectorGrowDirectionModifier, FEMATERIAL_ID> edge_deflector_grow_direction_modifier_factory("edge_deflector_grow_direction");
+FEPluginFactory_T<VesselDirectionContributionsDirectionModifier, FEMATERIAL_ID> vessel_direction_contributions_grow_direction_modifier_factory("vessel_direction_contributions");
 
+
+FEPluginFactory_T<PreviousVesselDirectionContribution, FEMATERIAL_ID> previous_vessel_direction_contribution_factory("previous_vessel_direction");
+FEPluginFactory_T<FiberVesselDirectionContribution, FEMATERIAL_ID> fiber_vessel_direction_contribution_factory("fiber_vessel_direction");
+FEPluginFactory_T<ArbitraryVesselDirectionContribution, FEMATERIAL_ID> arbitrary_vessel_direction_contribution_factory("arbitrary_vessel_direction");
 
 FEPluginFactory_T<UnitLengthGrowDirectionModifier, FEMATERIAL_ID> unit_length_grow_direction_modifier_factory("unit_length");
 FEPluginFactory_T<DensityScaleGrowDirectionModifier, FEMATERIAL_ID> density_scale_grow_direction_modifier_factory("density_length");
@@ -109,6 +115,7 @@ FEPluginFactory_T<FEPlotMatrixElastic_m_Q, FEPLOTDATA_ID> plot_matrix_elastic_m_
 FEPluginFactory_T<NullFiberInitializer, FEMATERIAL_ID> null_fiber_initializer("null_fiber_initializer");
 FEPluginFactory_T<RandomFiberInitializer, FEMATERIAL_ID> random_fiber_initializer("random_fiber_initializer");
 FEPluginFactory_T<RandomFiberInitializerNonMangling, FEMATERIAL_ID> random_fiber_initializer_non_mangling("random_fiber_initializer_non_mangling");
+FEPluginFactory_T<ExplicitDistributionsFiberInitializer, FEMATERIAL_ID> explicit_distribution_fiber_initializer("explicit_distribution_fiber_initializer");
 FEPluginFactory_T<RandomFiberInitializerPE, FEMATERIAL_ID> random_fiber_initializer_pe("random_fiber_initializer_pe");
 
 //-----------------------------------------------------------------------------
@@ -148,7 +155,9 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 
 		//fiber initializers
 		&null_fiber_initializer, &random_fiber_initializer,
-		&random_fiber_initializer_non_mangling, &random_fiber_initializer_pe,
+		&random_fiber_initializer_non_mangling, &explicit_distribution_fiber_initializer,
+		&random_fiber_initializer_pe,
+		
 		//branching factories
 		&no_fragment_branching_factory, &psuedo_defered_fragment_branching_factory,
 		//grow direction modifiers
@@ -157,6 +166,11 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		&default_grow_direction_modifier_factory, &branch_grow_direction_modifier_factory, 
 		&gradient_grow_direction_modifier_factory, &anastamosis_grow_direction_modifier_factory,
 		&density_scale_grow_direction_modifier_factory, &edge_deflector_grow_direction_modifier_factory,
+		&vessel_direction_contributions_grow_direction_modifier_factory,
+
+		//vessel contribution modifiers
+		&previous_vessel_direction_contribution_factory, &fiber_vessel_direction_contribution_factory,
+		&arbitrary_vessel_direction_contribution_factory,
 
 		//fragment seeders
 		&classic_fragment_seeder_factory,  &md_fragment_seeder_factory, &mdbyvol_fragment_seeder_factory,

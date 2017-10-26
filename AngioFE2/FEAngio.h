@@ -82,6 +82,7 @@ public:
 	void ForEachDomain(std::function<void(FESolidDomain&)> f, std::vector<int> & matls);
 
 	mat3d unifromRandomRotationMatrix();
+	mat3d rotationMatrix(double alpha, double beta, double gamma);
 	vec3d uniformRandomDirection();
 	vec3d uniformInUnitCube();
 
