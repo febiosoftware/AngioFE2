@@ -65,6 +65,31 @@ private:
 	FEPropertyT<FEProbabilityDistribution> gamma;
 };
 
+class EllipsoidalFiberInitializer : public FiberInitializer
+{
+public:
+	explicit EllipsoidalFiberInitializer(FEModel * model);
+	virtual ~EllipsoidalFiberInitializer()
+	{
+		if (totalWeightsBegin)
+			delete[] totalWeightsBegin;
+		if (totalWeightsEnd)
+			delete[] totalWeightsEnd;
+		if (directions)
+			delete[] directions;
+	}
+	void InitializeFibers(FiberManager * fman) override;
+private:
+	DECLARE_PARAMETER_LIST();
+	double a=2,b=1,c=1;
+	int theta_slice = 360;
+	int phi_slice = 360;
+	double * totalWeightsBegin = nullptr;
+	double * totalWeightsEnd = nullptr;
+	vec3d * directions = nullptr;
+};
+
+
 class FiberManager
 {
 public:
@@ -93,5 +118,6 @@ private:
 	friend class RandomFiberInitializerNonMangling;
 	friend class RandomFiberInitializerPE;
 	friend class ExplicitDistributionsFiberInitializer;
+	friend class EllipsoidalFiberInitializer;
 };
 

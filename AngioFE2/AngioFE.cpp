@@ -117,6 +117,7 @@ FEPluginFactory_T<RandomFiberInitializer, FEMATERIAL_ID> random_fiber_initialize
 FEPluginFactory_T<RandomFiberInitializerNonMangling, FEMATERIAL_ID> random_fiber_initializer_non_mangling("random_fiber_initializer_non_mangling");
 FEPluginFactory_T<ExplicitDistributionsFiberInitializer, FEMATERIAL_ID> explicit_distribution_fiber_initializer("explicit_distribution_fiber_initializer");
 FEPluginFactory_T<RandomFiberInitializerPE, FEMATERIAL_ID> random_fiber_initializer_pe("random_fiber_initializer_pe");
+FEPluginFactory_T<EllipsoidalFiberInitializer, FEMATERIAL_ID> ellipsoidal_fiber_initializer("ellipsoidal_fiber_initializer");
 
 //-----------------------------------------------------------------------------
 FECORE_EXPORT  unsigned int GetSDKVersion()
@@ -156,7 +157,7 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		//fiber initializers
 		&null_fiber_initializer, &random_fiber_initializer,
 		&random_fiber_initializer_non_mangling, &explicit_distribution_fiber_initializer,
-		&random_fiber_initializer_pe,
+		&random_fiber_initializer_pe, &ellipsoidal_fiber_initializer,
 		
 		//branching factories
 		&no_fragment_branching_factory, &psuedo_defered_fragment_branching_factory,
@@ -181,6 +182,7 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		//random distribution
 		&cauchy_distribution_factory, &chi_squared_distribution_factory, &weibull_distribution_factory,
 		&gamma_distribution_factory,&normal_distribution_factory, &exponential_distribution_factory,
+		
 		//ggp's
 		&plot2_ggp_factory, &gradient_plot2_ggp_factory,
 		&matrix_converter_ggp_factory, &forked_ggp_factory, &cross_ggp_factory,

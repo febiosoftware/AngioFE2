@@ -86,3 +86,21 @@ inline double mix(double x, double y, double a)
 {
 	return x*(1 - a) + y*a;
 }
+
+//binary search used in volume/area seeders
+static size_t findElement(double val, int lo, int high, double * begin, double * end)
+{
+	int mid = lo + (high - lo) / 2;
+	if (val < begin[mid])
+	{
+		return findElement(val, lo, mid - 1, begin, end);
+	}
+	else if (val > end[mid])
+	{
+		return findElement(val, mid + 1, high, begin, end);
+	}
+	else
+	{
+		return mid;
+	}
+}

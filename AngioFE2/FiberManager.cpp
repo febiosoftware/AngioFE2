@@ -2,6 +2,7 @@
 #include <FEBioMech/FESPRProjection.h>
 #include <FEBioMech/FEFiberMaterialPoint.h>
 #include "FEAngioMaterial.h"
+#include "angio3d.h"
 
 vec3d FiberManager::GetFiberDirection(GridPoint & pt, double& lambda)
 {
@@ -419,3 +420,101 @@ void ExplicitDistributionsFiberInitializer::InitializeFibers(FiberManager * fman
 		}
 	}
 }
+
+vec3d EllipsoidPos(double a, double b, double c, double theta, double phi)
+{
+	return vec3d(a * cos(theta)*cos(phi),
+		b*cos(theta)*sin(phi),
+		c* sin(theta));
+}
+
+void EllipsoidalFiberInitializer::InitializeFibers(FiberManager * fman)
+{
+	totalWeightsBegin = new double[theta_slice*phi_slice];
+	totalWeightsEnd = new double[theta_slice*phi_slice];
+	directions = new vec3d[theta_slice*phi_slice];
+
+	double cweight = 0.0;
+
+	for (int i = 0; i < theta_slice; i++)
+	{
+		for (int j = 0; j < phi_slice; j++)
+		{
+			double phi = (2.0 * PI)*(static_cast<double>(j) / phi_slice) - PI;
+			double phi_next = (2.0 * PI)*(static_cast<double>(j + 1)  / phi_slice) - PI;
+			double theta = PI *(static_cast<double>(i) / theta_slice) - (PI / 2);
+			double theta_next = PI *((static_cast<double>(i) + 1) / theta_slice) - (PI / 2);
+			vec3d p0 = EllipsoidPos(a, b, c, theta, phi), p1 = EllipsoidPos(a, b, c, theta_next, phi),
+				p2 = EllipsoidPos(a, b, c, theta, phi_next), p3 = EllipsoidPos(a, b, c, theta_next, phi_next);
+			double t0a = ((p2 - p0) ^ (p1 - p0)).norm() / 2;
+			double t1a = ((p2 - p3) ^ (p1 - p3)).norm() / 2;
+			int index = i*theta_slice + j;
+			totalWeightsBegin[index] = cweight;
+			cweight += (t0a + t1a);
+			totalWeightsEnd[index] = cweight;
+			vec3d t0 = mix(p0, p1, 0.5);
+			vec3d t1 = mix(p2, p3, 0.5);
+			vec3d t2 = mix(t0, t1, 0.5);
+			t2.unit();
+			directions[index] = t2;
+		}
+	}
+	std::uniform_real_distribution<double> voluchoice(0, cweight);
+	//everything stays at the integration points
+	for (int i = 0; i < fman->material->domainptrs.size(); i++)
+	{
+		FEDomain * dom = fman->material->domainptrs[i];
+		for (int j = 0; j < dom->Elements(); j++)
+		{
+			FESolidElement *se = dynamic_cast<FESolidElement*>(&dom->ElementRef(j));
+			assert(se);
+			for (int k = 0; k < se->GaussPoints(); k++)
+			{
+				FEMaterialPoint * mp = se->GetMaterialPoint(k);
+				FEAngioMaterialPoint * angiopt = mp->ExtractData<FEAngioMaterialPoint>();
+				FEElasticMaterialPoint *  emp = mp->ExtractData<FEElasticMaterialPoint>();
+
+				FEElasticMaterialPoint *  emp_matrix = angiopt->matPt->ExtractData<FEElasticMaterialPoint>();
+				FEElasticMaterialPoint *  emp_vessel = angiopt->vessPt->ExtractData<FEElasticMaterialPoint>();
+
+
+				double vol = voluchoice(fman->material->m_cult->m_pmat->m_pangio->rengine);
+
+				size_t ei = findElement(vol, 0, theta_slice*phi_slice - 1, totalWeightsBegin, totalWeightsEnd);
+				//https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
+				vec3d a_r = emp->m_Q*vec3d(1, 0, 0);
+				vec3d b_r = directions[ei];
+				vec3d v = a_r ^ b_r;
+				double c = a_r * b_r;
+				double s = v.norm();
+				
+				mat3d vx = mat3d(0, -v.z,v.y,
+					v.z,0,-v.x,
+					-v.y,v.x,0);
+
+				mat3d R = mat3d(1, 0, 0,
+					0,1,0,
+					0,0,1) + vx + (vx*vx*((1-c)/(s*s)));
+				
+				emp->m_Q = emp->m_Q * R;
+				emp_matrix->m_Q = emp->m_Q;
+				emp_vessel->m_Q = emp->m_Q;
+			}
+		}
+	}
+}
+
+EllipsoidalFiberInitializer::EllipsoidalFiberInitializer(FEModel * model) : FiberInitializer(model)
+{
+
+}
+
+BEGIN_PARAMETER_LIST(EllipsoidalFiberInitializer, FiberInitializer)
+ADD_PARAMETER(a, FE_PARAM_DOUBLE, "a");
+ADD_PARAMETER(b, FE_PARAM_DOUBLE, "b");
+ADD_PARAMETER(c, FE_PARAM_DOUBLE, "c");
+
+ADD_PARAMETER(theta_slice , FE_PARAM_DOUBLE, "theta_slice");
+ADD_PARAMETER(phi_slice, FE_PARAM_DOUBLE, "a");
+END_PARAMETER_LIST();
+
