@@ -112,10 +112,6 @@ private:
 	//will set the times and whether or not this is the final angio step in this mechanical step
 	int FindGrowTimes(std::vector<std::pair<double, double>> & time_pairs, int start_index);
 
-	// Initialize nodal collagen fiber directions
-	bool InitSoluteConcentration();
-
-	int FindVEGF();
 
 	// Init FE stuff
 	bool InitFEM();

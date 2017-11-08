@@ -333,46 +333,6 @@ int FEAngio::FindGrowTimes(std::vector<std::pair<double, double>> & time_pairs, 
 	return 0;
 }
 
-//-----------------------------------------------------------------------------
-// Find VEGF solute
-int FEAngio::FindVEGF()
-{
-	FEBioModel* fem = GetFEModel();
-	int N = fem->GlobalDataItems();
-	for (int i=0; i<N; ++i)
-	{
-		FESoluteData* psd = dynamic_cast<FESoluteData*>(fem->GetGlobalData(i));
-		if (psd && (strcmp(psd->m_szname,"VEGF"))) return psd->m_nID;
-	}
-	return 0;
-}
-//-----------------------------------------------------------------------------
-// Initialize the nodal concentration values
-bool FEAngio::InitSoluteConcentration()
-{
-	FEMesh & mesh = m_fem->GetMesh();
-	int vegfID = FindVEGF();
-
-	if(vegfID==0)
-		return false;
-
-	int NN = mesh.Nodes();
-	vector<double> concentration(NN, 0.0);
-
-	// get the material
-	FEMaterial* pm = m_fem->GetMaterial(0);
-	if (CreateConcentrationMap(concentration, pm, vegfID) == false) return false;
-
-	// assign ECM density
-	for (int i = 0; i < NN; ++i)								
-	{
-		FEAngioNodeData& node = m_fe_node_data[i +1];
-
-		node.vegf_conc = concentration[i];
-	}
-
-	return true;
-}
 
 //TODO: consider making the ForEach* const as long as this works on both compilers
 void FEAngio::ForEachNode(std::function<void(FENode &)> f, std::vector<int> & matls)

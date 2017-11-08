@@ -26,13 +26,12 @@ vec3d FEAngioMaterialBase::CurrentPosition(FESolidElement * pe, double r, double
 
 std::vector<double> access_sprout(std::pair<size_t, std::vector<FEAngioMaterialBase::SPROUT> *> p)
 {
-	std::vector<double> rv;
 	FEAngioMaterialBase::SPROUT * spr = &((*p.second)[p.first]);
 	vec3d cpos = spr->mat0->CurrentPosition(spr->pel, spr->r[0], spr->r[1], spr->r[2]);
-	rv.emplace_back(cpos.x);
-	rv.emplace_back(cpos.y);
-	rv.emplace_back(cpos.z);
-	return rv;
+	spr->cached_values[0] = cpos.x;
+	spr->cached_values[1] = cpos.y;
+	spr->cached_values[2] = cpos.z;
+	return spr->cached_values;
 }
 
 //begin implementation of FEAngioBase
@@ -98,6 +97,7 @@ FEAngioMaterialBase::SPROUT::SPROUT(const vec3d & dir, FESolidElement * el, doub
 	r[0] = local[0];
 	r[1] = local[1];
 	r[2] = local[2];
+	cached_values.resize(3);
 }
 
 void FEAngioMaterialBase::CreateSprouts(double scale, FEElasticMaterial* emat)

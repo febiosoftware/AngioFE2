@@ -410,7 +410,7 @@ bool FEPlotAngioGradient::Save(FEMesh & m, FEDataStream & a)
 			vec3d pt = vec3d(nr[i], ns[i], nt[i]);
 			FENode & node = mesh.Node(se.m_node[i]);
 			
-			if (dynamic_cast<FEAngioMaterial*>(d.GetMaterial())->Overwrite() || (gradients.count(node.GetID()) == 0 ))
+			if (pfeangio->GetAngioComponent(d.GetMaterial())->Overwrite() || (gradients.count(node.GetID()) == 0 ))
 			{
 				gradients[node.GetID()] = pfeangio->gradient(&se, densities, pt);
 			}

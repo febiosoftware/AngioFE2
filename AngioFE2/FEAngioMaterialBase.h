@@ -26,6 +26,7 @@ public:
 		double		r[3];	// iso-parameteric elements
 		FEAngioMaterialBase * mat0;
 		FEElasticMaterial * mat1;
+		std::vector<double> cached_values;
 	};
 	FEAngioMaterialBase();
 	virtual ~FEAngioMaterialBase(){}
