@@ -1021,12 +1021,14 @@ FEAngioMaterial * FEAngio::GetAngioComponent(FEMaterial * mat)
 	if (!angm)
 	{
 		FEMultiphasic * mmat = dynamic_cast<FEMultiphasic*>(mat);
-		angm = dynamic_cast<FEAngioMaterial*>(mmat->GetSolid());
+		if(mmat)
+			angm = dynamic_cast<FEAngioMaterial*>(mmat->GetSolid());
 	}
 	if (!angm)
 	{
 		FETriphasic * mmat = dynamic_cast<FETriphasic*>(mat);
-		angm = dynamic_cast<FEAngioMaterial*>(mmat->GetSolid());
+		if(mmat)
+			angm = dynamic_cast<FEAngioMaterial*>(mmat->GetSolid());
 	}
 	/* //Biphasic Material doesn't have a get solid function 
 	 * //this fucntion should be moved to an interface in febio

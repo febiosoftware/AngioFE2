@@ -381,7 +381,7 @@ void FEAngioMaterialBase::MirrorSym(vec3d y, mat3ds &s, SPROUT sp, double den_sc
 void FEAngioMaterialBase::UpdateSproutStressScaling()
 {
 	//TODO: make these user parameters and get better names for these
-	double y0 = -0.004; double x0 = 3.0; double b = 0.5436; double a = 1.0081;
+	double y0 = -0.004; double x0 = 2.0; double b = 0.5436; double a = 1.0081;
 
 	auto time = m_pangio->CurrentSimTime();
 
