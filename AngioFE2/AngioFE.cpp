@@ -31,11 +31,13 @@ FEPluginFactory_T<NoFragmentBranching           , FEMATERIAL_ID> no_fragment_bra
 FEPluginFactory_T<PsuedoDeferedFragmentBranching, FEMATERIAL_ID> psuedo_defered_fragment_branching_factory("psuedo_defered_branch");
 
 FEPluginFactory_T<FENormalDistribution     , FEMATERIAL_ID> normal_distribution_factory     ("normal_distribution"     );
+FEPluginFactory_T<FEUniformDistribution    , FEMATERIAL_ID> uniform_distribution_factory    ("uniform_distribution"    );
 FEPluginFactory_T<FEExponentialDistribution, FEMATERIAL_ID> exponential_distribution_factory("exponential_distribution");
 FEPluginFactory_T<FECauchyDistribution     , FEMATERIAL_ID> cauchy_distribution_factory     ("cauchy_distribution"     );
 FEPluginFactory_T<FEChiSquaredDistribution , FEMATERIAL_ID> chi_squared_distribution_factory("chi_squared_distribution");
 FEPluginFactory_T<FEWeibullDistribution    , FEMATERIAL_ID> weibull_distribution_factory    ("weibull_distribution"    );
 FEPluginFactory_T<FEGammaDistribution      , FEMATERIAL_ID> gamma_distribution_factory      ("gamma_distribution"      );
+
 
 FEPluginFactory_T<GrowDirectionModifiers, FEMATERIAL_ID> grow_direction_modifiers_factory("grow_direction_modifiers");
 
@@ -182,7 +184,7 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		//random distribution
 		&cauchy_distribution_factory, &chi_squared_distribution_factory, &weibull_distribution_factory,
 		&gamma_distribution_factory,&normal_distribution_factory, &exponential_distribution_factory,
-		
+		&uniform_distribution_factory,
 		//ggp's
 		&plot2_ggp_factory, &gradient_plot2_ggp_factory,
 		&matrix_converter_ggp_factory, &forked_ggp_factory, &cross_ggp_factory,

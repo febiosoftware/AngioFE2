@@ -51,6 +51,34 @@ private:
 	DECLARE_PARAMETER_LIST();
 };
 
+class FEUniformDistribution : public FEProbabilityDistribution
+{
+public:
+	explicit FEUniformDistribution(FEModel* pfem) : FEProbabilityDistribution(pfem) {}
+
+	//generates the next value in the given sequence which fits a given distribution
+	//this value cannot be zero or less if the value is zero or less the result will be redrawn up to max_retries
+	//nan will be returned if the distribution fails to find a suitable number
+	double NextValue(angiofe_random_engine & re) override;
+
+	bool Init() override;
+
+	void StepToTime(double time) override;
+
+private:
+	double a = 0.0;//distribution's mean
+	double b = 1.0;//distribution's standard deviation
+
+	std::uniform_real_distribution<double> rd;
+	bool time_clamped = true;
+
+	double prev_a = 0.0;
+	double prev_b = 1.0;
+
+
+	DECLARE_PARAMETER_LIST();
+};
+
 class FEExponentialDistribution : public FEProbabilityDistribution
 {
 public:

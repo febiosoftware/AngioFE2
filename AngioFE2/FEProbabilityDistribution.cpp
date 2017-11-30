@@ -45,6 +45,54 @@ ADD_PARAMETER(mean, FE_PARAM_DOUBLE, "mean");
 ADD_PARAMETER(stddev, FE_PARAM_DOUBLE, "stddev");
 END_PARAMETER_LIST();
 
+
+double FEUniformDistribution::NextValue(angiofe_random_engine & re)
+{
+	for (int i = 0; i < max_retries; i++)
+	{
+		double val = rd(re);
+		if (val >= 0.0)
+			return val;
+	}
+	return std::numeric_limits<double>::quiet_NaN();
+}
+
+
+bool FEUniformDistribution::Init()
+{
+	rd = std::uniform_real_distribution<double>(a,b);
+	prev_a = a;
+	prev_b = b;
+	//if load curves are used they must use step interpolation
+	SetLoadCurveToStep("a");
+	SetLoadCurveToStep("b");
+
+	return true;
+}
+
+void FEUniformDistribution::StepToTime(double time)
+{
+	bool change = ChangeInParam("a", time, prev_a, a) || ChangeInParam("b", time, prev_b, b);
+	if (change)
+	{
+		//rebuild the distribution
+		prev_a = a;
+		prev_b = b;
+		rd = std::uniform_real_distribution<double>(a, b);
+	}
+	if(time_clamped)
+	{
+		rd = std::uniform_real_distribution<double>(a, b-time);
+	}
+}
+
+BEGIN_PARAMETER_LIST(FEUniformDistribution, FEProbabilityDistribution)
+ADD_PARAMETER(a, FE_PARAM_DOUBLE, "a");
+ADD_PARAMETER(b, FE_PARAM_DOUBLE, "b");
+ADD_PARAMETER(time_clamped, FE_PARAM_BOOL, "time_clamped");
+END_PARAMETER_LIST();
+
+
 BEGIN_PARAMETER_LIST(FEProbabilityDistribution, FEMaterial)
 ADD_PARAMETER(max_retries, FE_PARAM_INT, "max_retries");
 END_PARAMETER_LIST();

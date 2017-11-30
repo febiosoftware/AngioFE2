@@ -1141,6 +1141,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 
 		std::vector<std::pair<double,double>> times;
 		index = FindGrowTimes(times, index);
+
 		//new function to find the start time grow time and if this is the final iteration this timestep
 		for (size_t i = 0; i < times.size(); i++)
 		{
