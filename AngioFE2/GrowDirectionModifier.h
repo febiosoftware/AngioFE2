@@ -547,6 +547,19 @@ private:
 	FEPropertyT<GGP> previous_direction;
 };
 
+//this class changes the grow direction if the segment is a branch
+class RandomBranchGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	explicit RandomBranchGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	void Update() override;
+	void SetCulture(Culture * cp) override;
+private:
+	FEPropertyT<GGP> collagen_direction;
+	FEPropertyT<GGP> previous_direction;
+};
+
 //this sets the segment length to 1
 class UnitLengthGrowDirectionModifier : public GrowDirectionModifier
 {

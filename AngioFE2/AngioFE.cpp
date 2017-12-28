@@ -44,6 +44,7 @@ FEPluginFactory_T<GrowDirectionModifiers, FEMATERIAL_ID> grow_direction_modifier
 FEPluginFactory_T<DefaultGrowDirectionModifier    , FEMATERIAL_ID> default_grow_direction_modifier_factory    ("default_grow_direction"    );
 FEPluginFactory_T<BaseFiberAwareGrowDirectionModifier, FEMATERIAL_ID> base_fiber_grow_direction_modifier_factory("base_fiber_grow_direction");
 FEPluginFactory_T<BranchGrowDirectionModifier     , FEMATERIAL_ID> branch_grow_direction_modifier_factory     ("branch_grow_direction"     );
+FEPluginFactory_T<RandomBranchGrowDirectionModifier, FEMATERIAL_ID> random_branch_grow_direction_modifier_factory("random_branch_grow_direction");
 FEPluginFactory_T<GradientGrowDirectionModifier   , FEMATERIAL_ID> gradient_grow_direction_modifier_factory   ("gradient_grow_direction"   );
 FEPluginFactory_T<AnastamosisGrowDirectionModifier, FEMATERIAL_ID> anastamosis_grow_direction_modifier_factory("anastamosis_grow_direction");
 FEPluginFactory_T<EdgeDeflectorGrowDirectionModifier, FEMATERIAL_ID> edge_deflector_grow_direction_modifier_factory("edge_deflector_grow_direction");
@@ -166,7 +167,8 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		//grow direction modifiers
 		&grow_direction_modifiers_factory, &base_fiber_grow_direction_modifier_factory,
 		&unit_length_grow_direction_modifier_factory, &segment_length_grow_direction_modifier_factory,
-		&default_grow_direction_modifier_factory, &branch_grow_direction_modifier_factory, 
+		&default_grow_direction_modifier_factory, &branch_grow_direction_modifier_factory,
+		&random_branch_grow_direction_modifier_factory,
 		&gradient_grow_direction_modifier_factory, &anastamosis_grow_direction_modifier_factory,
 		&density_scale_grow_direction_modifier_factory, &edge_deflector_grow_direction_modifier_factory,
 		&vessel_direction_contributions_grow_direction_modifier_factory,

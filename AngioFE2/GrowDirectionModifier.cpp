@@ -226,6 +226,74 @@ void BranchGrowDirectionModifier::SetCulture(Culture * cp)
 	GrowDirectionModifier::SetCulture(cp);
 }
 
+
+
+RandomBranchGrowDirectionModifier::RandomBranchGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
+{
+	AddProperty(&collagen_direction, "collagen_direction");
+	collagen_direction.m_brequired = false;
+
+	AddProperty(&previous_direction, "previous_direction");
+	previous_direction.m_brequired = false;
+}
+vec3d RandomBranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length)
+{
+	// If new segment is a branch we modify the grow direction a bit
+	if (branch)
+	{
+		// TODO: what's the logic here? Why the 0.5 factor?
+		//      If the vessel is aligned with the collagen (and the initial fragments are)
+		//      then  the new branch will overlap the old segment.
+		if (previous_direction)
+		{
+			mat3d id(1.0, 0.0, 0.0,
+				0.0, 1.0, 0.0,
+				0.0, 0.0, 1.0);
+			mat3d ct = previous_direction->Operation(id, previous_dir, mat, tip);
+			previous_dir = ct * previous_dir;
+		}
+		vec3d seg_vec = -previous_dir;
+		double lambda;
+		vec3d coll_fib = culture->m_pmat->fiber_manager->GetFiberDirection(tip.pt, lambda);
+		if (collagen_direction)
+		{
+			mat3d id(1.0, 0.0, 0.0,
+				0.0, 1.0, 0.0,
+				0.0, 0.0, 1.0);
+			mat3d ct = collagen_direction->Operation(id, coll_fib, mat, tip);
+			coll_fib = ct * coll_fib;
+		}
+		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
+		seg_vec.unit();
+		mat3d rrot = culture->m_pmat->m_pangio->unifromRandomRotationMatrix();
+		seg_vec = rrot* seg_vec;
+		return seg_vec;
+	}
+	return previous_dir;
+}
+
+void RandomBranchGrowDirectionModifier::Update()
+{
+	if (collagen_direction)
+	{
+		collagen_direction->Update();
+	}
+	if (previous_direction)
+	{
+		previous_direction->Update();
+	}
+}
+void RandomBranchGrowDirectionModifier::SetCulture(Culture * cp)
+{
+	if (collagen_direction)
+		collagen_direction->SetCulture(cp);
+	if (previous_direction)
+		previous_direction->SetCulture(cp);
+
+	GrowDirectionModifier::SetCulture(cp);
+}
+
+
 DefaultGrowDirectionModifier::DefaultGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
 {
 	AddProperty(&collagen_direction, "collagen_direction"); 
