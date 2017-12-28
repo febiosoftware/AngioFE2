@@ -207,7 +207,7 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 		//reactivate the tip
 		tip->bactive = true;
 		nseg_add++;
-		printf("segment reactivated\n");
+		//printf("segment reactivated\n");
 	}
 	else
 	{

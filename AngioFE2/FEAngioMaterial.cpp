@@ -38,7 +38,7 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 END_PARAMETER_LIST();
 
 //-----------------------------------------------------------------------------
-FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticFiberMaterial(pfem), FEAngioMaterialBase()
+FEAngioMaterial::FEAngioMaterial(FEModel* pfem) : FEElasticMaterial(pfem), FEAngioMaterialBase()
 {
 	AddProperty(&common_properties, "common_properties");
 	AddProperty(&matrix_material, "matrix");
@@ -211,7 +211,7 @@ void FEAngioMaterial::SetupSurface()
 	assert(domainptrs.size());
 	exterior_surface = mesh->ElementBoundarySurface(domainptrs, true, false);
 	normal_proj = new FENormalProjection(*exterior_surface);
-	normal_proj->SetTolerance(0.001);
+	normal_proj->SetTolerance(m_cultureParams.min_segment_length);
 	normal_proj->Init();
 	normal_proj->SetSearchRadius(1.0);
 

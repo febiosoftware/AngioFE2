@@ -19,7 +19,7 @@
 
 //-----------------------------------------------------------------------------
 // Class implementing a stress induced by a non-local point force
-class FEAngioMaterial : public FEElasticFiberMaterial, public FEAngioMaterialBase
+class FEAngioMaterial : public FEElasticMaterial, public FEAngioMaterialBase
 {
 public:
 	
@@ -57,7 +57,7 @@ public:
 		{
 			return base->GetID();
 		}
-		return FEElasticFiberMaterial::GetID(); };
+		return FEElasticMaterial::GetID(); };
 
 	FEMaterial * GetMaterial()override { return dynamic_cast<FEMaterial*>(this); }
 	//begin functions from FEMaterial
