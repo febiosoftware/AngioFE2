@@ -225,7 +225,75 @@ void BranchGrowDirectionModifier::SetCulture(Culture * cp)
 
 	GrowDirectionModifier::SetCulture(cp);
 }
+//random theta implementation
 
+RandomThetaBranchGrowDirectionModifier::RandomThetaBranchGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
+{
+	AddProperty(&collagen_direction, "collagen_direction");
+	collagen_direction.m_brequired = false;
+
+	AddProperty(&previous_direction, "previous_direction");
+	previous_direction.m_brequired = false;
+	angles = std::uniform_real_distribution<double>(0, 2*PI);
+}
+vec3d RandomThetaBranchGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length)
+{
+	// If new segment is a branch we modify the grow direction a bit
+	if (branch)
+	{
+		// TODO: what's the logic here? Why the 0.5 factor?
+		//      If the vessel is aligned with the collagen (and the initial fragments are)
+		//      then  the new branch will overlap the old segment.
+		if (previous_direction)
+		{
+			mat3d id(1.0, 0.0, 0.0,
+				0.0, 1.0, 0.0,
+				0.0, 0.0, 1.0);
+			mat3d ct = previous_direction->Operation(id, previous_dir, mat, tip);
+			previous_dir = ct * previous_dir;
+		}
+		vec3d seg_vec = -previous_dir;
+		double lambda;
+		vec3d coll_fib = culture->m_pmat->fiber_manager->GetFiberDirection(tip.pt, lambda);
+		if (collagen_direction)
+		{
+			mat3d id(1.0, 0.0, 0.0,
+				0.0, 1.0, 0.0,
+				0.0, 0.0, 1.0);
+			mat3d ct = collagen_direction->Operation(id, coll_fib, mat, tip);
+			coll_fib = ct * coll_fib;
+		}
+		seg_vec = coll_fib - seg_vec*(seg_vec*coll_fib)*0.5;
+		seg_vec.unit();
+		//generate random theta
+		double angle = angles(mat->m_pangio->rengine);
+		quatd rot(angle,seg_vec);
+		auto rot_mat = rot.RotationMatrix();
+		return rot_mat*seg_vec;
+	}
+	return previous_dir;
+}
+
+void RandomThetaBranchGrowDirectionModifier::Update()
+{
+	if (collagen_direction)
+	{
+		collagen_direction->Update();
+	}
+	if (previous_direction)
+	{
+		previous_direction->Update();
+	}
+}
+void RandomThetaBranchGrowDirectionModifier::SetCulture(Culture * cp)
+{
+	if (collagen_direction)
+		collagen_direction->SetCulture(cp);
+	if (previous_direction)
+		previous_direction->SetCulture(cp);
+
+	GrowDirectionModifier::SetCulture(cp);
+}
 
 
 RandomBranchGrowDirectionModifier::RandomBranchGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)

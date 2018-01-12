@@ -545,6 +545,21 @@ public:
 private:
 	FEPropertyT<GGP> collagen_direction;
 	FEPropertyT<GGP> previous_direction;
+	
+};
+
+//this class changes the grow direction if the segment is a branch
+class RandomThetaBranchGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	explicit RandomThetaBranchGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	void Update() override;
+	void SetCulture(Culture * cp) override;
+private:
+	FEPropertyT<GGP> collagen_direction;
+	FEPropertyT<GGP> previous_direction;
+	std::uniform_real_distribution<double> angles;
 };
 
 //this class changes the grow direction if the segment is a branch

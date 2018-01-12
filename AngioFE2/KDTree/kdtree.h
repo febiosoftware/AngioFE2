@@ -608,7 +608,9 @@ typename KDTree<DIM, DIMR>::KDNode * KDTree<DIM, DIMR>::KDify(typename  std::vec
 		return nullptr;
 	}
 	size_t choice = size / 2;//check this is correct and does not need offset
-	std::function<bool(KDNode *, KDNode * )> comparitor = [this, dimstart]
+	//this cannot be easily moved to a member function as it captures dimstart
+	//could be moved to a map to cache the functions to reduce memory usage 
+	const std::function<bool(KDNode *, KDNode * )> comparitor = [this, dimstart]
 	(KDNode * first, KDNode * second)
         {
             return _accessor(first->dimensions)[dimstart] < _accessor(second->dimensions)[dimstart];
