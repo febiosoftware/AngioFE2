@@ -68,7 +68,11 @@ bool Culture::Init()
 
 	// do the initial seeding
 	if (!m_pmat->GetCommonAngioProperties()->fseeder->SeedFragments(m_angio.CurrentSimTime(), this))
+	{
+		printf("\nseeding fragments failed\n");
 		return false;
+	}
+		
 
 	return true;
 }
@@ -259,8 +263,11 @@ void Culture::AddNewSegmentNoClear(Segment& seg)
 	//assert(new_tip.pt.nelem == -1);
 	//init done elsewhere
 	assert(new_tip.bactive);
-
-	m_pmat->GetCommonAngioProperties()->bc->CheckBC(seg);
+	if(recents.size() < m_cultParams->max_recursion_depth)
+	{
+		m_pmat->GetCommonAngioProperties()->bc->CheckBC(seg);
+	}
+	//just fall through and exit enough segments have been added
 }
 
 //-----------------------------------------------------------------------------
