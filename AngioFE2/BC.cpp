@@ -35,6 +35,13 @@ BC::~BC()
 void BC::CheckBC(Segment &seg)
 {
 	
+	{
+		auto rseg = culture->RecentSegments();
+		if(rseg.size() >= culture->m_cultParams->max_recursion_depth)
+		{
+			return;
+		}
+	}
 	//new implementation may be run on all segments will add the segment once the boundaries are safe
 	//remove the check of whether or not to check the boundary condition in Culture
 	assert(seg.tip_c(0).pt.nelem != -1);

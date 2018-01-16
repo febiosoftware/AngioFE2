@@ -56,6 +56,7 @@ public:
 	int active_tip_threshold = 500;
 	double stress_radius = 200.0;
 
+	int max_recursion_depth = 5;
 
 	const bool io = true;
 	friend class FEParamContainer;

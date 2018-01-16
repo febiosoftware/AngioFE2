@@ -169,6 +169,7 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 	if (seg.length() < culture->m_pmat->m_cultureParams.min_segment_length)
 	{
 		printf("segment ended due to length\n");
+		tip->bactive = true;
 		return;
 	}
 	seg.expected_length = seg.length();
