@@ -30,25 +30,25 @@ TEST_CASE( "Two dimensional test", "[KDTree]" ) {
     kdtree.insert({-7,-8});
     kdtree.insert({-2,-9});
     
-    std::vector<std::vector<double>> results = kdtree.nearest({-7,6});
-    REQUIRE(results.size() == 1);
-    REQUIRE(results[0][0] == -7.0);
-    REQUIRE(results[0][1] == 5.0);
+    std::vector<double> results = kdtree.nearest({-7.0,6.0});
+    //REQUIRE(results.size() == 1);
+    REQUIRE(results[0] == -7.0);
+    REQUIRE(results[1] == 5.0);
     
     results = kdtree.nearest({-4,1});
-    REQUIRE(results.size() == 1);
-    REQUIRE(results[0][0] == -5.0);
-    REQUIRE(results[0][1] == 2.0);
+    //REQUIRE(results.size() == 1);
+    REQUIRE(results[0] == -5.0);
+    REQUIRE(results[1] == 2.0);
     
     results = kdtree.nearest({0,0});
-    REQUIRE(results.size() == 1);
-    REQUIRE(results[0][0] == -2.0);
-    REQUIRE(results[0][1] == -2.0);
+    //REQUIRE(results.size() == 1);
+    REQUIRE(results[0] == -2.0);
+    REQUIRE(results[1] == -2.0);
     
     results = kdtree.nearest({-9,1});
-    REQUIRE(results.size() == 1);
-    REQUIRE(results[0][0] == -8.0);
-    REQUIRE(results[0][1] == 2.0);
+    //REQUIRE(results.size() == 1);
+    REQUIRE(results[0] == -8.0);
+    REQUIRE(results[1] == 2.0);
 }
 
 TEST_CASE( "Three dimensional test", "[KDTree]" ) {
@@ -79,30 +79,29 @@ TEST_CASE( "Three dimensional test", "[KDTree]" ) {
         {
             temp.push_back(scale(reng));
         }
-        std::vector<std::vector<double>> results = kdtree.nearest(temp);
-        REQUIRE(results.size() == 1);
+        std::vector<double> results = kdtree.nearest(temp);
         for(int k=0; k < positions.size(); k++)
         {
-            if((results[0][0] == positions[k][0]) &&
-                (results[0][1] == positions[k][1]) &&
-                (results[0][2] == positions[k][2])
+            if((results[0] == positions[k][0]) &&
+                (results[1] == positions[k][1]) &&
+                (results[2] == positions[k][2])
             ){
                     REQUIRE(true);
             }
             else
             {
                 
-                if(ndim_distance(positions[k], temp) < ndim_distance(temp, results[0]))
+                if(ndim_distance(positions[k], temp) < ndim_distance(temp, results))
                 {
                     std::cout << "dk:" << ndim_distance(positions[k], temp) <<
-                        " dn:" << ndim_distance(temp, results[0]) << std::endl;
-                    std::cout  << "pos: " << vector_printer(positions[k]) << " res:" << vector_printer( results[0]) << 
+                        " dn:" << ndim_distance(temp, results) << std::endl;
+                    std::cout  << "pos: " << vector_printer(positions[k]) << " res:" << vector_printer( results) << 
                         " temp:" << vector_printer(temp) << std::endl;
                         std::cout << std::endl;
                             failures++;
                     kdtree.nearest(temp);
                 }
-                REQUIRE(ndim_distance(positions[k], temp) >= ndim_distance(temp, results[0]));
+                REQUIRE(ndim_distance(positions[k], temp) >= ndim_distance(temp, results));
             }
             
             
@@ -141,29 +140,28 @@ TEST_CASE( "Two dimensional test large", "[KDTree]" ) {
         {
             temp.push_back(scale(reng));
         }
-        std::vector<std::vector<double>> results = kdtree.nearest(temp);
-        REQUIRE(results.size() == 1);
+        std::vector<double> results = kdtree.nearest(temp);
         for(int k=0; k < positions.size(); k++)
         {
-            if((results[0][0] == positions[k][0]) &&
-                (results[0][1] == positions[k][1])
+            if((results[0] == positions[k][0]) &&
+                (results[1] == positions[k][1])
               ){
                   REQUIRE(true);
                 }
             else
             {
 
-                if(ndim_distance(positions[k], temp) < ndim_distance(temp, results[0]))
+                if(ndim_distance(positions[k], temp) < ndim_distance(temp, results))
                 {
                     std::cout << "dk:" << ndim_distance(positions[k], temp) <<
-                    " dn:" << ndim_distance(temp, results[0]) << std::endl;
-                    std::cout  << "pos: " << vector_printer(positions[k]) << " res:" << vector_printer( results[0]) << 
+                    " dn:" << ndim_distance(temp, results) << std::endl;
+                    std::cout  << "pos: " << vector_printer(positions[k]) << " res:" << vector_printer( results) << 
                     " temp:" << vector_printer(temp) << std::endl;
                     std::cout << std::endl;
                     failures++;
                     kdtree.nearest(temp);
                 }
-                REQUIRE(ndim_distance(positions[k], temp) >= ndim_distance(temp, results[0]));
+                REQUIRE(ndim_distance(positions[k], temp) >= ndim_distance(temp, results));
             }
 
 
@@ -206,11 +204,11 @@ TEST_CASE( "Three dimensional test timed", "[KDTree]" ) {
         testData.push_back(temp);
     }
     
-    std::vector<std::vector<std::vector<double>> > resultData;
+    std::vector<std::vector<double> > resultData;
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     for(int i =0; i < num_tests;i++)
     {
-        std::vector<std::vector<double>> results = kdtree.nearest(testData[i]);
+        std::vector<double> results = kdtree.nearest(testData[i]);
         resultData.push_back(results);
     }
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -223,31 +221,30 @@ TEST_CASE( "Three dimensional test timed", "[KDTree]" ) {
     for(int i =0; i < num_tests; i++)
     {
         std::vector<double> temp = testData[i]; 
-        std::vector<std::vector<double>> results = resultData[i];
-        REQUIRE(results.size() == 1);
+        std::vector<double> results = resultData[i];
         for(int k=0; k < positions.size(); k++)
         {
-            if((results[0][0] == positions[k][0]) &&
-                (results[0][1] == positions[k][1]) &&
-                (results[0][2] == positions[k][2])
+            if((results[0] == positions[k][0]) &&
+                (results[1] == positions[k][1]) &&
+                (results[2] == positions[k][2])
               ){
                   //REQUIRE(true);
                 }
             else
             {
 
-                if(ndim_distance(positions[k], temp) < ndim_distance(temp, results[0]))
+                if(ndim_distance(positions[k], temp) < ndim_distance(temp, results))
                 {
                     std::cout << "dk:" << ndim_distance(positions[k], temp) <<
-                    " dn:" << ndim_distance(temp, results[0]) << std::endl;
-                    std::cout  << "pos: " << vector_printer(positions[k]) << " res:" << vector_printer( results[0]) << 
+                    " dn:" << ndim_distance(temp, results) << std::endl;
+                    std::cout  << "pos: " << vector_printer(positions[k]) << " res:" << vector_printer( results) << 
                     " temp:" << vector_printer(temp) << std::endl;
                     std::cout << std::endl;
                     failures++;
                     kdtree.nearest(temp);
                     best = i;
                 }
-                //REQUIRE(ndim_distance(positions[k], temp) >= ndim_distance(temp, results[0]));
+                //REQUIRE(ndim_distance(positions[k], temp) >= ndim_distance(temp, results));
             }
 
 
@@ -261,30 +258,29 @@ TEST_CASE( "Three dimensional test timed", "[KDTree]" ) {
     for(int i =0; i < num_tests; i++)
     {
         std::vector<double> temp = testData[i]; 
-        std::vector<std::vector<double>> results = resultData[i];
-        REQUIRE(results.size() == 1);
+        std::vector<double> results = resultData[i];
         for(int k=0; k < positions.size(); k++)
         {
-            if((results[0][0] == positions[k][0]) &&
-                (results[0][1] == positions[k][1]) &&
-                (results[0][2] == positions[k][2])
+            if((results[0] == positions[k][0]) &&
+                (results[1] == positions[k][1]) &&
+                (results[2] == positions[k][2])
               ){
                   REQUIRE(true);
                 }
             else
             {
 
-                if(ndim_distance(positions[k], temp) < ndim_distance(temp, results[0]))
+                if(ndim_distance(positions[k], temp) < ndim_distance(temp, results))
                 {
                     std::cout << "dk:" << ndim_distance(positions[k], temp) <<
-                    " dn:" << ndim_distance(temp, results[0]) << std::endl;
-                    std::cout  << "pos: " << vector_printer(positions[k]) << " res:" << vector_printer( results[0]) << 
+                    " dn:" << ndim_distance(temp, results) << std::endl;
+                    std::cout  << "pos: " << vector_printer(positions[k]) << " res:" << vector_printer( results) << 
                     " temp:" << vector_printer(temp) << std::endl;
                     std::cout << std::endl;
                     failures++;
                     kdtree.nearest(temp);
                 }
-                REQUIRE(ndim_distance(positions[k], temp) >= ndim_distance(temp, results[0]));
+                REQUIRE(ndim_distance(positions[k], temp) >= ndim_distance(temp, results));
             }
 
 
@@ -332,30 +328,29 @@ TEST_CASE( "Three dimensional test multi insert", "[KDTree]" ) {
         {
             temp.push_back(scale(reng));
         }
-        std::vector<std::vector<double>> results = kdtree.nearest(temp);
-        REQUIRE(results.size() == 1);
+        std::vector<double> results = kdtree.nearest(temp);
         for(int k=0; k < positions.size(); k++)
         {
-            if((results[0][0] == positions[k][0]) &&
-                (results[0][1] == positions[k][1]) &&
-                (results[0][2] == positions[k][2])
+            if((results[0] == positions[k][0]) &&
+                (results[1] == positions[k][1]) &&
+                (results[2] == positions[k][2])
               ){
                   REQUIRE(true);
                 }
             else
             {
 
-                if(ndim_distance(positions[k], temp) < ndim_distance(temp, results[0]))
+                if(ndim_distance(positions[k], temp) < ndim_distance(temp, results))
                 {
                     std::cout << "dk:" << ndim_distance(positions[k], temp) <<
-                    " dn:" << ndim_distance(temp, results[0]) << std::endl;
-                    std::cout  << "pos: " << vector_printer(positions[k]) << " res:" << vector_printer( results[0]) << 
+                    " dn:" << ndim_distance(temp, results) << std::endl;
+                    std::cout  << "pos: " << vector_printer(positions[k]) << " res:" << vector_printer( results) << 
                     " temp:" << vector_printer(temp) << std::endl;
                     std::cout << std::endl;
                     failures++;
                     kdtree.nearest(temp);
                 }
-                REQUIRE(ndim_distance(positions[k], temp) >= ndim_distance(temp, results[0]));
+                REQUIRE(ndim_distance(positions[k], temp) >= ndim_distance(temp, results));
             }
 
 
@@ -365,7 +360,7 @@ TEST_CASE( "Three dimensional test multi insert", "[KDTree]" ) {
     std::cout << "failures:" << failures << std::endl;
   }
   
-  
+  /*
 TEST_CASE( "Three dimensional test multi insert within", "[KDTree]" ) {
     std::vector<double> unit(3, 1.0);
 
@@ -426,7 +421,7 @@ TEST_CASE( "Three dimensional test multi insert within", "[KDTree]" ) {
 
     std::cout << "failures:" << failures << std::endl;
   }
-  
+ 
   
 TEST_CASE( "Three dimensional test multi insert rebuild", "[KDTree]" ) {
     std::vector<double> unit(3, 1.0);
@@ -538,3 +533,4 @@ TEST_CASE( "Three dimensional test multi insert rebuild", "[KDTree]" ) {
 
     std::cout << "failures:" << failures << std::endl;
   }
+ */
