@@ -25,6 +25,8 @@ public:
 	double		m_D;		// collagen density (?)
 	double		m_DA;		// degree of anisotropy (?)
 							//TODO: consider adding a custom weigth parameter per element 
+	//the temporary to store angio stress
+	mat3ds m_as;
 
 	GridPoint	m_pt;	// grid point location of this material point
 

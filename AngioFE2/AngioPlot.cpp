@@ -33,7 +33,8 @@ bool FEPlotAngioStress::Save(FEDomain& d, FEDataStream& str)
 		for (int j=0; j<nint; ++j)
 		{
 			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
-			mat3ds sj = pmat->AngioStress(*(FEAngioMaterialPoint::FindAngioMaterialPoint(&mp)));
+			FEAngioMaterialPoint * angio_mp = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
+			mat3ds & sj = angio_mp->m_as;
 			s += sj;
 		}
 		s /= static_cast<double>(nint);
@@ -62,7 +63,7 @@ bool FEPlotMatrixStress::Save(FEDomain& d, FEDataStream& str)
 			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
 			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
 			FEElasticMaterialPoint& matrix_elastic = *angioPt->matPt->ExtractData<FEElasticMaterialPoint>();
-			mat3ds sj = matrix_elastic.m_s;
+			mat3ds & sj = matrix_elastic.m_s;
 			s += sj;
 		}
 		s /= static_cast<double>(nint);
@@ -91,7 +92,7 @@ bool FEPlotVesselStress::Save(FEDomain& d, FEDataStream& str)
 			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
 			FEAngioMaterialPoint* angioPt = FEAngioMaterialPoint::FindAngioMaterialPoint(&mp);
 			FEElasticMaterialPoint& vessel_elastic = *angioPt->vessPt->ExtractData<FEElasticMaterialPoint>();
-			mat3ds sj = vessel_elastic.m_s;
+			mat3ds & sj = vessel_elastic.m_s;
 			
 			s += sj;
 		}
