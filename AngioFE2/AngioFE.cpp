@@ -103,7 +103,6 @@ FEPluginFactory_T<FEPlotMatrixWeight         , FEPLOTDATA_ID> plot_matrix_weight
 FEPluginFactory_T<FEPlotMatrixTangent        , FEPLOTDATA_ID> plot_matrix_tangent          ("matrix tangent"        );
 FEPluginFactory_T<FEPlotMatrixViscoStress    , FEPLOTDATA_ID> plot_matrix_visco_stress     ("matrix visco stress"   );
 FEPluginFactory_T<FEPlotMatrixElasticStress  , FEPLOTDATA_ID> plot_matrix_elastic_stress   ("matrix elastic stress" );
-FEPluginFactory_T<FEPlotAngioEffectiveStress , FEPLOTDATA_ID> plot_angio_eff_stress        ("angio effective stress");
 
 FEPluginFactory_T<FEPlotAngioECMDensity      , FEPLOTDATA_ID> plot_angio_ecm               ("angio ECM density"     );
 FEPluginFactory_T<FEPlotAngioECMAlpha        , FEPLOTDATA_ID> plot_angio_alpha             ("angio ECM alpha"       );
@@ -150,7 +149,7 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		&angiofe_task_factory, &angio_sprout_factory, &angio_mat_factory,
 		&angio_mat_factory, &pressure_mat_factory,
 		//plot classes
-		&plot_angio_stress, &plot_angio_stress, &plot_angio_eff_stress,
+		&plot_angio_stress, &plot_angio_stress,
 		&plot_angio_ecm, &plot_angio_alpha, &plot_angio_gradient, &plot_angio_gradient_center,
 		&plot_angio_material_hop, &plot_angio_segment_bad_growth, &plot_vessel_stress, &plot_matrix_stress,
 		&plot_vessel_weight, &plot_matrix_weight, &plot_matrix_tangent, &plot_matrix_visco_stress,

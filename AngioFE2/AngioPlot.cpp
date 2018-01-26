@@ -343,34 +343,6 @@ bool FEPlotAngioSegmentBadGrowth::Save(FEDomain& d, FEDataStream& str)
 	return true;
 };
 
-//-----------------------------------------------------------------------------
-bool FEPlotAngioEffectiveStress::Save(FEDomain& d, FEDataStream& str)
-{
-	FEAngioMaterial* pmat = dynamic_cast<FEAngioMaterial*>(d.GetMaterial());
-	if (pmat == nullptr) return false;
-
-	FESolidDomain& dom = dynamic_cast<FESolidDomain&>(d);
-	int NE = dom.Elements();
-	for (int i=0; i<NE; ++i)
-	{
-		FESolidElement& el = dom.Element(i);
-		int nint = el.GaussPoints();
-		mat3ds s;
-		s.zero();
-		for (int j=0; j<nint; ++j)
-		{
-			FEMaterialPoint& mp = *(el.GetMaterialPoint(j));
-			FEElasticMaterialPoint& pt = *(mp.ExtractData<FEElasticMaterialPoint>());
-			mat3ds sj = pmat->Stress(*(FEAngioMaterialPoint::FindAngioMaterialPoint(&mp)));
-			s += pt.m_s - sj;
-		}
-		s /= static_cast<double>(nint);
-
-		str << s;
-	}
-	return true;
-};
-
 
 bool FEPlotAngioGradient::Save(FEMesh & m, FEDataStream & a)
 {
