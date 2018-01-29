@@ -118,6 +118,8 @@ public:
 
 	//deletes the tree and allows the structure to be reused
 	void clear();
+
+	size_t size();
 	
 #if !defined(NDEBUG) && defined(KDDEBUG)
         void verifyTree();
@@ -139,6 +141,7 @@ private:
 	std::function<double(DIMR &, DIMR &)> _distancef;
 	std::function<double(DIMR &, DIMR &, DIMR &)> _distancetoplane;
 	size_t ndim;
+	size_t _size;
 	DIMR _units;
 
 };
@@ -175,6 +178,11 @@ void KDTree<DIM, DIMR>::clear()
 	}, root);
 
 	root = nullptr;
+}
+template <typename DIM, typename DIMR>
+size_t KDTree<DIM, DIMR>::size()
+{
+	return _size;
 }
 
 template <typename DIM, typename DIMR>
@@ -264,6 +272,7 @@ void KDTree<DIM, DIMR>::BFS(std::function<bool(KDNode *)> func, KDNode * node)
 template <typename DIM, typename DIMR>
 void KDTree<DIM, DIMR>::insert(DIM item)
 {
+	_size++;
 	//do the insertion then update the depths, then rebuild any trees that need it
 	//the algorithm keeps track of the nodes that were traversed so their depths can be updated
 	std::list<KDNode *> touched;
@@ -416,6 +425,7 @@ void KDTree<DIM, DIMR>::insert(DIM item)
 template <typename DIM, typename DIMR>
 void KDTree<DIM, DIMR>::insert(std::list<DIM> items)
 {
+	_size += items.size();
     //do the insertion then update the depths, then rebuild any trees that need it
     //the algorithm keeps track of the nodes that were traversed so their depths can be updated
     std::vector<KDNode *> touched;
@@ -702,8 +712,12 @@ DIM KDTree<DIM, DIMR>::nearest(DIM item)
     {
         auto temp = _accessor(startNode->dimensions);
         double cbest = std::numeric_limits<double>::infinity();
-        std::stack<KDNode *> n2p;
-        std::stack<KDNode *> end_nodes;
+		std::vector<KDNode *> n2p_backer;
+		std::vector<KDNode *> end_nodes_backer;
+		n2p_backer.reserve(2*ceil(log2(size())));
+		end_nodes_backer.reserve(2 * ceil(log2(size())));
+        std::stack<KDNode *> n2p(n2p_backer);
+        std::stack<KDNode *> end_nodes(end_nodes_backer);
         n2p.emplace(startNode);
         //end_nodes.push(root);
         // see wikipedia on nn in KDTree
@@ -788,6 +802,7 @@ DIM KDTree<DIM, DIMR>::nearestCondition(DIM item, std::function<bool(DIM)> condi
 	{
 		auto temp = _accessor(startNode->dimensions);
 		double cbest = std::numeric_limits<double>::infinity();
+		//TODO: missing reserve optomizations
 		std::stack<KDNode *> n2p;
 		std::stack<KDNode *> end_nodes;
 		n2p.emplace(startNode);
@@ -882,8 +897,12 @@ std::vector<DIM> KDTree<DIM, DIMR>::within(DIM item, double dist, bool ordered)
     if(startNode)
     {
         DIMR temp = _accessor(startNode->dimensions);
-        std::stack<KDNode *> n2p;
-        std::stack<KDNode *> end_nodes;
+		std::vector<KDNode *> n2p_backer;
+		std::vector<KDNode *> end_nodes_backer;
+		n2p_backer.reserve(2 * ceil(log2(size())));
+		end_nodes_backer.reserve(2 * ceil(log2(size())));
+        std::stack<KDNode *> n2p(n2p_backer);
+        std::stack<KDNode *> end_nodes(end_nodes_backer);
         n2p.emplace(startNode);
         //end_nodes.push(root);
         // see wikipedia on nn in KDTree
@@ -970,6 +989,10 @@ void KDTree<DIM, DIMR>::within(DIM item, double dist, std::vector<DIM> &rv,  boo
 	if (startNode)
 	{
 		DIMR temp = _accessor(startNode->dimensions);
+		std::vector<KDNode *> n2p_backer;
+		std::vector<KDNode *> end_nodes_backer;
+		n2p_backer.reserve(2 * ceil(log2(size())));
+		end_nodes_backer.reserve(2 * ceil(log2(size())));
 		std::stack<KDNode *> n2p;
 		std::stack<KDNode *> end_nodes;
 		n2p.emplace(startNode);
