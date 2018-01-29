@@ -444,6 +444,95 @@ void DefaultGrowDirectionModifier::SetCulture(Culture * cp)
 	GrowDirectionModifier::SetCulture(cp);
 }
 
+SelectingGrowDirectionModifier::SelectingGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
+{
+	AddProperty(&collagen_direction, "collagen_direction");
+	collagen_direction.m_brequired = false;
+
+	AddProperty(&previous_direction, "previous_direction");
+	previous_direction.m_brequired = false;
+
+	AddProperty(&weight_interpolation, "weight_interpolation");
+	weight_interpolation.m_brequired = false;
+}
+
+vec3d SelectingGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length)
+{
+	// Find the component of the new vessel direction determined by collagen fiber orientation    
+	double lambda;
+	vec3d coll_dir = culture->m_pmat->fiber_manager->GetFiberDirection(tip.pt, lambda);
+
+	if (collagen_direction)
+	{
+		mat3d id(coll_dir.x, 0.0, 0.0,
+			0.0, coll_dir.y, 0.0,
+			0.0, 0.0, coll_dir.z);
+		coll_dir = vec3d(1, 1, 1);
+		mat3d ct = collagen_direction->Operation(id, coll_dir, mat, tip);
+		coll_dir = ct * coll_dir;
+	}
+
+	// Component of new vessel orientation resulting from previous vessel direction        
+	vec3d per_dir = tip.u;
+	if (previous_direction)
+	{
+		mat3d id(1.0, 0.0, 0.0,
+			0.0, 1.0, 0.0,
+			0.0, 0.0, 1.0);
+		mat3d ct = previous_direction->Operation(id, per_dir, mat, tip);
+		per_dir = ct * per_dir;
+	}
+
+	per_dir.unit();
+	coll_dir.unit();
+	if(per_dir* coll_dir < PI/2)
+	{
+		coll_dir = -coll_dir;
+	}
+
+	double wi = culture->m_pmat->m_cultureParams.GetWeightInterpolation(grow_time);
+	if (weight_interpolation)
+	{
+		mat3d id(1.0, 0.0, 0.0,
+			0.0, 1.0, 0.0,
+			0.0, 0.0, 1.0);
+		vec3d in(1, 0, 0);
+		mat3d ct = previous_direction->Operation(id, in, mat, tip);
+		vec3d temp = ct * in;
+		wi *= temp.x;
+	}
+	vec3d new_dir = mix(per_dir, coll_dir, wi);
+	new_dir.unit();
+
+	return new_dir;
+}
+void SelectingGrowDirectionModifier::Update()
+{
+	if (collagen_direction)
+	{
+		collagen_direction->Update();
+	}
+	if (previous_direction)
+	{
+		previous_direction->Update();
+	}
+	if (weight_interpolation)
+	{
+		weight_interpolation->Update();
+	}
+}
+void SelectingGrowDirectionModifier::SetCulture(Culture * cp)
+{
+	if (collagen_direction)
+		collagen_direction->SetCulture(cp);
+	if (previous_direction)
+		previous_direction->SetCulture(cp);
+	if (weight_interpolation)
+		weight_interpolation->SetCulture(cp);
+
+	GrowDirectionModifier::SetCulture(cp);
+}
+
 BaseFiberAwareGrowDirectionModifier::BaseFiberAwareGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
 {
 

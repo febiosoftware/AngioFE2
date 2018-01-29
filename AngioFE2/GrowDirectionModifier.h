@@ -526,6 +526,19 @@ private:
 	FEPropertyT<GGP> weight_interpolation;
 };
 
+class SelectingGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	explicit SelectingGrowDirectionModifier(FEModel * model);
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	void Update() override;
+	void SetCulture(Culture * cp) override;
+private:
+	FEPropertyT<GGP> collagen_direction;
+	FEPropertyT<GGP> previous_direction;
+	FEPropertyT<GGP> weight_interpolation;
+};
+
 //will ignore the previous direction and generate the direction a segmetn should grow based on collagen direction and current stretch
 class BaseFiberAwareGrowDirectionModifier : public GrowDirectionModifier
 {

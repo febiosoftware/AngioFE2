@@ -8,6 +8,7 @@
 #include "Segment.h"
 #include "FECore/FESolidDomain.h" //isd this include correct or should i just forward declare the class
 #include <FEBioLib/FEBioModel.h>
+#include <future>
 
 
 //-----------------------------------------------------------------------------
@@ -118,7 +119,9 @@ private:
 
 	void FinalizeFEM();
 
-	void SetupSurface();
+	void SetupSurface(std::vector<future<void>> & futures);
+
+	void CallInFutures(std::vector<future<void>> & futures);
 
 	// do the final output
 	void Output();

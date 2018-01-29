@@ -148,7 +148,7 @@ void BC::CheckBC(Segment &seg)
 		return;
 	int hcount = 0;//counts how many times the boundary is handled
 	std::vector<int> & edinices = culture->m_pmat->m_pangio->m_fe_element_data[se->GetID()].surfacesIndices;
-	culture->m_pmat->normal_proj->SetSearchRadius(seg.length() * 2);
+	culture->m_pmat->normal_proj->SetSearchRadius(seg.length() * 2 + culture->m_cultParams->min_segment_length*2);
 	for (size_t i = 0; i < edinices.size(); i++)
 	{
 		if (surf->Elements() > culture->m_pmat->m_pangio->m_fe_element_data[se->GetID()].surfacesIndices[i])

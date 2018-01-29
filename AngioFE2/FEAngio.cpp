@@ -22,6 +22,7 @@
 #include "Elem.h"
 #include "angio3d.h"
 #include <ctime>
+#include <future>
 #include <algorithm>
 #include <cfloat> 
 #include <FEBioMix/FETriphasic.h>
@@ -110,13 +111,15 @@ bool FEAngio::Init()
 	{
 		m_pmat[i]->FinalizeInit();
 	}
+	std::vector<std::future<void>> surface_futures;
 	//setup the exterior_surface
-	SetupSurface();
+	SetupSurface(surface_futures);
 
 	// assign ECM densities to grid nodes
 	//TODO: degree of anisotropy values will only get initialized if density is set to 0
 	if (InitECMDensity() == false) return false;
 
+	CallInFutures(surface_futures);
 	// assign concentration values to grid nodes
 	//if (InitSoluteConcentration() == false) return false;
 
@@ -139,11 +142,18 @@ bool FEAngio::Init()
 	return true;
 }
 
-void FEAngio::SetupSurface()
+void FEAngio::SetupSurface(std::vector<future<void>> & futures)
 {
 	for (size_t i = 0; i < m_pmat.size(); i++)
 	{
-		m_pmat[i]->SetupSurface();
+		futures.push_back(std::async(std::launch::async,&FEAngioMaterialBase::SetupSurface, m_pmat[i]));
+	}
+}
+void FEAngio::CallInFutures(std::vector<future<void>> & futures)
+{
+	for(int i =0; i < futures.size();i++)
+	{
+		futures[i].get();
 	}
 }
 

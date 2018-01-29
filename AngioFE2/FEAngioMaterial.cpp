@@ -211,9 +211,9 @@ void FEAngioMaterial::SetupSurface()
 	assert(domainptrs.size());
 	exterior_surface = mesh->ElementBoundarySurface(domainptrs, true, false);
 	normal_proj = new FENormalProjection(*exterior_surface);
-	normal_proj->SetTolerance(m_cultureParams.min_segment_length);
+	normal_proj->SetTolerance(m_cultureParams.min_segment_length/4);
 	normal_proj->Init();
-	normal_proj->SetSearchRadius(1.0);
+	normal_proj->SetSearchRadius(4.0);
 
 	//now add the exterior_surface element indices to the element data
 	for (auto i = 0; i < exterior_surface->Elements(); i++)

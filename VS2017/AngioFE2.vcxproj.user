@@ -46,7 +46,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release OMP|x64'">
     <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Release OMP\FEBio2.exe</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febioReleaseOMP.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
-    <LocalDebuggerWorkingDirectory>..\..\v2tests\plunger4\Mini_LU_test</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\plunger_selecting\Mini_LU_test</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>
