@@ -485,7 +485,7 @@ vec3d SelectingGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir
 
 	per_dir.unit();
 	coll_dir.unit();
-	if(per_dir* coll_dir < PI/2)
+	if(per_dir* coll_dir < 0.5)
 	{
 		coll_dir = -coll_dir;
 	}
