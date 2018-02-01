@@ -803,8 +803,12 @@ DIM KDTree<DIM, DIMR>::nearestCondition(DIM item, std::function<bool(DIM)> condi
 		auto temp = _accessor(startNode->dimensions);
 		double cbest = std::numeric_limits<double>::infinity();
 		//TODO: missing reserve optomizations
-		std::stack<KDNode *> n2p;
-		std::stack<KDNode *> end_nodes;
+		std::vector<KDNode *> n2p_backer;
+		std::vector<KDNode *> end_nodes_backer;
+		n2p_backer.reserve(2 * ceil(log2(size())));
+		end_nodes_backer.reserve(2 * ceil(log2(size())));
+		std::stack<KDNode *, std::vector<KDNode*>> n2p(n2p_backer);
+		std::stack<KDNode *, std::vector<KDNode*>> end_nodes(end_nodes_backer);
 		n2p.emplace(startNode);
 		//end_nodes.push(root);
 		// see wikipedia on nn in KDTree
@@ -993,8 +997,8 @@ void KDTree<DIM, DIMR>::within(DIM item, double dist, std::vector<DIM> &rv,  boo
 		std::vector<KDNode *> end_nodes_backer;
 		n2p_backer.reserve(2 * ceil(log2(size())));
 		end_nodes_backer.reserve(2 * ceil(log2(size())));
-		std::stack<KDNode *> n2p;
-		std::stack<KDNode *> end_nodes;
+		std::stack<KDNode *,std::vector<KDNode*>> n2p(n2p_backer);
+		std::stack < KDNode *, std::vector<KDNode *> > end_nodes(end_nodes_backer);
 		n2p.emplace(startNode);
 		//end_nodes.push(root);
 		// see wikipedia on nn in KDTree
