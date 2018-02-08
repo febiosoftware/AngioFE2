@@ -232,7 +232,7 @@ void FEAngio::FinalizeFEM()
 // Initialize the nodal ECM values
 bool FEAngio::InitECMDensity()
 {
-	ForEachNodePar([&](FENode & node)
+	ForEachNode([&](FENode & node)
 	{
 		m_fe_node_data[node.GetID()].m_collfib = vec3d(0, 0, 0);
 		m_fe_node_data[node.GetID()].m_ecm_den = 0.0;
@@ -248,7 +248,7 @@ bool FEAngio::InitECMDensity()
 	}
 
 	// normalize fiber vector and average ecm density
-	ForEachNodePar([&](FENode & node)
+	ForEachNode([&](FENode & node)
 	{
 		//nneds to be run only once per node
 		if (m_fe_node_data[node.GetID()].m_ntag)
@@ -275,7 +275,7 @@ void FEAngio::UpdateECM()
 	// reset nodal data
 	FEMesh & mesh = m_fem->GetMesh();
 
-	ForEachNodePar([&](FENode & node)
+	ForEachNode([&](FENode & node)
 	{
 		m_fe_node_data[node.GetID()].m_collfib = vec3d(0, 0, 0);
 		m_fe_node_data[node.GetID()].m_ecm_den = 0.0;
@@ -359,7 +359,6 @@ void FEAngio::ForEachNode(std::function<void(FENode &)> f, std::vector<int> & ma
 		for (int j = 0; j < d.Elements(); j++)
 		{
 			FEElement & e = d.ElementRef(j);
-//#pragma omp parallel for schedule(dynamic)
 			for (int k = 0; k < e.Nodes(); k++)
 			{
 				f(mesh.Node(e.m_node[k]));//this iterates over the local nodes
@@ -368,32 +367,6 @@ void FEAngio::ForEachNode(std::function<void(FENode &)> f, std::vector<int> & ma
 	}
 }
 
-void FEAngio::ForEachNodePar(std::function<void(FENode &)> f, std::vector<int> & matls)
-{
-	//TODO: the last element to access a node wins on overwting the data associated with that node
-	//this behavior matches the previous behavior of the plugin but probably should be fixed sometime
-	FEMesh & mesh = m_fem->GetMesh();
-	std::vector<int> dl;
-	mesh.DomainListFromMaterial(matls, dl);
-	assert((matls.size() ==0 )|| dl.size());
-	for (size_t i = 0; i < dl.size(); i++)
-	{
-		FEDomain & d = mesh.Domain(dl[i]);
-		for (int j = 0; j < d.Elements(); j++)
-		{
-			FEElement & e = d.ElementRef(j);
-#pragma omp parallel for schedule(dynamic)
-			for (int k = 0; k < e.Nodes(); k++)
-			{
-				f(mesh.Node(e.m_node[k]));//this iterates over the local nodes
-			}
-		}
-	}
-}
-void FEAngio::ForEachNodePar(std::function<void(FENode &)> f)
-{
-	ForEachNodePar(f, m_pmat_ids);
-}
 void FEAngio::ForEachNode(std::function<void(FENode &)> f)
 {
 	ForEachNode(f, m_pmat_ids);
@@ -414,27 +387,7 @@ void FEAngio::ForEachElement(std::function<void(FESolidElement&, FESolidDomain&)
 		}
 	}
 }
-void FEAngio::ForEachElementPar(std::function<void(FESolidElement&, FESolidDomain&)> f, std::vector<int> & matls)
-{
-	FEMesh & mesh = m_fem->GetMesh();
-	std::vector<int> dl;
-	mesh.DomainListFromMaterial(matls, dl);
-	assert(matls.size() ==0 || dl.size());
-	for (size_t i = 0; i < dl.size(); i++)
-	{
-		FESolidDomain & d = reinterpret_cast<FESolidDomain&>(mesh.Domain(dl[i]));
-#pragma omp parallel for schedule(dynamic, 24)
-		for (int j = 0; j < d.Elements(); j++)
-		{
-			FESolidElement & e = reinterpret_cast<FESolidElement&>(d.ElementRef(j));
-			f(e, d);
-		}
-	}
-}
-void FEAngio::ForEachElementPar(std::function<void(FESolidElement&, FESolidDomain&)> f)
-{
-	ForEachElementPar(f, m_pmat_ids);
-}
+
 void FEAngio::ForEachElement(std::function<void(FESolidElement&, FESolidDomain&)> f)
 {
 	ForEachElement(f, m_pmat_ids);

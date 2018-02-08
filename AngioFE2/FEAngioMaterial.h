@@ -87,7 +87,7 @@ public:
 private:
 	DECLARE_PARAMETER_LIST();
 
-	FEPropertyT<FEMaterial> matrix_material;
+	FEPropertyT<FESolidMaterial> matrix_material;
 	FEPropertyT<CommonAngioProperties> common_properties;
 public:
 	void ApplySym() override;

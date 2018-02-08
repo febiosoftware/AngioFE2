@@ -28,6 +28,8 @@ public:
 	//the temporary to store angio stress
 	mat3ds m_as;
 
+	double ref_ecm_density;
+
 	GridPoint	m_pt;	// grid point location of this material point
 
 	double vessel_weight;

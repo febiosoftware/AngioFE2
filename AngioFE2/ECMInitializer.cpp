@@ -11,7 +11,7 @@ void ECMInitializer::updateECMdensity(FEAngioMaterialBase* mat)
 	matls.emplace_back(mat->GetID_ang());
 	FEMesh * mesh = mat->m_pangio->GetMesh();
 	//break even on core in field model
-	mat->m_pangio->ForEachElementPar([&](FESolidElement & elem, FESolidDomain & d)
+	mat->m_pangio->ForEachElement([&](FESolidElement & elem, FESolidDomain & d)
 	{
 		//these will hold the natural coordinates once the project to nodes is complete 
 		double nr[FEElement::MAX_NODES];
@@ -70,7 +70,6 @@ void ECMInitializer::updateECMdensity(FEAngioMaterialBase* mat)
 			ecm_den = ecm_den / Jacob;
 
 			// accumulate fiber directions and densities
-#pragma omp critical
 			{
 				mat->m_pangio->m_fe_node_data[nnum].m_collfib += coll_fib;
 				mat->m_pangio->m_fe_node_data[nnum].m_ecm_den += ecm_den;
@@ -86,7 +85,7 @@ void ECMInitializerConstant::seedECMDensity(FEAngioMaterialBase * mat)
 {
 	std::vector<int> matls;
 	matls.emplace_back(mat->GetID_ang());
-	mat->m_pangio->ForEachNodePar([&](FENode & node)
+	mat->m_pangio->ForEachNode([&](FENode & node)
 	{
 		mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den0 = mat->m_cultureParams.m_matrix_density;
 		mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den = mat->m_cultureParams.m_matrix_density;
@@ -128,7 +127,7 @@ void ECMInitializerNoOverwrite::seedECMDensity(FEAngioMaterialBase * mat)
 {
 	std::vector<int> matls;
 	matls.emplace_back(mat->GetID_ang());
-	mat->m_pangio->ForEachNodePar([&](FENode & node)
+	mat->m_pangio->ForEachNode([&](FENode & node)
 	{
 		if (mat->m_pangio->m_fe_node_data[node.GetID()].m_ecm_den0 == 0.0)
 		{

@@ -292,7 +292,6 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 		
 	if (sym_on)
 	{
-//#pragma omp parallel for shared(s)
 		for (int i = 0; i<NS; ++i)
 		{
 			SPROUT& sp = m_spr[i];
@@ -316,7 +315,6 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 														// If symmetry is turned on, apply symmetry
 			MirrorSym(y, si, sp, den_scale);
 
-//#pragma omp critical
 			s += si;
 		}
 	}
@@ -324,7 +322,6 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 	{
 		if (NS <= m_cultureParams.active_tip_threshold)
 		{
-//#pragma omp parallel for schedule(dynamic, 24)
 			for (int i = 0; i<NS; ++i)
 			{
 				SPROUT& sp = m_spr[i];
@@ -346,7 +343,6 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 
 				mat3ds si = dyad(r)*p;
 
-//#pragma omp critical
 				s += si;
 			}
 		}
@@ -361,7 +357,6 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 			std::pair<size_t, std::vector<SPROUT> *> dim = std::pair<size_t, std::vector<SPROUT> * >(0, &temp);
 			std::vector<std::pair<size_t, std::vector<SPROUT> *>> nst;
 			sprouts.within(dim, m_cultureParams.stress_radius * m_cultureParams.stress_radius, nst);
-//#pragma omp parallel for schedule(dynamic, 24)
 			for (int i = 0; i<nst.size(); ++i)
 			{
 				SPROUT& sp = m_spr[nst[i].first];
@@ -383,7 +378,6 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 
 				mat3ds si = dyad(r)*p;
 
-//#pragma omp critical
 				s += si;
 			}
 		}
@@ -431,7 +425,7 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 
 		angioPt->m_as = AngioStress(*angioPt) ;
 		vessel_elastic.m_s = common_properties->vessel_material->Stress(*(angioPt->vessPt));
-		matrix_elastic.m_s = matrix_material->GetElasticMaterial()->Stress(*(angioPt->matPt));
+		matrix_elastic.m_s = matrix_material->Stress(*(angioPt->matPt));
 
 		s = angioPt->m_as + angioPt->vessel_weight*vessel_elastic.m_s + angioPt->matrix_weight*matrix_elastic.m_s;
 	}

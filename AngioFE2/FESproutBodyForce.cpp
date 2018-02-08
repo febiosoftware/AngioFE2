@@ -68,7 +68,6 @@ vec3d FESproutBodyForce::force(FEMaterialPoint& mp)
 	
 	int NS = (int) m_sp.size();													// Get the number of sprouts
 	
-#pragma omp parallel for shared(f)
 	for (int i=0; i<NS; ++i)													// For each sprout...
 	{
 		SPROUT& sp = m_sp[i];														// Get the sprout
@@ -84,8 +83,6 @@ vec3d FESproutBodyForce::force(FEMaterialPoint& mp)
 		vec3d fi = -r*g;
 		if (sym_on == true)															// If symmetry is turned on, apply symmetry
 			MirrorSym(x, fi, sp);
-
-#pragma omp critical
 			f += fi;																	// Add results to the force vector
 	}
 

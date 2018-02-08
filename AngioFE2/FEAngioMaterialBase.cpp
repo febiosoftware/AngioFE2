@@ -102,7 +102,6 @@ FEAngioMaterialBase::SPROUT::SPROUT(const vec3d & dir, FESolidElement * el, doub
 
 void FEAngioMaterialBase::CreateSprouts(double scale, FEElasticMaterial* emat)
 {
-	//#pragma omp parallel for
 	const SegmentTipList& tip_list = m_cult->GetActiveTipList();
 	for (ConstTipIter tip_it = tip_list.begin(); tip_it != tip_list.end(); ++tip_it)
 	{
@@ -125,7 +124,6 @@ void FEAngioMaterialBase::UpdateSprouts(double scale, FEElasticMaterial* emat)
 	ClearSprouts();
 
 
-	//#pragma omp parallel for
 	const SegmentTipList& tip_list = m_cult->GetActiveTipList();
 	for (ConstTipIter tip_it = tip_list.begin(); tip_it != tip_list.end(); ++tip_it)		// Iterate through each segment in the model...
 	{
@@ -211,7 +209,7 @@ void FEAngioMaterialBase::AdjustMeshStiffness(FEMaterial* mat)
 
 																		//Zero the element items needed
 																		//break even on core in field model
-	m_pangio->ForEachElementPar([&](FESolidElement & se, FESolidDomain & d)
+	m_pangio->ForEachElement([&](FESolidElement & se, FESolidDomain & d)
 	{
 		int elemnum = se.GetID();
 		m_pangio->m_fe_element_data[elemnum].alpha = 0.0;
@@ -291,7 +289,7 @@ void FEAngioMaterialBase::AdjustMeshStiffness(FEMaterial* mat)
 	// Volume fraction for the composite material model
 
 	//verified good on core in field model
-	m_pangio->ForEachElementPar([&](FESolidElement & e, FESolidDomain & d)
+	m_pangio->ForEachElement([&](FESolidElement & e, FESolidDomain & d)
 	{
 		assert(std::find(domainptrs.begin(), domainptrs.end(), &d) != domainptrs.end());
 		vec3d e1; vec3d e2; vec3d e3;						// Basis for the material coordinate system (e1 is the material direction, e2 and e3 are isotropic)
