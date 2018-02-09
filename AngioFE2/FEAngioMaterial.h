@@ -39,8 +39,6 @@ public:
 
 	void FinalizeInit() override;
 
-	void UpdateECM() override;
-
 	void UpdateGDMs() override;
 
 	bool InitECMDensity(FEAngio * angio)  override;

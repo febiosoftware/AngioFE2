@@ -67,7 +67,8 @@ vec3d GradientGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir,
 	//calculate the density gradinet if above the threshold set the grow direction
 	std::vector<double> densities;
 	FESolidElement * se = dynamic_cast<FESolidElement*>(&tip.pt.ndomain->ElementRef(tip.pt.elemindex));
-	densities = culture->m_pmat->m_pangio->createVectorOfMaterialParameters(se, &FEAngioNodeData::m_ecm_den);
+	//TODO: fix this calclulation
+	densities = culture->m_pmat->m_pangio->createVectorOfMaterialParameters(se, &FEAngioMaterialPoint::ref_ecm_density);
 	vec3d gradient = culture->m_pmat->m_pangio->gradient(se, densities, tip.pt.q);
 	double gradnorm = gradient.norm();
 	Segment seg;

@@ -29,6 +29,7 @@ public:
 	mat3ds m_as;
 
 	double ref_ecm_density;
+	double anisotropy;
 
 	GridPoint	m_pt;	// grid point location of this material point
 

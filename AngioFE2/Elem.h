@@ -6,13 +6,6 @@ class FEAngioNodeData
 {
 public:
 	FEAngioNodeData();
-	double m_ecm_den;		// current ecm density
-	double m_ecm_den0;		// initial ecm density
-
-	vec3d m_collfib;		// current collagen fiber direction
-	vec3d m_collfib0;		// initial collagen fiber direction
-	double vegf_conc;		// vegf concentration
-	double m_da;			// ansiotropy value
 	double alpha;
 
 	//are id and n tag needed?

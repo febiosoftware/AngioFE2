@@ -291,7 +291,7 @@ bool FEPlotAngioGradientCenter::Save(FEDomain& d, FEDataStream& str)
 		
 		vec3d zero;
 		std::vector<double> densities;
-		densities = pfeangio->createVectorOfMaterialParameters(&el, &FEAngioNodeData::m_ecm_den);
+		densities = pfeangio->createVectorOfMaterialParameters(&el, &FEAngioMaterialPoint::ref_ecm_density);
 		vec3d grad = pfeangio->gradient(&el, densities, zero);
 
 		str << grad;
@@ -374,7 +374,7 @@ bool FEPlotAngioGradient::Save(FEMesh & m, FEDataStream & a)
 		se.project_to_nodes(gs, ns);
 		se.project_to_nodes(gt, nt);
 		std::vector<double> densities;
-		densities = pfeangio->createVectorOfMaterialParameters(&se, &FEAngioNodeData::m_ecm_den);
+		densities = pfeangio->createVectorOfMaterialParameters(&se, &FEAngioMaterialPoint::ref_ecm_density);
 
 
 		
@@ -415,7 +415,9 @@ bool FEPlotAngioECMDensity::Save(FEMesh& m, FEDataStream& a)
 	{
 		if (pfeangio->m_fe_node_data.count(pfeangio->m_fem->GetMesh().Node(i).GetID()))
 		{
-			a << pfeangio->m_fe_node_data[pfeangio->m_fem->GetMesh().Node(i).GetID()].m_ecm_den;
+			//TODO: fix this
+			//a << pfeangio->m_fe_node_data[pfeangio->m_fem->GetMesh().Node(i).GetID()].m_ecm_den;
+			a << 1;
 		}
 		else
 		{

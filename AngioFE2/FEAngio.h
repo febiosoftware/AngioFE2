@@ -7,6 +7,7 @@
 #include "FEAngioMaterial.h"
 #include "Segment.h"
 #include "FECore/FESolidDomain.h" //isd this include correct or should i just forward declare the class
+#include "FEAngioMaterialPoint.h"
 #include <FEBioLib/FEBioModel.h>
 #include <future>
 
@@ -64,6 +65,8 @@ public:
 	// Creates a vector of specified paramenter
 	std::vector<double> createVectorOfMaterialParameters(FEElement * elem,
 		double FEAngioNodeData::*materialparam);
+	std::vector<double> createVectorOfMaterialParameters(FEElement * elem,
+		double FEAngioMaterialPoint::*materialparam);
 	// gets the value of a parameter at a given point interpolated from the shape function
 	double genericProjectToPoint(FESolidElement * elem,
 		double FEAngioNodeData::*materialparam,const vec3d & pos);
@@ -105,7 +108,6 @@ private:
 	
 	// Initialize the nodal ECM values
 	bool InitECMDensity();
-	void UpdateECM();
 	//will set the times and whether or not this is the final angio step in this mechanical step
 	int FindGrowTimes(std::vector<std::pair<double, double>> & time_pairs, int start_index);
 
