@@ -103,6 +103,8 @@ vec3d FiberManager::GetMinorAxisDirection2(GridPoint & pt, double & lambda)
 }
 void FiberManager::Update()
 {
+	if (material->domainptrs.size() == 0)
+		return;
 	// get the domain
 	FESolidDomain * sd = dynamic_cast<FESolidDomain*>(material->domainptrs[0]);
 	assert(sd);

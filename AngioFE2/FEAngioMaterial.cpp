@@ -191,6 +191,10 @@ void FEAngioMaterial::FinalizeInit()
 			}
 		}
 	}
+	if(domainptrs.size()==0)
+	{
+		return;
+	}
 	for (int i = 0; i < domainptrs[0]->Nodes(); i++)
 	{
 		int nn = domainptrs[0]->NodeIndex(i);
@@ -199,6 +203,8 @@ void FEAngioMaterial::FinalizeInit()
 }
 void FEAngioMaterial::SetupSurface()
 {
+	if (!domainptrs.size())
+		return;
 	FEMesh * mesh = m_pangio->GetMesh();
 	
 	//setup the exterior_surface
