@@ -232,6 +232,11 @@ void FEAngio::FinalizeFEM()
 // Initialize the nodal ECM values
 bool FEAngio::InitECMDensity()
 {
+	ForEachNode([&](FENode & node)
+	{
+		m_fe_node_data[node.GetID()].m_collfib = vec3d(0, 0, 0);
+		m_fe_node_data[node.GetID()].m_ecm_den = 0.0;
+	});
 	bool rv = true;
 	for (size_t i = 0; i < m_pmat.size(); i++)
 	{
@@ -248,6 +253,7 @@ bool FEAngio::InitECMDensity()
 		//nneds to be run only once per node
 		if (m_fe_node_data[node.GetID()].m_ntag)
 		{
+			m_fe_node_data[node.GetID()].m_ecm_den = m_fe_node_data[node.GetID()].m_ecm_den0;
 			m_fe_node_data[node.GetID()].m_ntag = 0;
 		}
 	});
@@ -258,6 +264,45 @@ double FEAngio::GetDoubleFromDataStore(int record, int elem_id, int item)
 {
 	DataStore & ds = m_fem->GetDataStore();
 	return ds.GetDataRecord(record)->Evaluate(elem_id, item);
+}
+
+//-----------------------------------------------------------------------------
+// update the extracellular matrix nodal values
+void FEAngio::UpdateECM()
+{
+	//straight translation of code from the grid probably should be optimized later
+
+	// reset nodal data
+	FEMesh & mesh = m_fem->GetMesh();
+
+	ForEachNode([&](FENode & node)
+	{
+		m_fe_node_data[node.GetID()].m_collfib = vec3d(0, 0, 0);
+		m_fe_node_data[node.GetID()].m_ecm_den = 0.0;
+		m_fe_node_data[node.GetID()].m_ntag = 0;
+		//REFACTOR: why reset not just overwrite
+	});
+
+	//this portion will be harder
+	// For each element within the grid...
+	for (size_t i = 0; i < m_pmat.size(); i++)
+	{
+		m_pmat[i]->UpdateECM();
+	}
+
+	// normalize fiber vector and average ecm density
+	ForEachNode([this](FENode & node)
+	{
+		//nneds to be run only once per node
+		if (m_fe_node_data[node.GetID()].m_ntag)
+		{
+			m_fe_node_data[node.GetID()].m_ecm_den /= (double)m_fe_node_data[node.GetID()].m_ntag;
+			m_fe_node_data[node.GetID()].m_collfib.unit();
+			m_fe_node_data[node.GetID()].m_ntag = 0;
+			//maybe worry about density creep
+			//m_fe_node_data[node.GetID_ang()].m_ecm_den0 = m_fe_node_data[node.GetID_ang()].m_ecm_den;
+		}
+	});
 }
 
 int FEAngio::FindGrowTimes(std::vector<std::pair<double, double>> & time_pairs, int start_index)
@@ -971,17 +1016,6 @@ std::vector<double> FEAngio::createVectorOfMaterialParameters(FEElement * elem,
 	}
 	return gx;
 }
-std::vector<double> FEAngio::createVectorOfMaterialParameters(FEElement * elem,
-	double FEAngioMaterialPoint::*materialparam)
-{
-	std::vector<double> gx(elem->GaussPoints());
-	for (size_t i = 0; i < elem->GaussPoints(); i++)
-	{
-		gx[i] = FEAngioMaterialPoint::FindAngioMaterialPoint(elem->GetMaterialPoint(i))->*materialparam;
-	}
-	return gx;
-}
-
 double FEAngio::genericProjectToPoint(FESolidElement * elem,
 	double FEAngioNodeData::*materialparam,const vec3d & pos)
 {
@@ -1020,7 +1054,6 @@ double FEAngio::FindECMDensity(const GridPoint& pt)
 	double rez[3];
 	rez[0] = pt.q.x; rez[1] = pt.q.y; rez[2] = pt.q.z;
 
-	//TODO: calculattions might be wrong
 	if (se)
 	{
 		//double * shapef = new double[se->Nodes()];
@@ -1028,13 +1061,11 @@ double FEAngio::FindECMDensity(const GridPoint& pt)
 		se->shape_fnc(shapef, rez[0], rez[1], rez[2]);
 
 		double coll_den = 0.0;
-		for (int i = 0; i < se->GaussPoints(); i++)
+		for (int i = 0; i < se->Nodes(); i++)
 		{
-			auto el_pt = se->GetMaterialPoint(i);
-			FEElasticMaterialPoint* elastic_pt = el_pt->ExtractData<FEElasticMaterialPoint>();
-			auto angio_pt = FEAngioMaterialPoint::FindAngioMaterialPoint(el_pt);
-			
-			coll_den += angio_pt->ref_ecm_density * (1/elastic_pt->m_J)* shapef[i];
+			int nn = se->m_node[i];
+			nn = mesh.Node(nn).GetID();
+			coll_den += m_fe_node_data[nn].m_ecm_den* shapef[i];
 		}
 
 		//delete[] shapef;
@@ -1097,6 +1128,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 	else if (nwhen == CB_MAJOR_ITERS)
 	{
 		// update the grid data
+		UpdateECM();
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
 			m_pmat[i]->Update();

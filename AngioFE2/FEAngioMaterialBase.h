@@ -86,6 +86,8 @@ public:
 
 	virtual void FinalizeInit()=0;
 
+	virtual void UpdateECM()=0;
+
 	virtual void UpdateGDMs()=0;
 
 	virtual bool InitECMDensity(FEAngio * angio)=0;

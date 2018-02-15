@@ -84,6 +84,12 @@ bool FEAngioMaterial::Init()
 	case 0:
 		ecm_initializer = new ECMInitializerConstant();
 		break;
+	case 1:
+		ecm_initializer = new ECMInitializerSpecified();
+		break;
+	case 2:
+		ecm_initializer = new ECMInitializerNoOverwrite();
+		break;
 	default:
 		assert(false);
 	}
@@ -383,6 +389,11 @@ mat3ds FEAngioMaterial::AngioStress(FEAngioMaterialPoint& angioPt)
 		}
 	}
 	return s;
+}
+
+void FEAngioMaterial::UpdateECM()
+{
+	ecm_initializer->updateECMdensity(this);
 }
 
 //this function accumulates the the anistropy and ecm_density, n_tag is incremented to be used to take the average
