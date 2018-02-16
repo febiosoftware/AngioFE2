@@ -36,14 +36,14 @@ export ANGDIR
 # Assumes the Intel C++ compiler.  Use g++ for the gnu compiler and run "make gcc".
 
 
-export FLG = -O3 -fPIC -std=c++11
+export FLG = -O3 -fPIC -std=c++11 -fopenmp
 
 # Can be removed if not using the Intel compiler.
-export LNKFLG = -lz -static-intel -no-intel-extensions -lz
+export LNKFLG = -lz -static-intel -no-intel-extensions -lz 
 
 export INC = -I$(FEBINC)
 export DBGFLG = -DNDEBUG
-export LIBS = -lz
+export LIBS = -lz -pthread -lm
 
 gcc: export LNKFLG = -lz
 sky: export LNKFLG = -lz
