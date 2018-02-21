@@ -146,7 +146,7 @@ void FEAngio::SetupSurface(std::vector<future<void>> & futures)
 {
 	for (size_t i = 0; i < m_pmat.size(); i++)
 	{
-		futures.push_back(std::async(std::launch::async,&FEAngioMaterialBase::SetupSurface, m_pmat[i]));
+		futures.push_back(std::async(std::launch::deferred,&FEAngioMaterialBase::SetupSurface, m_pmat[i]));
 	}
 }
 void FEAngio::CallInFutures(std::vector<future<void>> & futures)
