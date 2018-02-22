@@ -36,7 +36,7 @@ export ANGDIR
 # Assumes the Intel C++ compiler.  Use g++ for the gnu compiler and run "make gcc".
 
 
-export FLG = -O3 -fPIC -std=c++11 -fopenmp
+export FLG = -O3 -fPIC -std=c++11 -qopenmp -static-intel
 
 # Can be removed if not using the Intel compiler.
 export LNKFLG = -lz -static-intel -no-intel-extensions -lz 

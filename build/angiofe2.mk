@@ -20,8 +20,18 @@ FEBIOMIX = $(FEBLIB)/libfebiomix_$(PLAT).a
 
 FEBIOXML = $(FEBLIB)/libfebioxml_$(PLAT).a
 
+INTELROOT = $(subst /mkl,,$(MKLROOT))/compiler
+INTEL_INC = $(INTELROOT)/include
+INTEL_LIB = $(INTELROOT)/lib/intel64
+
+MKL_PATH = $(MKLROOT)/lib/intel64
+MKL_LIB = -Wl,--start-group $(MKL_PATH)/libmkl_intel_lp64.a
+MKL_LIB += $(MKL_PATH)/libmkl_intel_thread.a $(MKL_PATH)/libmkl_core.a -Wl,--end-group
+MKL_LIB += -liomp5 -pthread -lz
+#MKL_LIB += $(INTEL_LIB)/libiomp5.a -pthread -lm -ldl
+
 FEBIOLIBS = -Wl,--start-group $(FEBIOLIB) $(FEBIOMECH) $(FECORE)
-FEBIOLIBS += $(FEBIOPLOT) $(FEBIOFLUID) $(FEBIOMIX) $(FEBIOXML) -Wl,--end-group -liomp5 -lpthread -lm -ldl
+FEBIOLIBS += $(FEBIOPLOT) $(FEBIOFLUID) $(FEBIOMIX) $(FEBIOXML) $(MKL_LIB)
 
 FEBIOLIBSO = $(FEBIOLIB) $(FEBIOMECH) $(FECORE)
 FEBIOLIBSO += $(FEBIOPLOT) $(FEBIOFLUID) $(FEBIOMIX) $(FEBIOXML)
