@@ -32,6 +32,9 @@ Fileout::Fileout()
 
 	m_stream4 = fopen("out_active_tips.csv", "wt");		// active tips
 	fprintf(m_stream4, "%-5s,%-12s,%-12s,%-12s\n", "State", "X", "Y", "Z");
+
+	feangio_state_stream = fopen("angio_stats.csv", "wt");
+	fprintf(feangio_state_stream, "%-24s,%-24s\n", "Timestep", "Time in Grow Segments");
 }
 
 //-----------------------------------------------------------------------------
@@ -39,6 +42,7 @@ Fileout::~Fileout()
 {
     logstream.close();
 	fclose(vessel_state_stream);
+	fclose(feangio_state_stream);
 }
 
 //-----------------------------------------------------------------------------
@@ -181,6 +185,14 @@ void Fileout::save_final_vessel_csv(FEAngio & angio)
 	}
 
 	fclose(final_vessel_file);
+}
+
+void Fileout::save_feangio_stats(FEAngio& angio)
+{
+	char sztime[64];
+	angio.grow_timer.time_str(sztime);
+	fprintf(feangio_state_stream, "%-12.7f,%-64s\n",angio.m_time.t, sztime);
+	fflush(feangio_state_stream);
 }
 
 void Fileout::save_winfiber(FEAngio& angio)

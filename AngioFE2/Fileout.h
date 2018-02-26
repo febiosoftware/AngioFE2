@@ -25,10 +25,12 @@ public:
 	void save_active_tips(FEAngio& angio) const;
 	void save_timeline(FEAngio& angio);
 	void save_winfiber(FEAngio& angio);
+	void save_feangio_stats(FEAngio& angio);
 	static void save_final_vessel_csv(FEAngio & angio);
 
 private:
 	std::ofstream logstream;
 	FILE*	m_stream4 = 0;	// active tips
-	FILE*  vessel_state_stream;
+	FILE*  vessel_state_stream=0;
+	FILE*  feangio_state_stream=0;
 };

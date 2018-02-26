@@ -48,7 +48,7 @@ FEPluginFactory_T<BranchGrowDirectionModifier     , FEMATERIAL_ID> branch_grow_d
 FEPluginFactory_T<RandomBranchGrowDirectionModifier, FEMATERIAL_ID> random_branch_grow_direction_modifier_factory("random_branch_grow_direction");
 FEPluginFactory_T<RandomBranchGrowDirectionModifier, FEMATERIAL_ID> random_theta_branch_grow_direction_modifier_factory("random_theta_branch_grow_direction");
 
-FEPluginFactory_T<GradientGrowDirectionModifier   , FEMATERIAL_ID> gradient_grow_direction_modifier_factory   ("gradient_grow_direction"   );
+FEPluginFactory_T<GradientGrowDirectionModifier   , FEMATERIAL_ID> gradient_grow_direction_modifier_factory   ("density_gradient_grow_direction"   );
 FEPluginFactory_T<AnastamosisGrowDirectionModifier, FEMATERIAL_ID> anastamosis_grow_direction_modifier_factory("anastamosis_grow_direction");
 FEPluginFactory_T<EdgeDeflectorGrowDirectionModifier, FEMATERIAL_ID> edge_deflector_grow_direction_modifier_factory("edge_deflector_grow_direction");
 FEPluginFactory_T<VesselDirectionContributionsDirectionModifier, FEMATERIAL_ID> vessel_direction_contributions_grow_direction_modifier_factory("vessel_direction_contributions");

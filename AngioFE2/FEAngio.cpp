@@ -1106,10 +1106,15 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		index = FindGrowTimes(times, index);
 
 		//new function to find the start time grow time and if this is the final iteration this timestep
+		grow_timer.reset();
+		grow_timer.start();
+		
 		for (size_t i = 0; i < times.size(); i++)
 		{
 			FragmentBranching::Grow(times[i].first, times[i].second); //new grow method
 		}
+
+		grow_timer.stop();
 		
 
 		for (size_t i = 0; i < m_pmat.size(); i++)
@@ -1124,6 +1129,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		{
 			m_pmat[i]->UpdateSprouts(1.0, m_pmat[i]->GetMatrixMaterial()->GetElasticMaterial());
 		}
+		UpdateTimeOutput();
 	}
 	else if (nwhen == CB_MAJOR_ITERS)
 	{
@@ -1179,6 +1185,11 @@ void FEAngio::Output()
 	fileout->save_timeline(*this);
 	//fileout->save_winfiber(*this);
 	fileout->save_final_vessel_csv(*this);
+}
+
+void FEAngio::UpdateTimeOutput()
+{
+	fileout->save_feangio_stats(*this);
 }
 
 ///////////////////////////////////////////////////////////////////////

@@ -122,6 +122,8 @@ private:
 	// do the final output
 	void Output();
 
+	void UpdateTimeOutput();
+
 	static bool feangio_callback(FEModel* pfem, unsigned int nwhen, void* pd)
 	{
 		FEAngio* pfa = reinterpret_cast<FEAngio*>(pd);
@@ -161,4 +163,5 @@ private:
 	std::uniform_real_distribution<double> ztopi;
 	std::uniform_real_distribution<double> zto2pi;
 	std::uniform_real_distribution<double> n1to1;
+	Timer grow_timer;
 };
