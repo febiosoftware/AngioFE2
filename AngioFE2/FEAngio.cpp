@@ -1097,16 +1097,17 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		static int index = 0;
 		// grab the time information
 		
+		update_gdms_timer.start();
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
 			m_pmat[i]->UpdateGDMs();
 		}
+		update_gdms_timer.stop();
 
 		std::vector<std::pair<double,double>> times;
 		index = FindGrowTimes(times, index);
 
 		//new function to find the start time grow time and if this is the final iteration this timestep
-		grow_timer.reset();
 		grow_timer.start();
 		
 		for (size_t i = 0; i < times.size(); i++)
@@ -1116,30 +1117,43 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 
 		grow_timer.stop();
 		
-
+		mesh_stiffness_timer.start();
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
 			m_pmat[i]->AdjustMeshStiffness(m_pmat[i]->GetMaterial());
 		}
+		mesh_stiffness_timer.stop();
+
+		update_sprout_stress_scaling_timer.start();
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
 			m_pmat[i]->UpdateSproutStressScaling();
 		}
+		update_sprout_stress_scaling_timer.stop();
+
+		update_sprout_stress_timer.start();
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
 			m_pmat[i]->UpdateSprouts(1.0, m_pmat[i]->GetMatrixMaterial()->GetElasticMaterial());
 		}
-		UpdateTimeOutput();
+		update_sprout_stress_timer.stop();
 	}
 	else if (nwhen == CB_MAJOR_ITERS)
 	{
 		// update the grid data
+		update_ecm_timer.start();
 		UpdateECM();
+		update_ecm_timer.stop();
+
+		material_update_timer.start();
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
 			m_pmat[i]->Update();
 		}
+		material_update_timer.stop();
 
+		UpdateTimeOutput();
+		ResetTimers();
 		++FE_state;
 		if (!m_fem->GetGlobalConstant("no_io"))
 		{
@@ -1173,6 +1187,17 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 			//m_pmat[i]->ActiveFix();
 		}
 	}
+}
+
+void FEAngio::ResetTimers()
+{
+	grow_timer.reset();
+	mesh_stiffness_timer.reset();
+	update_sprout_stress_scaling_timer.reset();
+	update_sprout_stress_timer.reset();
+	update_gdms_timer.reset();
+	update_ecm_timer.reset();
+	material_update_timer.reset();
 }
 
 //-----------------------------------------------------------------------------

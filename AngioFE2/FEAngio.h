@@ -51,6 +51,8 @@ public:
 	// get the simulation time
 	SimulationTime& CurrentSimTime() { return m_time; }
 
+	void ResetTimers();
+
 	void adjust_mesh_stiffness();
 	void update_sprout_stress_scaling();
 	double FindECMDensity(const GridPoint& pt);
@@ -164,4 +166,10 @@ private:
 	std::uniform_real_distribution<double> zto2pi;
 	std::uniform_real_distribution<double> n1to1;
 	Timer grow_timer;
+	Timer mesh_stiffness_timer;
+	Timer update_sprout_stress_scaling_timer;
+	Timer update_sprout_stress_timer;
+	Timer update_gdms_timer;
+	Timer update_ecm_timer;
+	Timer material_update_timer;
 };
