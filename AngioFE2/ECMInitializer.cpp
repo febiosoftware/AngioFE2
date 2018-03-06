@@ -57,7 +57,16 @@ void ECMInitializer::updateECMdensity(FEAngioMaterialBase* mat)
 
 			// Calculate the deformation gradient tensor and jacobian at the node
 			mat3d F;
-			double Jacob = d.defgrad(elem, F, nr[j], ns[j], nt[j]);
+			double Jacob;
+			try {
+				Jacob = d.defgrad(elem, F, nr[j], ns[j], nt[j]);
+			}
+			catch(NegativeJacobian nj)
+			{
+				Jacob = 1;
+				F = mat3d::identity();
+			}
+			
 
 			//make sure the function is differentiable and preserves orientation
 			assert(Jacob > 0.0);
