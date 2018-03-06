@@ -12,6 +12,7 @@ FEAngioMaterialPoint::FEAngioMaterialPoint(FEMaterialPoint* pt, FEMaterialPoint*
 	vessPt->SetPrev(this);
 	matPt->SetPrev(this);
 	m_D = 0.0;
+	m_as.zero();
 }
 
 //-----------------------------------------------------------------------------
