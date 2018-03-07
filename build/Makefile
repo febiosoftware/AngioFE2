@@ -55,7 +55,7 @@ lnx64d:
 	( cd $(PLAT)/AngioFE2; $(MAKE) -f ../../angiofe2.mk SFX="so" )
 
 lnx64s:
-	( cd $(PLAT)/AngioFE2; $(MAKE) -f ../../angiofe2.mk SFX="so" )
+	( cd $(PLAT); $(MAKE) -f ../angiofe2.mk SFX="so" )
 
 osx osxs:
 	( cd $(PLAT); $(MAKE) -f ../angiofe2.mk SFX="dylib" )
