@@ -51,7 +51,10 @@ sky: export LNKFLG = -lz
 lnx64 lnx32 gcc sky:
 	( export DBGFLG=-DNDEBUG; cd $(PLAT)/AngioFE2; $(MAKE) -f ../../angiofe2.mk SFX="so" )
 
-lnx64d lnx64s lnx32d:
+lnx64d:
+	( cd $(PLAT)/AngioFE2; $(MAKE) -f ../../angiofe2.mk SFX="so" )
+
+lnx64s:
 	( cd $(PLAT)/AngioFE2; $(MAKE) -f ../../angiofe2.mk SFX="so" )
 
 osx osxs:
