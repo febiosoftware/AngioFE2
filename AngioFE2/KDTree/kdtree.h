@@ -157,6 +157,7 @@ KDTree<DIM, DIMR>::KDTree(std::function<DIMR(DIM)> accessor, std::function<doubl
 	_distancef = distancef;
 	_distancetoplane = distancetoplane;
 	_units = units;
+	_size = 0;
 }
 
 template <typename DIM, typename DIMR>

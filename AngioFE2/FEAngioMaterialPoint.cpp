@@ -9,9 +9,11 @@ FEAngioMaterialPoint::FEAngioMaterialPoint(FEMaterialPoint* pt, FEMaterialPoint*
 	m_DA = 1.0;
 	vessPt = vesselPt;
 	matPt = matrixPt;
+	matrix_weight = 1.0;
+	vessel_weight = 0.0;
+	ref_ecm_density = 3.0;
 	vessPt->SetPrev(this);
 	matPt->SetPrev(this);
-	m_D = 0.0;
 	m_as.zero();
 }
 

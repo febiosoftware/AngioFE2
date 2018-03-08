@@ -10,7 +10,7 @@ class FEAngioMaterialPoint : public FEMaterialPoint
 {
 public:
 	//! constructor
-	FEAngioMaterialPoint(FEMaterialPoint* pt, FEMaterialPoint* vesselPt, FEMaterialPoint *matrixPt);
+	explicit FEAngioMaterialPoint(FEMaterialPoint* pt, FEMaterialPoint* vesselPt, FEMaterialPoint *matrixPt);
 
 	//! The init function is used to intialize data
 	void Init() override;
