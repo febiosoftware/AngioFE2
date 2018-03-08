@@ -43,6 +43,8 @@ public:
 
 	void UpdateGDMs() override;
 
+	void UpdateAngioStresses() override;
+
 	bool InitECMDensity(FEAngio * angio)  override;
 
 	void InitializeFibers() override;

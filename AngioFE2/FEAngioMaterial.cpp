@@ -403,6 +403,26 @@ bool FEAngioMaterial::InitECMDensity(FEAngio * angio)
 	return true;
 }
 
+void FEAngioMaterial::UpdateAngioStresses()
+{
+	for(int i =0; i < domainptrs.size(); i++)
+	{
+		const int NE = domainptrs[i]->Elements();
+		#pragma omp parallel for shared(NE)
+		for(int j=0; j < NE;j++)
+		{
+			FEElement * el = &domainptrs[i]->ElementRef(j);
+			for(int k=0; k < el->GaussPoints();k++)
+			{
+				FEAngioMaterialPoint* angio_pt = FEAngioMaterialPoint::FindAngioMaterialPoint(el->GetMaterialPoint(k));
+				assert(angio_pt);
+				angio_pt->m_as = AngioStress(*angio_pt);
+			}
+		}
+		
+	}
+}
+
 
 
 mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
@@ -429,7 +449,6 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 		matrix_elastic.m_F = elastic_pt.m_F;
 		matrix_elastic.m_J = elastic_pt.m_J;
 
-		angioPt->m_as = AngioStress(*angioPt) ;
 		vessel_elastic.m_s = common_properties->vessel_material->Stress(*(angioPt->vessPt));
 		matrix_elastic.m_s = matrix_material->Stress(*(angioPt->matPt));
 

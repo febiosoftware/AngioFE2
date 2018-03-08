@@ -1089,6 +1089,11 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		{
 			m_pmat[i]->Update();
 		}
+		for (size_t i = 0; i < m_pmat.size(); i++)
+		{
+			//expermentally calculate the stress from the vessels here
+			m_pmat[i]->UpdateAngioStresses();
+		}
 		start = true;
 	}
 
@@ -1137,6 +1142,12 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 			m_pmat[i]->UpdateSprouts(1.0, m_pmat[i]->GetMatrixMaterial()->GetElasticMaterial());
 		}
 		update_sprout_stress_timer.stop();
+
+		for (size_t i = 0; i < m_pmat.size(); i++)
+		{
+			//expermentally calculate the stress from the vessels here
+			m_pmat[i]->UpdateAngioStresses();
+		}
 	}
 	else if (nwhen == CB_MAJOR_ITERS)
 	{
@@ -1178,14 +1189,6 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		delete fileout;
 		fileout = nullptr;
 			
-	}
-	//needed to copy data between material points to fix things for multiphasic materials
-	else if(nwhen == CB_STEP_ACTIVE)
-	{
-		for (size_t i = 0; i < m_pmat.size(); i++)
-		{
-			//m_pmat[i]->ActiveFix();
-		}
 	}
 }
 

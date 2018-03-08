@@ -96,6 +96,8 @@ public:
 
 	virtual void SetupSurface() = 0;
 
+	virtual void UpdateAngioStresses() = 0;
+
 	virtual FEMaterial * GetMatrixMaterial()=0;
 
 	virtual CommonAngioProperties * GetCommonAngioProperties()=0;
