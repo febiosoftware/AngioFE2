@@ -177,7 +177,7 @@ void BC::CheckBC(Segment &seg)
 		
 		
 	}
-	FESurfaceElement * surfe = culture->m_pmat->normal_proj->Project(seg.tip_c(0).pt.r, -dir, rs);
+	FESurfaceElement * surfe = culture->m_pmat->normal_proj->Project(seg.tip_c(0).pt.r, dir, rs);
 	if (!surfe)
 	{
 		printf("no surface element found\n");
