@@ -76,8 +76,6 @@ FEMesh * FEAngio::GetMesh() const
 bool FEAngio::Init()
 {
 	//create any classes which have nontrivial destructors 
-	//currently the destructors are not called for classes created by FEBio this allows destructors to be called
-	fileout = new Fileout();
 
 	// Init all the FE stuff
 	//must be done first initializes material
@@ -132,10 +130,9 @@ bool FEAngio::Init()
 	if (!rv)
 		return false;
 
+
 	FinalizeFEM();
 	
-
-
 	// start timer
 	time(&m_start);
 
@@ -216,6 +213,8 @@ void FEAngio::FinalizeFEM()
 	// only output to the logfile (not to the screen)
 	felog.SetMode(Logfile::LOG_FILE);
 
+	//currently the destructors are not called for classes created by FEBio this allows destructors to be called
+	fileout = new Fileout(*this);
 
 	// --- Output initial state of model ---
 	if (!m_fem->GetGlobalConstant("no_io"))

@@ -17,7 +17,7 @@
 using namespace std;
 
 //-----------------------------------------------------------------------------
-Fileout::Fileout()
+Fileout::Fileout(FEAngio& angio)
 {
     logstream.open("out_log.csv");
 	//write the headers
@@ -25,10 +25,30 @@ Fileout::Fileout()
 
 	vessel_state_stream = fopen("out_vess_state.ang2" , "wb");//check the parameters consider setting the compression level
 	unsigned int magic = 0xfdb97531;
-	unsigned int version = 0;
+	unsigned int version = 1;
+	unsigned int num_bitmasks = angio.m_fem->Materials()/32 + 1;
 	fwrite(&magic, sizeof(unsigned int), 1, vessel_state_stream);
 	fwrite(&version, sizeof(unsigned int), 1, vessel_state_stream);
-
+	fwrite(&num_bitmasks, sizeof(unsigned int), 1, vessel_state_stream);
+	for(int j=0; j < num_bitmasks;j++)
+	{
+		unsigned int c_bitmask = 0;
+		unsigned int place_holder = 1;
+		for (int i = 0; i < 32; i++)
+		{
+			int index = i + j * 32;
+			if (index == angio.m_fem->Materials())
+				break;
+			FEMaterial* mat = angio.m_fem->GetMaterial(index);
+			FEAngioMaterial * angio_mat = angio.GetAngioComponent(mat);
+			if(angio_mat)
+			{
+				c_bitmask |= place_holder;
+			}
+			place_holder = place_holder << 1;
+		}
+		fwrite(&c_bitmask, sizeof(unsigned int), 1, vessel_state_stream);
+	}
 
 	m_stream4 = fopen("out_active_tips.csv", "wt");		// active tips
 	fprintf(m_stream4, "%-5s,%-12s,%-12s,%-12s\n", "State", "X", "Y", "Z");

@@ -18,7 +18,7 @@ class FEAngio;
 class Fileout
 {
 public:
-	Fileout();
+	Fileout(FEAngio& angio);
 	virtual ~Fileout();
 	void printStatus(FEAngio& angio);
 	void save_vessel_state(FEAngio& angio);

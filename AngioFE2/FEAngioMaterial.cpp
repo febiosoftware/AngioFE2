@@ -405,22 +405,55 @@ bool FEAngioMaterial::InitECMDensity(FEAngio * angio)
 
 void FEAngioMaterial::UpdateAngioStresses()
 {
-	for(int i =0; i < domainptrs.size(); i++)
+	
+	unsigned int mms = static_cast<unsigned int>(m_pangio->m_fem->GetGlobalConstant("mms"));
+	if(!mms)
 	{
-		const int NE = domainptrs[i]->Elements();
-		#pragma omp parallel for shared(NE)
-		for(int j=0; j < NE;j++)
+		for (int i = 0; i < domainptrs.size(); i++)
 		{
-			FEElement * el = &domainptrs[i]->ElementRef(j);
-			for(int k=0; k < el->GaussPoints();k++)
+			const int NE = domainptrs[i]->Elements();
+#pragma omp parallel for shared(NE)
+			for (int j = 0; j < NE; j++)
 			{
-				FEAngioMaterialPoint* angio_pt = FEAngioMaterialPoint::FindAngioMaterialPoint(el->GetMaterialPoint(k));
-				assert(angio_pt);
-				angio_pt->m_as = AngioStress(*angio_pt);
+				FEElement * el = &domainptrs[i]->ElementRef(j);
+				for (int k = 0; k < el->GaussPoints(); k++)
+				{
+					FEAngioMaterialPoint* angio_pt = FEAngioMaterialPoint::FindAngioMaterialPoint(el->GetMaterialPoint(k));
+					assert(angio_pt);
+					angio_pt->m_as = AngioStress(*angio_pt);
+				}
 			}
+
 		}
-		
 	}
+	else
+	{
+		for (int i = 0; i < domainptrs.size(); i++)
+		{
+			const int NE = domainptrs[i]->Elements();
+#pragma omp parallel for shared(NE)
+			for (int j = 0; j < NE; j++)
+			{
+				FEElement * el = &domainptrs[i]->ElementRef(j);
+				for (int k = 0; k < el->GaussPoints(); k++)
+				{
+					FEAngioMaterialPoint* angio_pt = FEAngioMaterialPoint::FindAngioMaterialPoint(el->GetMaterialPoint(k));
+					assert(angio_pt);
+					angio_pt->m_as.zero();
+					for(int ii=0; ii < domainptrs.size();ii++)
+					{
+						FEAngioMaterialBase * angio_mat = dynamic_cast<FEAngioMaterialBase*>(domainptrs[i]->GetMaterial());
+						if(angio_mat)
+						{
+							angio_pt->m_as += angio_mat->AngioStress(*angio_pt);
+						}
+					}
+				}
+			}
+
+		}
+	}
+	
 }
 
 
