@@ -26,6 +26,13 @@ void FEAngioMaterialPoint::Init()
 	matPt->Init();
 }
 
+void FEAngioMaterialPoint::Update(const FETimeInfo& timeInfo)
+{
+	FEMaterialPoint::Update(timeInfo);
+	matPt->Update(timeInfo);
+	vessPt->Update(timeInfo);
+}
+
 //-----------------------------------------------------------------------------
 // define the material parameters
 BEGIN_PARAMETER_LIST(FEAngioMaterialPoint, FEMaterialPoint)

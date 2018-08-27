@@ -15,7 +15,8 @@
 #include "FEPressureMaterial.h"
 #include "VesselDirectionContributions.h"
 #ifdef SVN
-#include "svnrev.h"
+//#include "svnrev.h"
+#define SVNREVISION 0
 #else
 #define SVNREVISION 0
 #endif

@@ -17,11 +17,11 @@ public:
 	
 protected:
 	int max_retries = 10;
-
+	DECLARE_PARAMETER_LIST();
 	void SetLoadCurveToStep(const char * param);
 	bool ChangeInParam(const char * param, double time, double & prev, double & new_p);
 private:
-	DECLARE_PARAMETER_LIST();
+	
 };
 
 class FENormalDistribution : public FEProbabilityDistribution
@@ -37,7 +37,8 @@ public:
 	bool Init() override;
 
 	void StepToTime(double time) override;
-
+protected:
+	DECLARE_PARAMETER_LIST();
 private:
 	double mean = 1.0;//distribution's mean
 	double stddev = 1.0;//distribution's standard deviation
@@ -46,9 +47,6 @@ private:
 
 	double prev_mean = 1.0;
 	double prev_stddev = 1.0;
-	
-
-	DECLARE_PARAMETER_LIST();
 };
 
 class FEUniformDistribution : public FEProbabilityDistribution
@@ -64,7 +62,8 @@ public:
 	bool Init() override;
 
 	void StepToTime(double time) override;
-
+protected:
+	DECLARE_PARAMETER_LIST();
 private:
 	double a = 0.0;//distribution's mean
 	double b = 1.0;//distribution's standard deviation
@@ -74,9 +73,6 @@ private:
 
 	double prev_a = 0.0;
 	double prev_b = 1.0;
-
-
-	DECLARE_PARAMETER_LIST();
 };
 
 class FEExponentialDistribution : public FEProbabilityDistribution
@@ -92,7 +88,8 @@ public:
 	bool Init() override;
 
 	void StepToTime(double time) override;
-
+protected:
+	DECLARE_PARAMETER_LIST();
 private:
 	double lambda = 1.0;//distribution's lambda
 	double mult = 1.0;//multiplier
@@ -101,8 +98,6 @@ private:
 
 	double prev_lambda = 1.0;
 	double prev_mult = mult;
-
-	DECLARE_PARAMETER_LIST();
 };
 
 class FECauchyDistribution : public FEProbabilityDistribution
@@ -118,7 +113,8 @@ public:
 	bool Init() override;
 
 	void StepToTime(double time) override;
-
+protected:
+	DECLARE_PARAMETER_LIST();
 private:
 	double a = 1.0;//distribution's mean
 	double b = 1.0;//distribution's standard deviation
@@ -127,9 +123,6 @@ private:
 
 	double prev_a = a;
 	double prev_b = b;
-
-
-	DECLARE_PARAMETER_LIST();
 };
 
 
@@ -146,7 +139,8 @@ public:
 	bool Init() override;
 
 	void StepToTime(double time) override;
-
+protected:
+	DECLARE_PARAMETER_LIST();
 private:
 	double dof = 1.0;//distribution's x^2
 	double mult = 1.0;
@@ -155,9 +149,6 @@ private:
 
 	double prev_dof = dof;
 	double prev_mult = mult;
-	
-
-	DECLARE_PARAMETER_LIST();
 };
 
 class FEWeibullDistribution : public FEProbabilityDistribution
@@ -174,6 +165,8 @@ public:
 
 	void StepToTime(double time) override;
 
+protected:
+	DECLARE_PARAMETER_LIST();
 private:
 	double a = 1.0;
 	double b = 1.0;
@@ -183,7 +176,7 @@ private:
 	double prev_a = a;
 	double prev_b = b;
 
-	DECLARE_PARAMETER_LIST();
+	
 };
 
 class FEGammaDistribution : public FEProbabilityDistribution
@@ -199,7 +192,8 @@ public:
 	bool Init() override;
 
 	void StepToTime(double time) override;
-
+protected:
+	DECLARE_PARAMETER_LIST();
 private:
 	double alpha = 1.0;
 	double beta = 1.0;
@@ -208,6 +202,4 @@ private:
 
 	double prev_alpha = alpha;
 	double prev_beta = beta;
-
-	DECLARE_PARAMETER_LIST();
 };

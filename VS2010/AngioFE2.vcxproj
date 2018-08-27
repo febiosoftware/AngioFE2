@@ -141,8 +141,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\include;$(FEBioDir);$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\lib\native\v140\windesktop\msvcstl\dyn\rt-dyn\x64\Debug;$(FEBioDir)\VS2015\x64\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>E:\Documents\AngioFE2\zlib;$(FEBioDir);$(IncludePath)</IncludePath>
+    <LibraryPath>E:\Documents\AngioFE2\zlib;$(FEBioDir)\VS2015\x64\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug OMP|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -167,7 +167,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release OMP|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir)packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\include;$(FEBioDir);$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\lib\native\v140\windesktop\msvcstl\dyn\rt-dyn\x64\Release;$(FEBioDir)\VS2015\x64\Release OMP;$(LibraryPath)</LibraryPath>
+    <LibraryPath>E:\Documents\AngioFE2\zlib;$(FEBioDir)\VS2015\x64\Release OMP;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -378,9 +378,11 @@
     <ClCompile Include="..\AngioFE2\Fileout.cpp" />
     <ClCompile Include="..\AngioFE2\FragmentBranching.cpp" />
     <ClCompile Include="..\AngioFE2\FragmentSeeder.cpp" />
+    <ClCompile Include="..\AngioFE2\Grid.cpp" />
     <ClCompile Include="..\AngioFE2\GrowDirectionModifier.cpp" />
     <ClCompile Include="..\AngioFE2\Segment.cpp" />
     <ClCompile Include="..\AngioFE2\StdAfx.cpp" />
+    <ClCompile Include="..\AngioFE2\VesselDirectionContributions.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
