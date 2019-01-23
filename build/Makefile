@@ -1,9 +1,9 @@
 ANGDIR = $(dir $(CURDIR))
 
 # This needs to be set in order to find the febio .h files.
-FEBINC = $(FEBIO_HOME)
+FEBINC = $(HOME)/Projects/FEBio2
 # This needs to be set in order to find the febio library files.
-FEBLIB = $(FEBIO_HOME)/build/lib
+FEBLIB = $(HOME)/Projects/FEBio2/build/lib
 
 export CC = icpc
 
