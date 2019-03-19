@@ -1,10 +1,11 @@
 ANGDIR = $(dir $(CURDIR))
 
 # This needs to be set in order to find the febio .h files.
-FEBINC = $(HOME)/Projects/FEBio2
+FEBINC = /home/sci/mherron/Projects/FEBio2
 # This needs to be set in order to find the febio library files.
-FEBLIB = $(HOME)/Projects/FEBio2/build/lib
+FEBLIB = /home/sci/mherron/Projects/FEBio2/build/lib
 
+# this is the intel c plusplus compiler. CC is set as an environment variable for the compiler.
 export CC = icpc
 
 lnx64: PLAT = lnx64
@@ -49,7 +50,7 @@ gcc: export LNKFLG = -lz
 sky: export LNKFLG = -lz
 
 lnx64 lnx32 gcc sky:
-	( export DBGFLG=-DNDEBUG; cd $(PLAT)/AngioFE2; $(MAKE) -f ../../angiofe2.mk SFX="so" )
+	( export DBGFLG=-DNDEBUG; cd $(PLAT)/AngioFE2; $(MAKE) -f angiofe2.mk SFX="so" )
 
 lnx64d:
 	( cd $(PLAT)/AngioFE2; $(MAKE) -f ../../angiofe2.mk SFX="so" )
