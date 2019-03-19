@@ -38,11 +38,11 @@ FEBIOLIBSO += $(FEBIOPLOT) $(FEBIOFLUID) $(FEBIOMIX) $(FEBIOXML)
 
 $(LIB): $(OBJ)
 ifeq ($(findstring lnx,$(PLAT)),lnx)
-		$(CC) $(LNKFLG) $(DBGFLG) -shared -Wl,-soname,$(SO) -o $(LIB) $(OBJ) $(FEBIOLIBS)
+		$(CC) $(FLG) $(LNKFLG) $(DBGFLG) -shared -Wl,-soname,$(SO) -o $(LIB) $(OBJ) $(FEBIOLIBS)
 else ifeq ($(findstring gcc,$(PLAT)),gcc)
-		$(CC) $(LNKFLG) $(DBGFLG) -shared -Wl,-soname,$(SO) -o $(LIB) $(OBJ) $(FEBIOLIBS)
+		$(CC) $(FLG) $(LNKFLG) $(DBGFLG) -shared -Wl,-soname,$(SO) -o $(LIB) $(OBJ) $(FEBIOLIBS)
 else ifeq ($(findstring sky,$(PLAT)),sky)
-		$(CC) $(LNKFLG) $(DBGFLG) -shared -Wl,-soname,$(SO) -o $(LIB) $(OBJ) $(FEBIOLIBS)
+		$(CC) $(FLG) $(LNKFLG) $(DBGFLG) -shared -Wl,-soname,$(SO) -o $(LIB) $(OBJ) $(FEBIOLIBS)
 else
 		$(CC) -dynamiclib $(FLG) -o $(LIB) $(OBJ) $(FEBIOLIBSO) $(LIBS)
 endif
