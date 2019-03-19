@@ -12,7 +12,7 @@
 #include <regex>
 #include <map>
 #define _USE_MATH_DEFINES
-
+ 
 void DirectionalWeights(double da, double dw[2]);
 
 std::vector<double> SegTo1TipPos(Segment * seg)
@@ -333,12 +333,23 @@ void Culture::AddSegment(Segment& seg)
 
 //-----------------------------------------------------------------------------
 // Find the density-based length scale factor at a point of the grid
-double Culture::FindDensityScale (const GridPoint& pt) const
+double Culture::FindDensityScale(const GridPoint& pt) const
 {
-	double coll_den = m_angio.FindECMDensity(pt);
+	//previous method
+	//double coll_den = m_angio.FindECMDensity(pt);
 
 	// Determine the density scaling factor using the function defined by a, b, c
 	double den_scale;
+	double coll_den;
+
+	//determine which density scale to use based on the apparent_density flag
+	switch (m_cultParams->apparent_density) {
+		case 0: coll_den = m_cultParams->m_matrix_density;
+			break;
+		case 1: coll_den = m_angio.FindECMDensity(pt);
+			break;
+	}
+
 	den_scale = m_cultParams->m_density_scale_factor.x + m_cultParams->m_density_scale_factor.y
 		*exp(-m_cultParams->m_density_scale_factor.z*coll_den);
 

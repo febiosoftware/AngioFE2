@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LocalDebuggerCommand>C:\Users\mp4\Documents\FEBio2\VS2013\Debug\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febio.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\mdpassthroughdc\t4kd</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug OMP|Win32'">
+    <LocalDebuggerCommand>C:\Users\mp4\Documents\FEBio2\VS2013\Debug\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febio.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\mdpassthroughdc\t4kd</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Debug\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febio.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\Plunger_V1\Small_LU_5s_loading_viscoelastic_lc600</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug OMP|x64'">
+    <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Debug OMP\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febio.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\actual\extra_compress</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LocalDebuggerCommand>C:\Users\mp4\Documents\FEBio2\VS2013\Release\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febioRelease.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\mdpassthroughdc\t4</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release OMP|Win32'">
+    <LocalDebuggerCommand>C:\Users\mp4\Documents\FEBio2\VS2013\Release\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febioRelease.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\mdpassthroughdc\t4</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Release\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febioRelease.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\plunger_debug\qs_compresion</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerAttach>false</LocalDebuggerAttach>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release OMP|x64'">
+    <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Release OMP\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febioReleaseOMP.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\v2tests\Plunger_V1\Small_LU_5s_loading_viscoelastic_lc600</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+</Project>

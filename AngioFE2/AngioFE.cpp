@@ -3,7 +3,7 @@
 
 #include "StdAfx.h"
 
-#define FECORE_DLL
+//#define FECORE_DLL
 #define FECORE_API
 
 #include "FECore/FECoreKernel.h"

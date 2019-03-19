@@ -33,6 +33,7 @@ public:
 	//parameters for ECM density/alignment
 	int ecm_control = 0; //flag indicating how the ecm density and anisotropy are initialized: 0 constant mode, 1 specified mode, 2 no overwrite 
 	double m_matrix_density = 3.0;//mg/ml 3.0 default
+	int apparent_density = 1; //flag to use only initial density to scale rather than apparent. 0 means use initial density 1 means use apparent (legacy)
 
 	//symmety
 	vec3d m_symmetry_plane = vec3d(0.0, 0.0, 0.0); //symmetry plane
