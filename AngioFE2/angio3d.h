@@ -97,11 +97,11 @@ inline vec3d mix3d(vec3d & x, vec3d & y, double a)
 	vec3d normal_vec = x ^ y;
 	normal_vec.unit();
 	//if (normal_vec.z < 0) phi = -phi;
-	if (normal_vec.z < 0) {
+	/*if (normal_vec.z < 0) {
 		phi = -phi;
-		normal_vec = -normal_vec;
-		normal_vec.unit();
-	}
+		//normal_vec = -normal_vec;
+		//normal_vec.unit();
+	}*/
 	//if (x*y < 0) {phi = -phi};
 	mat3d rot_mat;
 	auto nx = normal_vec.x, ny = normal_vec.y, nz = normal_vec.z;

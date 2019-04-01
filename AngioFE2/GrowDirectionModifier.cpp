@@ -495,12 +495,12 @@ vec3d SelectingGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir
 
 	per_dir.unit();
 	coll_dir.unit();
-	// This can probably be removed with 3d?
-	/*if(per_dir* coll_dir < 0.5)
+	// Same implementation as before but makes collagen direction adjusted
+	if(per_dir* coll_dir < 0)
 	{
 		coll_dir = -coll_dir;
 	}
-	*/
+	
 	double wi = culture->m_pmat->m_cultureParams.GetWeightInterpolation(grow_time);
 	if (weight_interpolation)
 	{
