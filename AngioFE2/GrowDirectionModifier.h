@@ -536,11 +536,11 @@ public:
 	void Update() override;
 	void SetCulture(Culture * cp) override;
 private:
-	//bool mix_3d = 0;
+	bool mix_3d = 0;
 	FEPropertyT<GGP> collagen_direction;
 	FEPropertyT<GGP> previous_direction;
 	FEPropertyT<GGP> weight_interpolation;
-	//DECLARE_PARAMETER_LIST();
+	DECLARE_PARAMETER_LIST();
 };
 
 //will ignore the previous direction and generate the direction a segmetn should grow based on collagen direction and current stretch

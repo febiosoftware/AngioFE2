@@ -495,7 +495,7 @@ vec3d SelectingGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir
 
 	per_dir.unit();
 	coll_dir.unit();
-	// This can probably be removed with 3d
+	// This can probably be removed with 3d?
 	/*if(per_dir* coll_dir < 0.5)
 	{
 		coll_dir = -coll_dir;
@@ -512,22 +512,22 @@ vec3d SelectingGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir
 		vec3d temp = ct * in;
 		wi *= temp.x;
 	}
-	/*vec3d new_dir;
+	vec3d new_dir;
 	switch (mix_3d) {
 		case 0: new_dir = mix(per_dir, coll_dir, wi);
 			break;
 		case 1:	new_dir = mix3d(per_dir, coll_dir, wi);
 			break;
 	}
-	new_dir.unit();*/
-	vec3d new_dir = mix(per_dir, coll_dir, wi);
+	new_dir.unit();
+	//vec3d new_dir = mix(per_dir, coll_dir, wi);
 	return new_dir;
 }
 
-/*BEGIN_PARAMETER_LIST(DefaultGrowDirectionModifier, GrowDirectionModifier)
+BEGIN_PARAMETER_LIST(SelectingGrowDirectionModifier, GrowDirectionModifier)
 ADD_PARAMETER(mix_3d, FE_PARAM_BOOL, "mix_3d");
 END_PARAMETER_LIST();
-*/
+
 void SelectingGrowDirectionModifier::Update()
 {
 	if (collagen_direction)
