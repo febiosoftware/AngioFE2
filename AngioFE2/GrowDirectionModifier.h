@@ -524,7 +524,7 @@ private:
 	FEPropertyT<GGP> collagen_direction;
 	FEPropertyT<GGP> previous_direction;
 	FEPropertyT<GGP> weight_interpolation;
-	bool mix_3d;
+	bool mix_3d = 0;
 	DECLARE_PARAMETER_LIST();
 };
 
