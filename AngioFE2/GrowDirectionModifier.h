@@ -524,6 +524,8 @@ private:
 	FEPropertyT<GGP> collagen_direction;
 	FEPropertyT<GGP> previous_direction;
 	FEPropertyT<GGP> weight_interpolation;
+	bool mix_3d;
+	DECLARE_PARAMETER_LIST();
 };
 
 class SelectingGrowDirectionModifier : public GrowDirectionModifier

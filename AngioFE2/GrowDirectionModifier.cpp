@@ -412,7 +412,13 @@ vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, 
 		vec3d temp = ct * in;
 		wi *= temp.x;
 	}
-	vec3d new_dir = mix3d(per_dir, coll_dir, wi);
+	vec3d new_dir;
+	switch (mix_3d) {
+	case 0: new_dir = mix(per_dir, coll_dir, wi);
+		break;
+	case 1:	vec3d new_dir = mix3d(per_dir, coll_dir, wi);
+		break;
+	}
 	new_dir.unit();
 
 	return new_dir;
@@ -443,6 +449,10 @@ void DefaultGrowDirectionModifier::SetCulture(Culture * cp)
 
 	GrowDirectionModifier::SetCulture(cp);
 }
+
+BEGIN_PARAMETER_LIST(DefaultGrowDirectionModifier, GrowDirectionModifier)
+ADD_PARAMETER(mix_3d, FE_PARAM_BOOL, "mix_3d");
+END_PARAMETER_LIST();
 
 SelectingGrowDirectionModifier::SelectingGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
 {
