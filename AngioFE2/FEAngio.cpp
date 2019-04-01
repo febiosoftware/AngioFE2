@@ -29,7 +29,7 @@
 
 
 //-----------------------------------------------------------------------------
-// create a map of fiber vectors based on the material's orientatin
+// create a map of fiber vectors based on the material's orientation
 bool CreateFiberMap(vector<vec3d>& fiber, FEMaterial* pmat);
 
 // create a density map based on material point density
@@ -292,7 +292,7 @@ void FEAngio::UpdateECM()
 	// normalize fiber vector and average ecm density
 	ForEachNode([this](FENode & node)
 	{
-		//nneds to be run only once per node
+		//needs to be run only once per node
 		if (m_fe_node_data[node.GetID()].m_ntag)
 		{
 			m_fe_node_data[node.GetID()].m_ecm_den /= (double)m_fe_node_data[node.GetID()].m_ntag;
@@ -315,15 +315,22 @@ int FEAngio::FindGrowTimes(std::vector<std::pair<double, double>> & time_pairs, 
 		SimulationTime st = CurrentSimTime();
 		assert(fecurve);
 		int index = start_index;
+		// set time of last completed step to start_time
 		double start_time = st.t - st.dt;
+		// for each point on the load curve...
 		for (int i = start_index; i < fecurve->Points(); i++)
 		{
+			// lp is the current load point
 			LOADPOINT lp = fecurve->LoadPoint(i);
+			// if the current loadpoint time is less than or equal to the current time...
 			if (lp.time <= st.t)
 			{
+				// determine time between current loadpoint time and the time of the last completed step
 				double dt = lp.time - start_time;
 				assert(dt > 0.0);
+				// send back the time of the last completed step and the current time being examined by the angio stepper
 				time_pairs.emplace_back(start_time, dt);
+				// set start time to the load point time?
 				start_time = lp.time;
 			}
 			else
@@ -515,13 +522,17 @@ vec3d FEAngio::gradient(FESolidElement * se, std::vector<double> & fn, vec3d pt,
 	return gradf;
 }
 //-----------------------------------------------------------------------------
+
+// Solves for x in Ax = b
 static void solve_3x3(double A[3][3], double b[3], double x[3])
 {
+	// calculate the determinant of A
 	double D = A[0][0] * A[1][1] * A[2][2] + A[0][1] * A[1][2] * A[2][0] + A[1][0] * A[2][1] * A[0][2] \
 		- A[1][1] * A[2][0] * A[0][2] - A[2][2] * A[1][0] * A[0][1] - A[0][0] * A[2][1] * A[1][2];
 
 	assert(D != 0);
 
+	// calculate the minors of A
 	double Ai[3][3];
 	Ai[0][0] = A[1][1] * A[2][2] - A[2][1] * A[1][2];
 	Ai[0][1] = A[2][1] * A[0][2] - A[0][1] * A[2][2];
@@ -535,6 +546,7 @@ static void solve_3x3(double A[3][3], double b[3], double x[3])
 	Ai[2][1] = A[2][0] * A[0][1] - A[0][0] * A[2][1];
 	Ai[2][2] = A[0][0] * A[1][1] - A[0][1] * A[1][0];
 
+	// Solve for x from (b*[A]ij)/det(A)
 	x[0] = (Ai[0][0] * b[0] + Ai[0][1] * b[1] + Ai[0][2] * b[2]) / D;
 	x[1] = (Ai[1][0] * b[0] + Ai[1][1] * b[1] + Ai[1][2] * b[2]) / D;
 	x[2] = (Ai[2][0] * b[0] + Ai[2][1] * b[1] + Ai[2][2] * b[2]) / D;
@@ -1090,7 +1102,7 @@ void FEAngio::OnCallback(FEModel* pfem, unsigned int nwhen)
 		}
 		for (size_t i = 0; i < m_pmat.size(); i++)
 		{
-			//expermentally calculate the stress from the vessels here
+			//experimentally calculate the stress from the vessels here
 			m_pmat[i]->UpdateAngioStresses();
 		}
 		start = true;
@@ -1368,7 +1380,7 @@ bool CreateDensityMap(vector<double>& density, vector<double>& anisotropy, FEMat
 }
 
 //-----------------------------------------------------------------------------
-// create a density map based on material density parameter per point
+// create a concentration map based on material density parameter per point
 bool CreateConcentrationMap(vector<double>& concentration, FEMaterial* pmat, int vegfID)
 {
 	// get the mesh

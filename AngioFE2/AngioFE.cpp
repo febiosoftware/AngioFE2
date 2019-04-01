@@ -29,7 +29,7 @@ FEPluginFactory_T<FEPressureMaterial, FEMATERIAL_ID> pressure_mat_factory("press
 FEPluginFactory_T<CommonAngioProperties, FEMATERIAL_ID> common_angio_properties_factory("angio_properties");
 
 FEPluginFactory_T<NoFragmentBranching           , FEMATERIAL_ID> no_fragment_branching_factory            ("no_branch"            );
-FEPluginFactory_T<PsuedoDeferedFragmentBranching, FEMATERIAL_ID> psuedo_defered_fragment_branching_factory("psuedo_defered_branch");
+FEPluginFactory_T<PseudoDeferredFragmentBranching, FEMATERIAL_ID> pseudo_deferred_fragment_branching_factory("pseudo_deferred_branch");
 
 FEPluginFactory_T<FENormalDistribution     , FEMATERIAL_ID> normal_distribution_factory     ("normal_distribution"     );
 FEPluginFactory_T<FEUniformDistribution    , FEMATERIAL_ID> uniform_distribution_factory    ("uniform_distribution"    );
@@ -166,7 +166,7 @@ FECORE_EXPORT  FECoreFactory * PluginGetFactory(int i)
 		&random_fiber_initializer_pe, &ellipsoidal_fiber_initializer,
 		
 		//branching factories
-		&no_fragment_branching_factory, &psuedo_defered_fragment_branching_factory,
+		&no_fragment_branching_factory, &pseudo_deferred_fragment_branching_factory,
 		//grow direction modifiers
 		&grow_direction_modifiers_factory, &base_fiber_grow_direction_modifier_factory,
 		&unit_length_grow_direction_modifier_factory, &segment_length_grow_direction_modifier_factory,

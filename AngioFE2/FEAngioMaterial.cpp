@@ -30,6 +30,10 @@ BEGIN_PARAMETER_LIST(FEAngioMaterial, FEElasticMaterial)
 	//uncategorized variables are incomplete
 	ADD_PARAMETER(m_cultureParams.m_composite_material, FE_PARAM_INT, "composite_material");
 	ADD_PARAMETER2(m_cultureParams.m_sprout_force, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "sprout_force");
+	ADD_PARAMETER(m_cultureParams.m_sprout_force_y0, FE_PARAM_DOUBLE, "f_y0");
+	ADD_PARAMETER(m_cultureParams.m_sprout_force_x0, FE_PARAM_DOUBLE, "f_x0");
+	ADD_PARAMETER(m_cultureParams.m_sprout_force_a, FE_PARAM_DOUBLE, "f_a");
+	ADD_PARAMETER(m_cultureParams.m_sprout_force_b, FE_PARAM_DOUBLE, "f_b");
 
 	ADD_PARAMETER2(m_cultureParams.active_tip_threshold, FE_PARAM_INT, FE_RANGE_GREATER_OR_EQUAL(0), "active_tip_threshold");
 	ADD_PARAMETER2(m_cultureParams.stress_radius, FE_PARAM_DOUBLE, FE_RANGE_GREATER_OR_EQUAL(0), "stress_radius");
@@ -124,7 +128,7 @@ bool FEAngioMaterial::Init()
 			auto ty = domainptrs[i]->ElementRef(0).Type();
 			if (ty != FE_HEX8G8)
 			{
-				printf("\nAngioFE only supports hex8 elements\n");
+				printf("\nAngioFE2 only supports hex8 elements\n");
 				return false;
 			}
 				
@@ -476,7 +480,7 @@ mat3ds FEAngioMaterial::Stress(FEMaterialPoint& mp)
 		vessel_elastic.m_rt = elastic_pt.m_rt;//spatial position
 		vessel_elastic.m_r0 = elastic_pt.m_r0;//material position
 		vessel_elastic.m_F = elastic_pt.m_F;//deformation gradient
-		vessel_elastic.m_J = elastic_pt.m_J;//determinate
+		vessel_elastic.m_J = elastic_pt.m_J;//determinant
 		
 		matrix_elastic.m_rt = elastic_pt.m_rt;
 		matrix_elastic.m_r0 = elastic_pt.m_r0;

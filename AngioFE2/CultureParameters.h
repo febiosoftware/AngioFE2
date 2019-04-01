@@ -43,6 +43,10 @@ public:
 
 	//TODO: doesn't appear to be the same as sprout_s_mag
 	double m_sprout_force = 1.0;
+	double m_sprout_force_x0 = 2.0;
+	double m_sprout_force_y0 = -0.004;
+	double m_sprout_force_a = 1.0081;
+	double m_sprout_force_b = 0.5436;
 
 	//TODO: not currently exposed
 	int tries_per_segment = 10;// number of times the algorithm will retry finding an initial segment

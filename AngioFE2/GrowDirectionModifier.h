@@ -512,7 +512,7 @@ private:
 };
 
 //begin bind points
-//will ignore the previous direction and generate the direction a segmetn should grow based on collagen direction
+//will ignore the previous direction and generate the direction a segment should grow based on collagen direction
 class DefaultGrowDirectionModifier : public GrowDirectionModifier
 {
 public:

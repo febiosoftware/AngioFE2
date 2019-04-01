@@ -412,7 +412,7 @@ vec3d DefaultGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, 
 		vec3d temp = ct * in;
 		wi *= temp.x;
 	}
-	vec3d new_dir = mix(per_dir, coll_dir, wi);
+	vec3d new_dir = mix3d(per_dir, coll_dir, wi);
 	new_dir.unit();
 
 	return new_dir;
@@ -485,11 +485,12 @@ vec3d SelectingGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir
 
 	per_dir.unit();
 	coll_dir.unit();
-	if(per_dir* coll_dir < 0.5)
+	// This can probably be removed with 3d
+	/*if(per_dir* coll_dir < 0.5)
 	{
 		coll_dir = -coll_dir;
 	}
-
+	*/
 	double wi = culture->m_pmat->m_cultureParams.GetWeightInterpolation(grow_time);
 	if (weight_interpolation)
 	{
@@ -501,7 +502,7 @@ vec3d SelectingGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir
 		vec3d temp = ct * in;
 		wi *= temp.x;
 	}
-	vec3d new_dir = mix(per_dir, coll_dir, wi);
+	vec3d new_dir = mix3d(per_dir, coll_dir, wi);
 	new_dir.unit();
 
 	return new_dir;
@@ -561,7 +562,7 @@ vec3d BaseFiberAwareGrowDirectionModifier::GrowModifyGrowDirection(vec3d previou
 	double contrib = (theta * lambda + theta1*l_m1 + theta2*l_m2) / 3;
 	contrib = abs(contrib);
 	contrib = 1 / contrib;
-	vec3d new_dir = mix(per_dir, coll_dir, culture->m_pmat->m_cultureParams.GetWeightInterpolation(grow_time)* contrib);
+	vec3d new_dir = mix3d(per_dir, coll_dir, culture->m_pmat->m_cultureParams.GetWeightInterpolation(grow_time)* contrib);
 	new_dir.unit();
 
 	return new_dir;

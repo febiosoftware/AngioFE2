@@ -29,9 +29,9 @@ class Segment
 public:
 	// status flags
 	enum {
-		BC_DEAD     = 1,		// segment is "dead" because it reached a boundar condition (?)
+		BC_DEAD     = 1,		// segment is "dead" because it reached a boundary condition (?)
 		INIT_BRANCH = 2,		// this is an initial sprout that is allowed to branch
-		ANAST       = 4,		// this segment underwent anastimoses
+		ANAST       = 4,		// this segment underwent anastomosis
 		INIT_SPROUT = 8			// this is an intitial segment
 	};
 
@@ -48,7 +48,7 @@ public:
 		int		nseed;		// seed where this tip started from (TODO: I want to remove this)
 		int		nvessel;	// vessel this seed is part of
 
-		double length_to_branch = 0.0;//determines hwo much farther the tip must grow before it branches
+		double length_to_branch = 0.0;//determines how much farther the tip must grow before it branches
 		double wait_time_to_branch = 0.0;//determines how long a segment waits before the branch grows
 
 		const vec3d& pos() const { return pt.r; }

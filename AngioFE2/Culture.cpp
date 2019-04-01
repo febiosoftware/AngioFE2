@@ -150,7 +150,7 @@ Segment Culture::GrowSegment(Segment::TIP& tip, double start_time, double grow_t
 
 
 //-----------------------------------------------------------------------------
-// Branching is modeled as a random process, determine is the segment passed to this function forms a branch
+// Branching is modeled as a random process, determine if the segment passed to this function forms a branch
 void Culture::BranchSegment(Segment::TIP& tip, double starttime, double grow_time)
 {
 	// we must reactive the tip
@@ -251,7 +251,7 @@ void Culture::AddNewSegment(Segment& seg)
 
 void Culture::AddNewSegmentNoClear(Segment& seg)
 {
-	//adding zero length segments shoudl be avoided
+	//adding zero length segments should be avoided
 	//this will clear and refill recents
 	assert(seg.length() > 0.0);
 	assert(seg.tip_c(0).pt.nelem >= 0);
@@ -417,6 +417,6 @@ void Culture::Update()
     {
         m_total_length += it->length();
     }
-	//rebuild the kd tree as the positions withn it may have moved
+	//rebuild the kd tree as the positions within it may have moved
 	tips.rebuild();
 }   

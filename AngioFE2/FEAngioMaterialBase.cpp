@@ -376,10 +376,23 @@ void FEAngioMaterialBase::MirrorSym(vec3d y, mat3ds &s, SPROUT sp, double den_sc
 	s += ssym;															// Add the symmetry results to the force vector
 }
 
+/* SL: Old version that was hard coded. Version below this uses user-specified values or defaults.
 void FEAngioMaterialBase::UpdateSproutStressScaling()
 {
 	//TODO: make these user parameters and get better names for these
 	double y0 = -0.004; double x0 = 2.0; double b = 0.5436; double a = 1.0081;
+
+	auto time = m_pangio->CurrentSimTime();
+
+	scale = y0 + a / (1 + exp(-(time.t - x0) / b));
+}*/
+
+void FEAngioMaterialBase::UpdateSproutStressScaling()
+{
+	double y0 = m_cultureParams.m_sprout_force_y0;
+	double x0 = m_cultureParams.m_sprout_force_x0;
+	double a = m_cultureParams.m_sprout_force_a;
+	double b = m_cultureParams.m_sprout_force_b;
 
 	auto time = m_pangio->CurrentSimTime();
 

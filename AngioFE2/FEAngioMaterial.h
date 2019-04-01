@@ -59,7 +59,8 @@ public:
 		{
 			return base->GetID();
 		}
-		return FEElasticMaterial::GetID(); };
+		return FEElasticMaterial::GetID(); 
+	};
 
 	FEMaterial * GetMaterial()override { return dynamic_cast<FEMaterial*>(this); }
 	//begin functions from FEMaterial

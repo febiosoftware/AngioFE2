@@ -36,7 +36,7 @@ bool AngioFETask::Init(const char* inpfile)
 	m_pangio = new FEAngio(fem);
 	pfeangio = m_pangio;
 
-	// Read the angio3d input file
+	// Read the angio3d input file. This is legacy code from angio3d
 	//Filein filein;
 	//if (filein.Input(inpfile, *m_pangio) == false) return false;
 	

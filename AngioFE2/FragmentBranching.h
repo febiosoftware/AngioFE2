@@ -38,11 +38,11 @@ public:
 		double epoch_time;//time when this branch point was created
 		Segment * parent;
 		double percent_of_parent;//0-1.0 determines where on the parent the branch will sprout from 0 is 100% contribution from tip(0)
-		int priority;//it there is a tie in time this will break it consistently needs to be athe same for the brnachpoints between runs with equivalent paramters and unique among branch points
+		int priority;//if there is a tie in time this will break it consistently needs to be the same for the branchpoints between runs with equivalent paramters and unique among branch points
 		FragmentBranching * brancher;//used to get the rng needed for this segment
 
 		//include utility if the other relational operators are needed
-		//should allos the set to be iterated over from low to high times
+		//should allow the set to be iterated over from low to high times
 		bool operator< (const BranchPoint& rhs) const
 		{
 			if (emerge_time < rhs.emerge_time)
@@ -100,7 +100,7 @@ public:
 	void GrowSegments(double start_time, double grow_time);
 	//Grows a segment from an active tip
 	//this function should be time independent
-	//thsi grows a segment from an active tip and sets the BranchPoints needed to generate any needed rng
+	//this grows a segment from an active tip and sets the BranchPoints needed to generate any needed rng
 	virtual void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) = 0;
 
 	virtual void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp, double starttime, double grow_time) = 0;
@@ -134,10 +134,10 @@ protected:
 };
 
 //fragments determine the branch points as they grow but there is a time delay to when they start growing
-class PsuedoDeferedFragmentBranching :public FragmentBranching
+class PseudoDeferredFragmentBranching :public FragmentBranching
 {
 public:
-	explicit PsuedoDeferedFragmentBranching(FEModel * model);
+	explicit PseudoDeferredFragmentBranching(FEModel * model);
 	void GrowSegment(std::set<BranchPoint>::iterator bp, double starttime, double grow_time) override;
 	void GrowSegment(Segment::TIP * tip, double starttime, double grow_time) override;
 	void UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp, double starttime, double grow_time) override;

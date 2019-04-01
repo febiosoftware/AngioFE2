@@ -49,7 +49,7 @@ void FragmentBranching::Grow(double start_time, double grow_time)
 			break;
 		if (pg_iter == parentgen.end() && br_iter->emerge_time > end_time)
 			break;
-		//find which iterator happened first if there  is a tie go one direction all the time
+		//find which iterator happened first if there is a tie go one direction all the time
 		if (br_iter == branch_points.end() || ((br_iter != branch_points.end() && pg_iter != parentgen.end()) && ((br_iter->emerge_time >= pg_iter->epoch_time) || (br_iter->emerge_time > end_time))))
 		{
 			//go with pg_iter
@@ -152,13 +152,13 @@ void NoFragmentBranching::GrowSegment(Segment::TIP * tip, double starttime, doub
 
 
 
-//begin implementation of psuedo deferred branching
-PsuedoDeferedFragmentBranching::PsuedoDeferedFragmentBranching(FEModel * model) : FragmentBranching(model)
+//begin implementation of pseudo deferred branching
+PseudoDeferredFragmentBranching::PseudoDeferredFragmentBranching(FEModel * model) : FragmentBranching(model)
 {
 	AddProperty(&length_to_branch_point, "length_to_branch");
 	AddProperty(&time_to_emerge, "time_to_emerge");
 }
-void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double start_time, double grow_time)
+void PseudoDeferredFragmentBranching::GrowSegment(Segment::TIP * tip, double start_time, double grow_time)
 {
 	if (!tip->bactive)
 		return;
@@ -168,7 +168,8 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 	Segment seg = culture->GrowSegment(*tip, start_time, grow_time);
 	if (seg.length() < culture->m_pmat->m_cultureParams.min_segment_length)
 	{
-		printf("segment ended due to length\n");
+		// SL: removed because this is annoying and clogs the output files
+		//printf("segment ended due to length\n");
 		tip->bactive = true;
 		return;
 	}
@@ -195,6 +196,7 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 		{
 			double bf = (rseg[0]->length() + rseg[0]->tip(1).length_to_branch) / rseg[0]->length();
 			assert(bf >= 0.0 && bf <= 1.0);
+			// SL: is mix necessary here? The bf This should just evaluate to start_time + TimeOfGrowth(...) RATHER THAN start_time*(1-bf)+(start_time+TimeOfGrowth(...))*bf;
 			double bt = mix(start_time, start_time + TimeOfGrowth(rseg[0], grow_time), bf);
 			//add the points
 			//change this if tips can grow across materials
@@ -279,7 +281,7 @@ void PsuedoDeferedFragmentBranching::GrowSegment(Segment::TIP * tip, double star
 	}
 }
 
-void PsuedoDeferedFragmentBranching::GrowSegment(std::set<BranchPoint>::iterator bp,double start_time, double grow_time)
+void PseudoDeferredFragmentBranching::GrowSegment(std::set<BranchPoint>::iterator bp,double start_time, double grow_time)
 {
 	//create a tip of origin
 	static int mis_count = 0;
@@ -342,7 +344,7 @@ void PsuedoDeferedFragmentBranching::GrowSegment(std::set<BranchPoint>::iterator
 
 }
 
-void PsuedoDeferedFragmentBranching::ProcessNewSegments(double start_time, double grow_time)
+void PseudoDeferredFragmentBranching::ProcessNewSegments(double start_time, double grow_time)
 {
 	auto rseg = culture->RecentSegments();
 
@@ -395,7 +397,7 @@ void PsuedoDeferedFragmentBranching::ProcessNewSegments(double start_time, doubl
 		assert(lr > 0.0);
 	}
 }
-void PsuedoDeferedFragmentBranching::UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp, double start_time, double grow_time)
+void PseudoDeferredFragmentBranching::UpdateSegmentBranchDistance(std::set<BranchPoint>::iterator bp, double start_time, double grow_time)
 {
 	//check that the GetBrancherForSegment work properly they may be 1 segment late on switching 
 	double diff = length_to_branch_point->NextValue(culture->m_pmat->m_pangio->rengine);
@@ -441,20 +443,20 @@ void PsuedoDeferedFragmentBranching::UpdateSegmentBranchDistance(std::set<Branch
 		cur = cur->tip(1).connected;
 	}
 }
-double PsuedoDeferedFragmentBranching::GetLengthToBranch()
+double PseudoDeferredFragmentBranching::GetLengthToBranch()
 {
 	double rv = length_to_branch_point->NextValue(culture->m_pmat->m_pangio->rengine);
 	assert(rv >= 0.0);
 	return rv;
 }
-double PsuedoDeferedFragmentBranching::GetTimeToEmerge()
+double PseudoDeferredFragmentBranching::GetTimeToEmerge()
 {
 	double rv = time_to_emerge->NextValue(culture->m_pmat->m_pangio->rengine);
 	assert(rv >= 0.0);
 	return rv;
 }
 
-void PsuedoDeferedFragmentBranching::UpdateToTime(double starttime)
+void PseudoDeferredFragmentBranching::UpdateToTime(double starttime)
 {
 	time_to_emerge->StepToTime(starttime);
 	length_to_branch_point->StepToTime(starttime);

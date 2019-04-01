@@ -190,7 +190,7 @@ void Fileout::save_final_vessel_csv(FEAngio & angio)
 {
 	auto iter = FragmentBranching::timeline.begin();
 
-	//consider how these shoudl be named to avoid collisions
+	//consider how these should be named to avoid collisions
 	FILE * final_vessel_file = fopen("final_vessels.csv", "wt");
 	assert(final_vessel_file);
 	fprintf(final_vessel_file, "x0,y0,z0,x1,y1,z1,start time\n");

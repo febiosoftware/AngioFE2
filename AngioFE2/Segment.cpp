@@ -33,7 +33,7 @@ Segment::Segment()
 }
 Segment::Segment(const Segment &obj)
 {
-	//can i just do what ever would have been done before for the rest of the parameters
+	//can i just do whatever would have been done before for the rest of the parameters
 	memcpy(this, &obj, sizeof(Segment)); //-V598
 	//update the parent pointers
 	tip(0).parent = this;
