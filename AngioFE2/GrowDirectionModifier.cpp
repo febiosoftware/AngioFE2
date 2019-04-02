@@ -583,11 +583,22 @@ vec3d BaseFiberAwareGrowDirectionModifier::GrowModifyGrowDirection(vec3d previou
 	double contrib = (theta * lambda + theta1*l_m1 + theta2*l_m2) / 3;
 	contrib = abs(contrib);
 	contrib = 1 / contrib;
-	vec3d new_dir = mix3d(per_dir, coll_dir, culture->m_pmat->m_cultureParams.GetWeightInterpolation(grow_time)* contrib);
+	vec3d new_dir;
+	switch (mix_3d) {
+		case 0: new_dir = mix(per_dir, coll_dir, culture->m_pmat->m_cultureParams.GetWeightInterpolation(grow_time)* contrib);
+			break;
+		case 1: new_dir = mix3d(per_dir, coll_dir, culture->m_pmat->m_cultureParams.GetWeightInterpolation(grow_time)* contrib);
+			break;
+	}
+
 	new_dir.unit();
 
 	return new_dir;
 }
+
+BEGIN_PARAMETER_LIST(BaseFiberAwareGrowDirectionModifier, GrowDirectionModifier)
+ADD_PARAMETER(mix_3d, FE_PARAM_BOOL, "mix_3d");
+END_PARAMETER_LIST();
 
 UnitLengthGrowDirectionModifier::UnitLengthGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
 {

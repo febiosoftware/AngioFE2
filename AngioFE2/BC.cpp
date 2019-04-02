@@ -180,7 +180,7 @@ void BC::CheckBC(Segment &seg)
 	FESurfaceElement * surfe = culture->m_pmat->normal_proj->Project(seg.tip_c(0).pt.r, dir, rs);
 	if (!surfe)
 	{
-		printf("no surface element found\n");
+		//printf("no surface element found\n");
 		//assert(false);
 		/*
 		surfe = culture->m_pmat->normal_proj->Project3(seg.tip(0).pt.r, -dir, rs);

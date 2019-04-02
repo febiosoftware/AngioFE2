@@ -524,7 +524,7 @@ private:
 	FEPropertyT<GGP> collagen_direction;
 	FEPropertyT<GGP> previous_direction;
 	FEPropertyT<GGP> weight_interpolation;
-	bool mix_3d = 0;
+	bool mix_3d = 1;
 	DECLARE_PARAMETER_LIST();
 };
 
@@ -536,7 +536,7 @@ public:
 	void Update() override;
 	void SetCulture(Culture * cp) override;
 private:
-	bool mix_3d = 0;
+	bool mix_3d = 1;
 	FEPropertyT<GGP> collagen_direction;
 	FEPropertyT<GGP> previous_direction;
 	FEPropertyT<GGP> weight_interpolation;
@@ -549,6 +549,9 @@ class BaseFiberAwareGrowDirectionModifier : public GrowDirectionModifier
 public:
 	explicit BaseFiberAwareGrowDirectionModifier(FEModel * model);
 	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+private:
+	bool mix_3d = 1;
+	DECLARE_PARAMETER_LIST();
 };
 
 //this class changes the grow direction if the segment is a branch
