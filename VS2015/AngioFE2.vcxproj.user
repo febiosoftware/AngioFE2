@@ -14,15 +14,15 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Debug\FEBio2.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febio.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\Steven\Documents\v2tests\febioDebug.xml" -task=angio</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>..\..\v2tests\Plunger_V1\Small_LU_5s_loading_viscoelastic_lc600</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>C:\Users\Steven\Documents\v2tests\XAlignment_mix3d_w1.0</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug OMP|x64'">
     <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Debug OMP\FEBio2.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febio.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\Steven\Documents\v2tests\febioDebugOMP.xml" -task=angio</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>..\..\v2tests\actual\extra_compress</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>C:\Users\Steven\Documents\v2tests\XAlignment_mix3d_w1.0</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LocalDebuggerCommand>C:\Users\mp4\Documents\FEBio2\VS2013\Release\FEBio2.exe</LocalDebuggerCommand>
@@ -45,8 +45,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release OMP|x64'">
     <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Release OMP\FEBio2.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febioReleaseOMP.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
-    <LocalDebuggerWorkingDirectory>..\..\v2tests\Plunger_V1\Small_LU_5s_loading_viscoelastic_lc600</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\Steven\Documents\v2tests\febioReleaseOMP.xml" -task=angio</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>C:\Users\Steven\Documents\v2tests\XAlignment_mix3d_w1.0</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>
