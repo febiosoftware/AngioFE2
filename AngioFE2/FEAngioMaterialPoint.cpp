@@ -34,7 +34,7 @@ void FEAngioMaterialPoint::Update(const FETimeInfo& timeInfo)
 }
 
 //-----------------------------------------------------------------------------
-// define the material parameters
+// define the material parametersj
 BEGIN_PARAMETER_LIST(FEAngioMaterialPoint, FEMaterialPoint)
 ADD_PARAMETER(m_D, FE_PARAM_DOUBLE, "dens");
 ADD_PARAMETER(m_DA, FE_PARAM_DOUBLE, "anisotropy");

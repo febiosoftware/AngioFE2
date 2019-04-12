@@ -340,15 +340,15 @@ double Culture::FindDensityScale(const GridPoint& pt) const
 
 	// Determine the density scaling factor using the function defined by a, b, c
 	double den_scale;
-	double coll_den;
+	double coll_den = m_angio.FindECMDensity(pt);
 
 	//determine which density scale to use based on the apparent_density flag
-	switch (m_cultParams->apparent_density) {
+	/*switch (m_cultParams->apparent_density) {
 		case 0: coll_den = m_cultParams->m_matrix_density;
 			break;
 		case 1: coll_den = m_angio.FindECMDensity(pt);
 			break;
-	}
+	}*/
 
 	den_scale = m_cultParams->m_density_scale_factor.x + m_cultParams->m_density_scale_factor.y
 		*exp(-m_cultParams->m_density_scale_factor.z*coll_den);
@@ -356,6 +356,23 @@ double Culture::FindDensityScale(const GridPoint& pt) const
 	if (den_scale < 0.0) den_scale = 0.0;
 
 	return den_scale;
+}
+
+double Culture::FindRefDensityScale(const GridPoint& pt) const
+{
+	//previous method
+	//double coll_den = m_angio.FindECMDensity(pt);
+
+	// Determine the density scaling factor using the function defined by a, b, c
+	double ref_den_scale;
+	double ref_coll_den = m_cultParams->m_matrix_density;
+
+	ref_den_scale = m_cultParams->m_density_scale_factor.x + m_cultParams->m_density_scale_factor.y
+		*exp(-m_cultParams->m_density_scale_factor.z*ref_coll_den);
+
+	if (ref_den_scale < 0.0) ref_den_scale = 0.0;
+
+	return ref_den_scale;
 }
 
 //-----------------------------------------------------------------------------

@@ -51,6 +51,9 @@ public:
 	
 	// Find the density-based length scale factor at a point of the grid
 	double FindDensityScale(const GridPoint& pt) const;
+
+	// Find the density-based length scale factor at a point of the grid in the reference configuration
+	double FindRefDensityScale(const GridPoint&pt) const;
 	
 	// Add a segment to the culture (without checking BCs).
 	// This assumes that the segment is valid.

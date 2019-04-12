@@ -644,6 +644,24 @@ public:
 private:
 	FEPropertyT<GGP> density_scale;
 };
+
+class RefDensityScaleGrowDirectionModifier : public GrowDirectionModifier
+{
+public:
+	explicit RefDensityScaleGrowDirectionModifier(FEModel * model);
+	bool Init() override
+	{
+		if (ref_density_scale)
+			return ref_density_scale->Init();
+		return true;
+	}
+	vec3d GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length) override;
+	void Update() override;
+	void SetCulture(Culture * cp) override;
+private:
+	FEPropertyT<GGP> ref_density_scale;
+};
+
 //this class changes the segment length based on the average segment length load curve, cannot be the inital segment_length modifier
 class SegmentLengthGrowDirectionModifier : public GrowDirectionModifier
 {

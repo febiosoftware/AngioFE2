@@ -657,6 +657,43 @@ void DensityScaleGrowDirectionModifier::SetCulture(Culture * cp)
 	GrowDirectionModifier::SetCulture(cp);
 }
 
+RefDensityScaleGrowDirectionModifier::RefDensityScaleGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
+{
+	AddProperty(&ref_density_scale, "ref_density_scale");
+	ref_density_scale.m_brequired = false;
+}
+vec3d RefDensityScaleGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length)
+{
+	seg_length *= culture->FindRefDensityScale(tip.pt);
+	vec3d x(1, 0, 0);
+	if (ref_density_scale)
+	{
+
+		mat3d id(1.0, 0.0, 0.0,
+			0.0, 1.0, 0.0,
+			0.0, 0.0, 1.0);
+		mat3d ct = ref_density_scale->Operation(id, x, mat, tip);
+		x = ct * x;
+		seg_length *= x.x;
+	}
+
+	return previous_dir;
+}
+void RefDensityScaleGrowDirectionModifier::Update()
+{
+	if (ref_density_scale)
+	{
+		ref_density_scale->Update();
+	}
+}
+void RefDensityScaleGrowDirectionModifier::SetCulture(Culture * cp)
+{
+	if (ref_density_scale)
+		ref_density_scale->SetCulture(cp);
+
+	GrowDirectionModifier::SetCulture(cp);
+}
+
 SegmentLengthGrowDirectionModifier::SegmentLengthGrowDirectionModifier(FEModel * model) : GrowDirectionModifier(model)
 {
 
