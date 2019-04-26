@@ -466,6 +466,7 @@ SelectingGrowDirectionModifier::SelectingGrowDirectionModifier(FEModel * model) 
 	weight_interpolation.m_brequired = false;
 }
 
+// Growth along collagen axis not direction. Checks the angle between the previous direction and the collagen direction and if it is too large the sine is flipped so growth will occur along the axis
 vec3d SelectingGrowDirectionModifier::GrowModifyGrowDirection(vec3d previous_dir, Segment::TIP& tip, FEAngioMaterialBase* mat, bool branch, double start_time, double grow_time, double& seg_length)
 {
 	// Find the component of the new vessel direction determined by collagen fiber orientation    
