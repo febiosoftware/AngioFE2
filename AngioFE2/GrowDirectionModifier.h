@@ -543,7 +543,7 @@ private:
 	DECLARE_PARAMETER_LIST();
 };
 
-//will ignore the previous direction and generate the direction a segmetn should grow based on collagen direction and current stretch
+//will ignore the previous direction and generate the direction a segment should grow based on collagen direction and current stretch
 class BaseFiberAwareGrowDirectionModifier : public GrowDirectionModifier
 {
 public:

@@ -343,12 +343,12 @@ double Culture::FindDensityScale(const GridPoint& pt) const
 	double coll_den = m_angio.FindECMDensity(pt);
 
 	//determine which density scale to use based on the apparent_density flag
-	/*switch (m_cultParams->apparent_density) {
+	switch (m_cultParams->apparent_density) {
 		case 0: coll_den = m_cultParams->m_matrix_density;
 			break;
 		case 1: coll_den = m_angio.FindECMDensity(pt);
 			break;
-	}*/
+	}
 
 	den_scale = m_cultParams->m_density_scale_factor.x + m_cultParams->m_density_scale_factor.y
 		*exp(-m_cultParams->m_density_scale_factor.z*coll_den);
