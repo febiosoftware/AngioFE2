@@ -38,7 +38,7 @@
     <ProjectGuid>{758B91E1-2074-43B0-A0F2-1C5EEA792D63}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>AngioFE2</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -58,12 +58,14 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
+    <UseIntelMKL>Parallel</UseIntelMKL>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug OMP|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
+    <UseIntelMKL>Parallel</UseIntelMKL>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -85,6 +87,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
+    <UseIntelMKL>Parallel</UseIntelMKL>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release OMP|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -92,6 +95,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
+    <UseIntelMKL>Parallel</UseIntelMKL>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -131,43 +135,47 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>E:\Documents\AngioFE2\VS2010\packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\include;$(FEBIODir);$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\mp4\Documents\AngioFE2\VS2010\packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\lib\native\v120\windesktop\msvcstl\dyn\rt-dyn\x64\Debug;C:\Users\mp4\Documents\FEBio2\VS2013\Debug;$(FEBIODir)\VS2015\x64\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ZLibDir);$(FEBio2Dir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(ZLibDir)\bin\Debug;$(FEBio2Dir)\VS2015\Debug;$(FEBio2Dir);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug OMP|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\mp4\Documents\AngioFE2\VS2010\packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\include;C:\Users\mp4\Documents\FEBio2;$(FEBIO2Dir);$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\mp4\Documents\AngioFE2\VS2010\packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\lib\native\v120\windesktop\msvcstl\dyn\rt-dyn\x64\Debug;C:\Users\mp4\Documents\FEBio2\VS2013\Debug;$(FEBIO2Dir)\VS2013\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ZLibDir);$(FEBio2Dir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(ZLibDir)\bin\Debug;$(FEBio2Dir)\VS2015\Debug;$(FEBio2Dir);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ZlibDir);$(IncludePath)</IncludePath>
-    <LibraryPath>$(ZlibDir);$(FEBioDir)\VS2015\x64\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ZlibDir)\bin\Release;$(IncludePath);</IncludePath>
+    <LibraryPath>$(ZlibDir)\bin\Release;$(FEBio2Dir)\VS2015\x64\Debug;$(LibraryPath)</LibraryPath>
+    <ExcludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(MSBuild_ExecutablePath);$(VC_LibraryPath_x64)</ExcludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug OMP|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ZlibDir);$(FEBioDir);$(IncludePath)</IncludePath>
-    <LibraryPath>$(ZlibDir);$(FEBioDir)\VS2015\x64\Debug OMP;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ZlibDir)\bin\Release;$(FEBio2Dir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(ZlibDir)\bin\Release;$(FEBio2Dir)\VS2015\x64\Debug OMP;$(LibraryPath)</LibraryPath>
+    <ExcludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(MSBuild_ExecutablePath);$(VC_LibraryPath_x64)</ExcludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\mp4\Documents\FEBio2;$(FEBIO2Dir);$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\mp4\Documents\FEBio2\VS2013\Release;$(FEBIO2Dir)\VS2013\Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(FEBio2Dir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(FEBio2Dir)\VS2015\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release OMP|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\mp4\Documents\FEBio2;$(FEBIO2Dir);$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\mp4\Documents\FEBio2\VS2013\Release;$(FEBIO2Dir)\VS2013\Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(FEBio2Dir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(FEBio2Dir)\VS2013\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ZlibDir);$(FEBioDir);$(IncludePath)</IncludePath>
-    <LibraryPath>$(ZlibDir);$(FEBioDir)\VS2015\x64\Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ZLibDir)\bin\Release;$(FEBio2Dir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(FEBio2Dir)\VS2015\x64\Release;$(ZLibDir)\bin\Release;$(LibraryPath)</LibraryPath>
+    <ExcludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(MSBuild_ExecutablePath);$(VC_LibraryPath_x64)</ExcludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release OMP|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ZlibDir);$(FEBioDir);$(IncludePath)</IncludePath>
-    <LibraryPath>$(ZlibDir);$(FEBioDir)\VS2015\x64\Release OMP;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ZLibDir)\bin\Release;$(FEBio2Dir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(FEBio2Dir)\VS2015\x64\Release OMP;$(ZLibDir)\bin\Release;$(LibraryPath)</LibraryPath>
+    <ExcludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(MSBuild_ExecutablePath);$(VC_LibraryPath_x64)</ExcludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -214,7 +222,7 @@
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <SDLCheck>false</SDLCheck>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(FEBioDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(FEBio2Dir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -222,6 +230,7 @@
       <AdditionalDependencies>fecore.lib;febiomech.lib;FEBioLib.lib;FEBIoMix.lib;FEBioPlot.lib;FEBioXML.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <Profile>true</Profile>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug OMP|x64'">
@@ -317,14 +326,16 @@
       </SDLCheck>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <OmitFramePointers>true</OmitFramePointers>
+      <OmitFramePointers>
+      </OmitFramePointers>
+      <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>fecore.lib;febiomech.lib;FEBioLib.lib;FEBioMix.lib;FEBioPlot.lib;FEBioXML.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>fecore.lib;febiomech.lib;FEBioLib.lib;FEBIoMix.lib;FEBioPlot.lib;FEBioXML.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
     </Link>
@@ -389,8 +400,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-    <Import Project="packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.targets" Condition="Exists('packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.targets')" />
+  <!--ImportGroup Label="ExtensionTargets">
     <Import Project="packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.targets" Condition="Exists('packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.targets')" />
-  </ImportGroup>
+  </ImportGroup-->
 </Project>
