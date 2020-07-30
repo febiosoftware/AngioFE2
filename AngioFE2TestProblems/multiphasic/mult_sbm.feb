@@ -1,0 +1,740 @@
+<?xml version="1.0" encoding="ISO-8859-1"?><febio_spec version="2.5">
+<Material><material id="1" name="s0" type="multiphasic">
+  <!-- from klevis's ecm material-->
+  <phi0>0.15</phi0>
+  <fixed_charge_density>0</fixed_charge_density>
+  <solid_bound sbm="1">
+    <rho0>0</rho0>
+    <rhomin>0</rhomin>
+    <rhomax>2000</rhomax>
+  </solid_bound>
+  <solid type="angio_mat">
+    <a>0.05</a>
+    <b>0.004</b>					
+    <N>2.0</N>
+    
+    <matrix_density>3</matrix_density>
+    <composite_material>1</composite_material>
+    <length_adjustment>1.0</length_adjustment>
+    
+    <matrix type="viscoelastic">
+      <t1>1.25e-5</t1>
+      <g0>0.0</g0>
+      <g1>1.0</g1>
+      <elastic type="EFD neo-Hookean">
+	<E>2.58e5</E>
+	<v>0.1</v>
+	<beta>2.5,2.5,2.5</beta> 
+	<ksi>2.58e6,2.58e6,2.58e6</ksi>
+      </elastic>
+    </matrix>
+
+    <common_properties type="angio_properties">
+      <fragment_seeder type="MDbyVolume">
+	<number_fragments>100</number_fragments>
+	<initial_vessel_length>42.0</initial_vessel_length>
+      </fragment_seeder>
+      
+      <vessel type="viscoelastic">
+	<t1>1.25e-5</t1>
+	<g0>0.0</g0>
+	<g1>1.0</g1>
+	<elastic type="neo-Hookean">
+	  <E>2.58e7</E>
+	  <v>0.0</v>
+	</elastic>
+      </vessel>
+      
+      <brancher type="pseudo_deferred_branch">
+	<length_to_branch type="normal_distribution">
+	  <mean>100</mean>
+	  <stddev>6</stddev>
+	</length_to_branch>
+	<time_to_emerge type="normal_distribution">
+	  <mean>0.5</mean>
+	  <stddev>0.125</stddev>
+	</time_to_emerge>
+      </brancher>
+      <grow_direction_modifiers>
+	<gdm type="unit_length">
+	</gdm>
+	<gdm type="density_length">
+	</gdm>
+	<gdm type="segment_length">
+	</gdm>
+	<gdm type="default_grow_direction">
+	  <collagen_direction type="threshold_ggp">
+	    <vec_x>1</vec_x>
+	    <condition>0.001</condition>
+	    <statement type="matrix_setter_ggp">
+	      <m11>1.0</m11>
+	      <m12>0.0</m12>
+	      <m13>0.0</m13>
+	      <m21>0.0</m21>
+	      <m22>1.0</m22>
+	      <m23>0.0</m23>
+	      <m31>0.0</m31>
+	      <m32>0.0</m32>
+	      <m33>1.0</m33>
+	      <child type="gradient_plot2_ggp">
+		<!--<child type="nodal_data_gradient_ggp">-->
+		<field_name>sbm 1 concentration</field_name>
+		<!--<field_name>fluid pressure</field_name>-->
+		<child type="unit_diagonal_ggp">
+		  <child type="direction_change_ggp">
+		    <vector type="gradient_plot2_ggp">
+		      <field_name>sbm 1 concentration</field_name>
+		    </vector>
+		  </child>
+		</child>
+	      </child>
+	    </statement>
+	    <threshold type="gradient_plot2_ggp">
+	      <field_name>sbm 1 concentration</field_name>
+	    </threshold>
+	  </collagen_direction>
+	</gdm>
+	<!--
+	    <collagen_direction type="plot2_ggp">
+	    <field_name>matrix concecntration gradient</field_name>
+	    </collagen_direction>
+	-->
+
+	<gdm type="anastamosis_grow_direction">
+	  <search_radius>25.0</search_radius>
+	</gdm>
+	<gdm type="branch_grow_direction">
+	</gdm>
+	<!-- include density gradient deflection ?-->
+      </grow_direction_modifiers>
+      
+      <boundary_condition type="bouncy">
+	<angio_boundary_groups>3</angio_boundary_groups>
+	<mbc type="pass_through"/>
+      </boundary_condition>
+      <fiber_initializer type="random_fiber_initializer_non_mangling"/>
+    </common_properties>
+  </solid>
+  
+  <permeability type="perm-const-iso">
+    <perm>4e-10</perm>
+  </permeability>
+  <osmotic_coefficient type="osm-coef-const">
+    <osmcoef>1</osmcoef>
+  </osmotic_coefficient>
+  </material><material id="2" name="s1" type="multiphasic">
+  <!-- from klevis's ecm material-->
+  <phi0>0.15</phi0>
+  <fixed_charge_density>0</fixed_charge_density>
+  <solid_bound sbm="1">
+    <rho0>200</rho0>
+    <rhomin>0</rhomin>
+    <rhomax>2000</rhomax>
+  </solid_bound>
+  <solid type="angio_mat">
+    <a>0.05</a>
+    <b>0.004</b>					
+    <N>2.0</N>
+    
+    <matrix_density>3</matrix_density>
+    <composite_material>1</composite_material>
+    <length_adjustment>1.0</length_adjustment>
+    
+    <matrix type="viscoelastic">
+      <t1>1.25e-5</t1>
+      <g0>0.0</g0>
+      <g1>1.0</g1>
+      <elastic type="EFD neo-Hookean">
+	<E>2.58e5</E>
+	<v>0.1</v>
+	<beta>2.5,2.5,2.5</beta> 
+	<ksi>2.58e6,2.58e6,2.58e6</ksi>
+      </elastic>
+    </matrix>
+
+    <common_properties type="angio_properties">
+      <fragment_seeder type="MDbyVolume">
+	<number_fragments>0</number_fragments>
+	<initial_vessel_length>42.0</initial_vessel_length>
+      </fragment_seeder>
+      
+      <vessel type="viscoelastic">
+	<t1>1.25e-5</t1>
+	<g0>0.0</g0>
+	<g1>1.0</g1>
+	<elastic type="neo-Hookean">
+	  <E>2.58e7</E>
+	  <v>0.0</v>
+	</elastic>
+      </vessel>
+      
+      <brancher type="pseudo_deferred_branch">
+	<length_to_branch type="normal_distribution">
+	  <mean>100</mean>
+	  <stddev>6</stddev>
+	</length_to_branch>
+	<time_to_emerge type="normal_distribution">
+	  <mean>0.5</mean>
+	  <stddev>0.125</stddev>
+	</time_to_emerge>
+      </brancher>
+      <grow_direction_modifiers>
+	<gdm type="unit_length">
+	</gdm>
+	<gdm type="density_length">
+	</gdm>
+	<gdm type="segment_length">
+	</gdm>
+	<gdm type="default_grow_direction">
+	  <collagen_direction type="threshold_ggp">
+	    <vec_x>1</vec_x>
+	    <condition>0.001</condition>
+	    <statement type="matrix_setter_ggp">
+	      <m11>1.0</m11>
+	      <m12>0.0</m12>
+	      <m13>0.0</m13>
+	      <m21>0.0</m21>
+	      <m22>1.0</m22>
+	      <m23>0.0</m23>
+	      <m31>0.0</m31>
+	      <m32>0.0</m32>
+	      <m33>1.0</m33>
+	      <child type="gradient_plot2_ggp">
+		<!--<child type="nodal_data_gradient_ggp">-->
+		<field_name>sbm 1 concentration</field_name>
+		<!--<field_name>fluid pressure</field_name>-->
+		<child type="unit_diagonal_ggp">
+		  <child type="direction_change_ggp">
+		    <vector type="gradient_plot2_ggp">
+		      <field_name>sbm 1 concentration</field_name>
+		    </vector>
+		  </child>
+		</child>
+	      </child>
+	    </statement>
+	    <threshold type="gradient_plot2_ggp">
+	      <field_name>sbm 1 concentration</field_name>
+	    </threshold>
+	  </collagen_direction>
+	</gdm>
+	<!--
+	    <collagen_direction type="plot2_ggp">
+	    <field_name>matrix concecntration gradient</field_name>
+	    </collagen_direction>
+	-->
+
+	<gdm type="anastamosis_grow_direction">
+	  <search_radius>25.0</search_radius>
+	</gdm>
+	<gdm type="branch_grow_direction">
+	</gdm>
+	<!-- include density gradient deflection ?-->
+      </grow_direction_modifiers>
+      
+      <boundary_condition type="bouncy">
+	<angio_boundary_groups>6</angio_boundary_groups>
+	<mbc type="pass_through"/>
+      </boundary_condition>
+      <fiber_initializer type="random_fiber_initializer_non_mangling"/>
+    </common_properties>
+  </solid>
+  
+  <permeability type="perm-const-iso">
+    <perm>4e-10</perm>
+  </permeability>
+  <osmotic_coefficient type="osm-coef-const">
+    <osmcoef>1</osmcoef>
+  </osmotic_coefficient>
+  </material><material id="3" name="s2" type="multiphasic">
+  <!-- from klevis's ecm material-->
+  <phi0>0.15</phi0>
+  <fixed_charge_density>0</fixed_charge_density>
+  <solid_bound sbm="1">
+    <rho0>400</rho0>
+    <rhomin>0</rhomin>
+    <rhomax>2000</rhomax>
+  </solid_bound>
+  <solid type="angio_mat">
+    <a>0.05</a>
+    <b>0.004</b>					
+    <N>2.0</N>
+    
+    <matrix_density>3</matrix_density>
+    <composite_material>1</composite_material>
+    <length_adjustment>1.0</length_adjustment>
+    
+    <matrix type="viscoelastic">
+      <t1>1.25e-5</t1>
+      <g0>0.0</g0>
+      <g1>1.0</g1>
+      <elastic type="EFD neo-Hookean">
+	<E>2.58e5</E>
+	<v>0.1</v>
+	<beta>2.5,2.5,2.5</beta> 
+	<ksi>2.58e6,2.58e6,2.58e6</ksi>
+      </elastic>
+    </matrix>
+
+    <common_properties type="angio_properties">
+      <fragment_seeder type="MDbyVolume">
+	<number_fragments>0</number_fragments>
+	<initial_vessel_length>42.0</initial_vessel_length>
+      </fragment_seeder>
+      
+      <vessel type="viscoelastic">
+	<t1>1.25e-5</t1>
+	<g0>0.0</g0>
+	<g1>1.0</g1>
+	<elastic type="neo-Hookean">
+	  <E>2.58e7</E>
+	  <v>0.0</v>
+	</elastic>
+      </vessel>
+      
+      <brancher type="pseudo_deferred_branch">
+	<length_to_branch type="normal_distribution">
+	  <mean>100</mean>
+	  <stddev>6</stddev>
+	</length_to_branch>
+	<time_to_emerge type="normal_distribution">
+	  <mean>0.5</mean>
+	  <stddev>0.125</stddev>
+	</time_to_emerge>
+      </brancher>
+      <grow_direction_modifiers>
+	<gdm type="unit_length">
+	</gdm>
+	<gdm type="density_length">
+	</gdm>
+	<gdm type="segment_length">
+	</gdm>
+	<gdm type="default_grow_direction">
+	  <collagen_direction type="threshold_ggp">
+	    <vec_x>1</vec_x>
+	    <condition>0.001</condition>
+	    <statement type="matrix_setter_ggp">
+	      <m11>1.0</m11>
+	      <m12>0.0</m12>
+	      <m13>0.0</m13>
+	      <m21>0.0</m21>
+	      <m22>1.0</m22>
+	      <m23>0.0</m23>
+	      <m31>0.0</m31>
+	      <m32>0.0</m32>
+	      <m33>1.0</m33>
+	      <child type="gradient_plot2_ggp">
+		<!--<child type="nodal_data_gradient_ggp">-->
+		<field_name>sbm 1 concentration</field_name>
+		<!--<field_name>fluid pressure</field_name>-->
+		<child type="unit_diagonal_ggp">
+		  <child type="direction_change_ggp">
+		    <vector type="gradient_plot2_ggp">
+		      <field_name>sbm 1 concentration</field_name>
+		    </vector>
+		  </child>
+		</child>
+	      </child>
+	    </statement>
+	    <threshold type="gradient_plot2_ggp">
+	      <field_name>sbm 1 concentration</field_name>
+	    </threshold>
+	  </collagen_direction>
+	</gdm>
+	<!--
+	    <collagen_direction type="plot2_ggp">
+	    <field_name>matrix concecntration gradient</field_name>
+	    </collagen_direction>
+	-->
+
+	<gdm type="anastamosis_grow_direction">
+	  <search_radius>25.0</search_radius>
+	</gdm>
+	<gdm type="branch_grow_direction">
+	</gdm>
+	<!-- include density gradient deflection ?-->
+      </grow_direction_modifiers>
+      
+      <boundary_condition type="bouncy">
+	<angio_boundary_groups>12</angio_boundary_groups>
+	<mbc type="pass_through"/>
+      </boundary_condition>
+      <fiber_initializer type="random_fiber_initializer_non_mangling"/>
+    </common_properties>
+  </solid>
+  
+  <permeability type="perm-const-iso">
+    <perm>4e-10</perm>
+  </permeability>
+  <osmotic_coefficient type="osm-coef-const">
+    <osmcoef>1</osmcoef>
+  </osmotic_coefficient>
+  </material><material id="4" name="s3" type="multiphasic">
+  <!-- from klevis's ecm material-->
+  <phi0>0.15</phi0>
+  <fixed_charge_density>0</fixed_charge_density>
+  <solid_bound sbm="1">
+    <rho0>600</rho0>
+    <rhomin>0</rhomin>
+    <rhomax>2000</rhomax>
+  </solid_bound>
+  <solid type="angio_mat">
+    <a>0.05</a>
+    <b>0.004</b>					
+    <N>2.0</N>
+    
+    <matrix_density>3</matrix_density>
+    <composite_material>1</composite_material>
+    <length_adjustment>1.0</length_adjustment>
+    
+    <matrix type="viscoelastic">
+      <t1>1.25e-5</t1>
+      <g0>0.0</g0>
+      <g1>1.0</g1>
+      <elastic type="EFD neo-Hookean">
+	<E>2.58e5</E>
+	<v>0.1</v>
+	<beta>2.5,2.5,2.5</beta> 
+	<ksi>2.58e6,2.58e6,2.58e6</ksi>
+      </elastic>
+    </matrix>
+
+    <common_properties type="angio_properties">
+      <fragment_seeder type="MDbyVolume">
+	<number_fragments>0</number_fragments>
+	<initial_vessel_length>42.0</initial_vessel_length>
+      </fragment_seeder>
+      
+      <vessel type="viscoelastic">
+	<t1>1.25e-5</t1>
+	<g0>0.0</g0>
+	<g1>1.0</g1>
+	<elastic type="neo-Hookean">
+	  <E>2.58e7</E>
+	  <v>0.0</v>
+	</elastic>
+      </vessel>
+      
+      <brancher type="pseudo_deferred_branch">
+	<length_to_branch type="normal_distribution">
+	  <mean>100</mean>
+	  <stddev>6</stddev>
+	</length_to_branch>
+	<time_to_emerge type="normal_distribution">
+	  <mean>0.5</mean>
+	  <stddev>0.125</stddev>
+	</time_to_emerge>
+      </brancher>
+      <grow_direction_modifiers>
+	<gdm type="unit_length">
+	</gdm>
+	<gdm type="density_length">
+	</gdm>
+	<gdm type="segment_length">
+	</gdm>
+	<gdm type="default_grow_direction">
+	  <collagen_direction type="threshold_ggp">
+	    <vec_x>1</vec_x>
+	    <condition>0.001</condition>
+	    <statement type="matrix_setter_ggp">
+	      <m11>1.0</m11>
+	      <m12>0.0</m12>
+	      <m13>0.0</m13>
+	      <m21>0.0</m21>
+	      <m22>1.0</m22>
+	      <m23>0.0</m23>
+	      <m31>0.0</m31>
+	      <m32>0.0</m32>
+	      <m33>1.0</m33>
+	      <child type="gradient_plot2_ggp">
+		<!--<child type="nodal_data_gradient_ggp">-->
+		<field_name>sbm 1 concentration</field_name>
+		<!--<field_name>fluid pressure</field_name>-->
+		<child type="unit_diagonal_ggp">
+		  <child type="direction_change_ggp">
+		    <vector type="gradient_plot2_ggp">
+		      <field_name>sbm 1 concentration</field_name>
+		    </vector>
+		  </child>
+		</child>
+	      </child>
+	    </statement>
+	    <threshold type="gradient_plot2_ggp">
+	      <field_name>sbm 1 concentration</field_name>
+	    </threshold>
+	  </collagen_direction>
+	</gdm>
+	<!--
+	    <collagen_direction type="plot2_ggp">
+	    <field_name>matrix concecntration gradient</field_name>
+	    </collagen_direction>
+	-->
+
+	<gdm type="anastamosis_grow_direction">
+	  <search_radius>25.0</search_radius>
+	</gdm>
+	<gdm type="branch_grow_direction">
+	</gdm>
+	<!-- include density gradient deflection ?-->
+      </grow_direction_modifiers>
+      
+      <boundary_condition type="bouncy">
+	<angio_boundary_groups>24</angio_boundary_groups>
+	<mbc type="pass_through"/>
+      </boundary_condition>
+      <fiber_initializer type="random_fiber_initializer_non_mangling"/>
+    </common_properties>
+  </solid>
+  
+  <permeability type="perm-const-iso">
+    <perm>4e-10</perm>
+  </permeability>
+  <osmotic_coefficient type="osm-coef-const">
+    <osmcoef>1</osmcoef>
+  </osmotic_coefficient>
+  </material><material id="5" name="s4" type="multiphasic">
+  <!-- from klevis's ecm material-->
+  <phi0>0.15</phi0>
+  <fixed_charge_density>0</fixed_charge_density>
+  <solid_bound sbm="1">
+    <rho0>800</rho0>
+    <rhomin>0</rhomin>
+    <rhomax>2000</rhomax>
+  </solid_bound>
+  <solid type="angio_mat">
+    <a>0.05</a>
+    <b>0.004</b>					
+    <N>2.0</N>
+    
+    <matrix_density>3</matrix_density>
+    <composite_material>1</composite_material>
+    <length_adjustment>1.0</length_adjustment>
+    
+    <matrix type="viscoelastic">
+      <t1>1.25e-5</t1>
+      <g0>0.0</g0>
+      <g1>1.0</g1>
+      <elastic type="EFD neo-Hookean">
+	<E>2.58e5</E>
+	<v>0.1</v>
+	<beta>2.5,2.5,2.5</beta> 
+	<ksi>2.58e6,2.58e6,2.58e6</ksi>
+      </elastic>
+    </matrix>
+
+    <common_properties type="angio_properties">
+      <fragment_seeder type="MDbyVolume">
+	<number_fragments>0</number_fragments>
+	<initial_vessel_length>42.0</initial_vessel_length>
+      </fragment_seeder>
+      
+      <vessel type="viscoelastic">
+	<t1>1.25e-5</t1>
+	<g0>0.0</g0>
+	<g1>1.0</g1>
+	<elastic type="neo-Hookean">
+	  <E>2.58e7</E>
+	  <v>0.0</v>
+	</elastic>
+      </vessel>
+      
+      <brancher type="pseudo_deferred_branch">
+	<length_to_branch type="normal_distribution">
+	  <mean>100</mean>
+	  <stddev>6</stddev>
+	</length_to_branch>
+	<time_to_emerge type="normal_distribution">
+	  <mean>0.5</mean>
+	  <stddev>0.125</stddev>
+	</time_to_emerge>
+      </brancher>
+      <grow_direction_modifiers>
+	<gdm type="unit_length">
+	</gdm>
+	<gdm type="density_length">
+	</gdm>
+	<gdm type="segment_length">
+	</gdm>
+	<gdm type="default_grow_direction">
+	  <collagen_direction type="threshold_ggp">
+	    <vec_x>1</vec_x>
+	    <condition>0.001</condition>
+	    <statement type="matrix_setter_ggp">
+	      <m11>1.0</m11>
+	      <m12>0.0</m12>
+	      <m13>0.0</m13>
+	      <m21>0.0</m21>
+	      <m22>1.0</m22>
+	      <m23>0.0</m23>
+	      <m31>0.0</m31>
+	      <m32>0.0</m32>
+	      <m33>1.0</m33>
+	      <child type="gradient_plot2_ggp">
+		<!--<child type="nodal_data_gradient_ggp">-->
+		<field_name>sbm 1 concentration</field_name>
+		<!--<field_name>fluid pressure</field_name>-->
+		<child type="unit_diagonal_ggp">
+		  <child type="direction_change_ggp">
+		    <vector type="gradient_plot2_ggp">
+		      <field_name>sbm 1 concentration</field_name>
+		    </vector>
+		  </child>
+		</child>
+	      </child>
+	    </statement>
+	    <threshold type="gradient_plot2_ggp">
+	      <field_name>sbm 1 concentration</field_name>
+	    </threshold>
+	  </collagen_direction>
+	</gdm>
+	<!--
+	    <collagen_direction type="plot2_ggp">
+	    <field_name>matrix concecntration gradient</field_name>
+	    </collagen_direction>
+	-->
+
+	<gdm type="anastamosis_grow_direction">
+	  <search_radius>25.0</search_radius>
+	</gdm>
+	<gdm type="branch_grow_direction">
+	</gdm>
+	<!-- include density gradient deflection ?-->
+      </grow_direction_modifiers>
+      
+      <boundary_condition type="bouncy">
+	<angio_boundary_groups>48</angio_boundary_groups>
+	<mbc type="pass_through"/>
+      </boundary_condition>
+      <fiber_initializer type="random_fiber_initializer_non_mangling"/>
+    </common_properties>
+  </solid>
+  
+  <permeability type="perm-const-iso">
+    <perm>4e-10</perm>
+  </permeability>
+  <osmotic_coefficient type="osm-coef-const">
+    <osmcoef>1</osmcoef>
+  </osmotic_coefficient>
+  </material><material id="6" name="s5" type="multiphasic">
+  <!-- from klevis's ecm material-->
+  <phi0>0.15</phi0>
+  <fixed_charge_density>0</fixed_charge_density>
+  <solid_bound sbm="1">
+    <rho0>1000</rho0>
+    <rhomin>0</rhomin>
+    <rhomax>2000</rhomax>
+  </solid_bound>
+  <solid type="angio_mat">
+    <a>0.05</a>
+    <b>0.004</b>					
+    <N>2.0</N>
+    
+    <matrix_density>3</matrix_density>
+    <composite_material>1</composite_material>
+    <length_adjustment>1.0</length_adjustment>
+    
+    <matrix type="viscoelastic">
+      <t1>1.25e-5</t1>
+      <g0>0.0</g0>
+      <g1>1.0</g1>
+      <elastic type="EFD neo-Hookean">
+	<E>2.58e5</E>
+	<v>0.1</v>
+	<beta>2.5,2.5,2.5</beta> 
+	<ksi>2.58e6,2.58e6,2.58e6</ksi>
+      </elastic>
+    </matrix>
+
+    <common_properties type="angio_properties">
+      <fragment_seeder type="MDbyVolume">
+	<number_fragments>0</number_fragments>
+	<initial_vessel_length>42.0</initial_vessel_length>
+      </fragment_seeder>
+      
+      <vessel type="viscoelastic">
+	<t1>1.25e-5</t1>
+	<g0>0.0</g0>
+	<g1>1.0</g1>
+	<elastic type="neo-Hookean">
+	  <E>2.58e7</E>
+	  <v>0.0</v>
+	</elastic>
+      </vessel>
+      
+      <brancher type="pseudo_deferred_branch">
+	<length_to_branch type="normal_distribution">
+	  <mean>100</mean>
+	  <stddev>6</stddev>
+	</length_to_branch>
+	<time_to_emerge type="normal_distribution">
+	  <mean>0.5</mean>
+	  <stddev>0.125</stddev>
+	</time_to_emerge>
+      </brancher>
+      <grow_direction_modifiers>
+	<gdm type="unit_length">
+	</gdm>
+	<gdm type="density_length">
+	</gdm>
+	<gdm type="segment_length">
+	</gdm>
+	<gdm type="default_grow_direction">
+	  <collagen_direction type="threshold_ggp">
+	    <vec_x>1</vec_x>
+	    <condition>0.001</condition>
+	    <statement type="matrix_setter_ggp">
+	      <m11>1.0</m11>
+	      <m12>0.0</m12>
+	      <m13>0.0</m13>
+	      <m21>0.0</m21>
+	      <m22>1.0</m22>
+	      <m23>0.0</m23>
+	      <m31>0.0</m31>
+	      <m32>0.0</m32>
+	      <m33>1.0</m33>
+	      <child type="gradient_plot2_ggp">
+		<!--<child type="nodal_data_gradient_ggp">-->
+		<field_name>sbm 1 concentration</field_name>
+		<!--<field_name>fluid pressure</field_name>-->
+		<child type="unit_diagonal_ggp">
+		  <child type="direction_change_ggp">
+		    <vector type="gradient_plot2_ggp">
+		      <field_name>sbm 1 concentration</field_name>
+		    </vector>
+		  </child>
+		</child>
+	      </child>
+	    </statement>
+	    <threshold type="gradient_plot2_ggp">
+	      <field_name>sbm 1 concentration</field_name>
+	    </threshold>
+	  </collagen_direction>
+	</gdm>
+	<!--
+	    <collagen_direction type="plot2_ggp">
+	    <field_name>matrix concecntration gradient</field_name>
+	    </collagen_direction>
+	-->
+
+	<gdm type="anastamosis_grow_direction">
+	  <search_radius>25.0</search_radius>
+	</gdm>
+	<gdm type="branch_grow_direction">
+	</gdm>
+	<!-- include density gradient deflection ?-->
+      </grow_direction_modifiers>
+      
+      <boundary_condition type="bouncy">
+	<angio_boundary_groups>96</angio_boundary_groups>
+	<mbc type="pass_through"/>
+      </boundary_condition>
+      <fiber_initializer type="random_fiber_initializer_non_mangling"/>
+    </common_properties>
+  </solid>
+  
+  <permeability type="perm-const-iso">
+    <perm>4e-10</perm>
+  </permeability>
+  <osmotic_coefficient type="osm-coef-const">
+    <osmcoef>1</osmcoef>
+  </osmotic_coefficient>
+</material></Material>
