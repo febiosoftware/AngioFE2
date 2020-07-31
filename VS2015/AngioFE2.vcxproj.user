@@ -13,16 +13,18 @@
     <LocalDebuggerWorkingDirectory>..\..\v2tests\branching\mdpassthroughdc\t4kd</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Debug\FEBio2.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\Steven\Documents\v2tests\febioDebug.xml" -task=angio</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommand>$(FEBio2Dir)\VS2015\x64\Debug\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\Steven\Documents\Models\AngioFE2Debug.xml" -task=angio</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>C:\Users\Steven\Documents\v2tests\XAlignment_mix3d_w1.0</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>C:\Users\Steven\Documents\Models\v2tests\mix_tests\XAlignment_mix3d_w1.0</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerEnvironment>PATH=$(VCRedistPaths)%PATH%$(LocalDebuggerEnvironment); set OMP_NUM_THREADS=11</LocalDebuggerEnvironment>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug OMP|x64'">
-    <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Debug OMP\FEBio2.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\Steven\Documents\v2tests\febioDebugOMP.xml" -task=angio</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommand>$(FEBio2Dir)\VS2015\x64\Debug OMP\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\Steven\Documents\Models\AngioFE2DebugOMP.xml" -task=angio</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>C:\Users\Steven\Documents\v2tests\XAlignment_mix3d_w1.0</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>C:\Users\Steven\Documents\Models\v2tests\mix_tests\XAlignment_mix3d_w1.0</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerEnvironment>PATH=$(VCRedistPaths)%PATH%$(LocalDebuggerEnvironment); set OMP_NUM_THREADS=11</LocalDebuggerEnvironment>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LocalDebuggerCommand>C:\Users\mp4\Documents\FEBio2\VS2013\Release\FEBio2.exe</LocalDebuggerCommand>
@@ -37,16 +39,18 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Release\FEBio2.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\mp4\Documents\febioRelease.xml" -task=angio angiofe.txt</LocalDebuggerCommandArguments>
-    <LocalDebuggerWorkingDirectory>..\..\v2tests\plunger_debug\qs_compresion</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommand>$(FEBio2Dir)\VS2015\x64\Release\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\Steven\Documents\Models\AngioFE2Release.xml" -task=angio</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>C:\Users\Steven\Documents\Models\v2tests\AngioFE2_Release_Examples_07_20\base_compress</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerAttach>false</LocalDebuggerAttach>
+    <LocalDebuggerEnvironment>PATH=$(VCRedistPaths)%PATH%$(LocalDebuggerEnvironment); set OMP_NUM_THREADS=11</LocalDebuggerEnvironment>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release OMP|x64'">
-    <LocalDebuggerCommand>$(FEBioDir)\VS2015\x64\Release OMP\FEBio2.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\Steven\Documents\v2tests\febioReleaseOMP.xml" -task=angio</LocalDebuggerCommandArguments>
-    <LocalDebuggerWorkingDirectory>C:\Users\Steven\Documents\v2tests\XAlignment_mix3d_w1.0</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommand>$(FEBio2Dir)\VS2015\x64\Release OMP\FEBio2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-i control.feb -cnf "C:\Users\Steven\Documents\Models\AngioFE2ReleaseOMP.xml" -task=angio</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>C:\Users\Steven\Documents\GitHub\AngioFE2\AngioFE2TestProblems\XAlignment_mix3d</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerEnvironment>PATH=$(VCRedistPaths)%PATH%$(LocalDebuggerEnvironment); set OMP_NUM_THREADS=11</LocalDebuggerEnvironment>
   </PropertyGroup>
 </Project>
